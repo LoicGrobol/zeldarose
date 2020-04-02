@@ -1,0 +1,8 @@
+click
+click_pathlib
+pytorch-lightning
+loguru
+torch
+tqdm
+tokenizers
+transformers
