@@ -28,14 +28,14 @@ class TextDataset(torch.utils.data.Dataset):
         if not text_path.is_file():
             raise ValueError(f"{text_path} is not a valid text file.")
         self.tokenizer = tokenizer
-        self.block_size = block_size
 
-        block_size = block_size - (
+        self.block_size = block_size - (
             tokenizer.max_len - tokenizer.max_len_single_sentence
         )
 
         cached_features_file = (
-            text_path.parent / f"{model_type}_cached_lm_{block_size}_{text_path.stem}"
+            text_path.parent
+            / f"{model_type}_cached_lm_{block_size}_{text_path.stem}.pt"
         )
         if cached_features_file.exists() and not overwrite_cache:
             logger.info(f"Loading features from cached file {cached_features_file}")
@@ -49,7 +49,7 @@ class TextDataset(torch.utils.data.Dataset):
             logger.info(f"Saving features into cached file {cached_features_file}")
             with open(cached_features_file, "wb") as handle:
                 torch.save(
-                    self.examples, handle, pickle_protocol=pickle.HIGHEST_PROTOCOL
+                    self.examples, handle, pickle_protocol=pickle.HIGHEST_PROTOCOL,
                 )
 
     def load_file(
@@ -57,7 +57,7 @@ class TextDataset(torch.utils.data.Dataset):
     ) -> List[torch.Tensor]:
         """Tokenize, encode and split a raw text in blocks.
 
-        **Note**: This reads files by chunks of about 4MiB which seemed to work best for the roberta
+        **Note**: This reads files by chunks of about 1MiB which seemed to work best for the roberta
         fast tokenizer on my setup it might benefit from fine-tuning. The trade-off is: using larger
         chunks will reduce the number of calls to `transformers.encode` but pass it larger texts, so
         what is most efficient depends on the implementation of this method. Of course a larger
@@ -75,7 +75,7 @@ class TextDataset(torch.utils.data.Dataset):
                 leave=False,
                 unit_divisor=1024,
                 unit_scale=True,
-                mininterval=2,
+                mininterval=1,
             )
 
             # Process by chunks loading everything in RAM
@@ -120,7 +120,8 @@ class TextDataset(torch.utils.data.Dataset):
                 else:
                     buffer[offset:new_offset] = encoded
                     offset = new_offset
-                pbar.update(len(chunk))
+                pbar.n = in_stream.tell()
+                pbar.update(0)
                 raw_lines = in_stream.readlines(read_size_hint)
             pbar.close()
         return examples
@@ -138,9 +139,8 @@ class LineByLineTextDataset(TextDataset):
     Lines that are too long are simply truncated, so it is *your* responsibility to ensure that
     there not many of these or use a `TextDataset` instead)
     """
-
     def load_file(
-        self, text_path: pathlib.Path, read_size_hint: int = 2 ** 19
+        self, text_path: pathlib.Path, read_size_hint: int = 2 ** 20
     ) -> List[torch.Tensor]:
         examples: List[torch.Tensor] = []
         with open(text_path, "rb") as in_stream:
@@ -151,22 +151,17 @@ class LineByLineTextDataset(TextDataset):
                 leave=False,
                 unit_divisor=1024,
                 unit_scale=True,
-                mininterval=2,
+                mininterval=1,
             )
-            # FUTURE: This reads one line at a time since there is no uniform API for encoding
-            # batches that works for bost slow and fast tokenizers, but it should be changed as soon
-            # as we get one.
-            for raw_line in in_stream:
-                decoded = raw_line.decode("utf-8")
-                encoded = self.tokenizer.encode(decoded, add_special_tokens=False)[
-                    : self.block_size
-                ]
-                examples.append(
-                    torch.tensor(
-                        self.tokenizer.build_inputs_with_special_tokens(encoded),
-                        dtype=torch.long,
-                    ),
-                )
-                pbar.update(len(raw_line))
+            raw_lines = in_stream.readlines(read_size_hint)  # Oh a := would be so handy
+            while raw_lines:
+                decoded = [l.decode("utf-8") for l in raw_lines]
+                encoded = self.tokenizer.batch_encode_plus(
+                    decoded, max_length=self.block_size, return_tensors="pt"
+                )["input_ids"]
+                examples.extend(encoded)
+                pbar.n = in_stream.tell()
+                pbar.update(0)
+                raw_lines = in_stream.readlines(read_size_hint)
             pbar.close()
             return examples
