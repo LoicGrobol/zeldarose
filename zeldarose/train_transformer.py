@@ -7,7 +7,8 @@ import click
 import click_pathlib
 import transformers
 
-import data
+from zeldarose import data
+from zeldarose import trainer
 
 
 logging.getLogger(None).setLevel(logging.ERROR)
