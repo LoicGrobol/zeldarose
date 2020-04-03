@@ -1,7 +1,8 @@
 click
 click_pathlib
-pytorch-lightning
 loguru
+pytorch-lightning
+pytorch-lamb
 torch
 tqdm
 tokenizers
