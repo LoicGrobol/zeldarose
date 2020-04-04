@@ -148,25 +148,22 @@ class MLMFinetunerConfig(pydantic.BaseModel):
 
 class MLMFinetuner(pl.LightningModule):
     def __init__(
-        self,
-        model: transformers.PreTrainedModel,
-        training_config: MLMFinetunerConfig,
-        task_config: MLMTaskConfig,
+        self, model: transformers.PreTrainedModel, config: MLMFinetunerConfig,
     ):
         super().__init__()
-        self.config = training_config
+        self.config = config
         self.model = model
 
     def forward(
         self,
-        inputs: torch.Tensor,
+        tokens: torch.Tensor,
         attention_mask: torch.Tensor,
         token_type_ids: torch.Tensor,
         mlm_labels: torch.Tensor,
     ):
 
         output = self.model(
-            input_ids=inputs,
+            input_ids=tokens,
             mlm_labels=mlm_labels,
             attention_mask=attention_mask,
             token_type_ids=token_type_ids,
@@ -174,13 +171,12 @@ class MLMFinetuner(pl.LightningModule):
 
         return output
 
-    def training_step(self, batch, batch_idx):
-        inputs, attention_mask, token_type_ids, mlm_labels = batch
+    def training_step(self, batch: MLMBatch, batch_idx: int):
         outputs = self.forward(
-            inputs=inputs,
-            attention_mask=attention_mask,
-            token_type_ids=token_type_ids,
-            mlm_labels=mlm_labels,
+            tokens=batch.tokens,
+            attention_mask=batch.attention_mask,
+            token_type_ids=batch.token_type_ids,
+            mlm_labels=batch.mlm_labels,
         )
 
         loss = outputs[0]
@@ -189,18 +185,17 @@ class MLMFinetuner(pl.LightningModule):
         tensorboard_logs = {"train/train_loss": loss, "train/perplexity": perplexity}
         return {"loss": loss, "log": tensorboard_logs}
 
-    def validation_step(self, batch, batch_idx):
-        inputs, attention_mask, token_type_ids, mlm_labels = batch
+    def validation_step(self, batch: MLMBatch, batch_idx: int):
         outputs = self.forward(
-            inputs=inputs,
-            attention_mask=attention_mask,
-            token_type_ids=token_type_ids,
-            mlm_labels=mlm_labels,
+            tokens=batch.tokens,
+            attention_mask=batch.attention_mask,
+            token_type_ids=batch.token_type_ids,
+            mlm_labels=batch.mlm_labels,
         )
         loss = outputs[0]
 
         preds = torch.argmax(outputs[1], dim=-1)
-        correct_preds = preds.eq(mlm_labels).logical_and(mlm_labels.ne(-100))
+        correct_preds = preds.eq(batch.mlm_labels) & batch.mlm_labels.ne(-100)
         accuracy = correct_preds.mean()
 
         return {"val_loss": loss, "val_accuracy": accuracy}
@@ -255,6 +250,3 @@ class MLMFinetuner(pl.LightningModule):
         scheduler_config = {"scheduler": scheduler, "interval": "step"}
 
         return [optimizer], [scheduler_config]
-
-    def train_dataloader(self):
-        return MLMLoader(self.dataset, batch_size=self.config.batch_size)
