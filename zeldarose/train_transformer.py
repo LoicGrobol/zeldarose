@@ -18,17 +18,15 @@ logging.getLogger(None).setLevel(logging.ERROR)
 @click.argument(
     "raw_text", type=click_pathlib.Path(resolve_path=True, exists=True, dir_okay=False),
 )
-@click.option(
-    "--model-type", type=str, default="roberta", help="Which muppet to train"
-)
+@click.option("--model-type", type=str, default="roberta", help="Which muppet to train")
 @click.option(
     "--tokenizer-name",
     type=str,
     default="roberta-large",
-    help="A pretrained tokenizer model to use",
+    help="A pretrained tokenizer model to use, either a name or a path.",
 )
 @click.option(
-    "--model-name", type=str, default=None, help="A name to give to the model"
+    "--model-name", type=str, default="generic_muppet", help="A name to give to the model"
 )
 @click.option("--line-by-line", is_flag=True)
 @click.option("--overwrite-cache", is_flag=True)
@@ -50,10 +48,7 @@ def main(
         dataset_type = data.TextDataset
 
     dataset_type(
-        tokenizer=tokenizer,
-        text_path=raw_text,
-        model_type=model_type,
-        overwrite_cache=overwrite_cache,
+        tokenizer=tokenizer, text_path=raw_text, overwrite_cache=overwrite_cache,
     )
 
 
