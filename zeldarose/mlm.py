@@ -1,35 +1,18 @@
-from typing import NamedTuple, Optional
+from typing import NamedTuple, Optional, Sequence
 
+import pydantic
 import pytorch_lightning as pl
 import torch
 import torch.jit
+import torch.utils.data
 import transformers
 
+from torch.nn.utils.rnn import pad_sequence
 
-def get_keep_mask(
-    inputs: torch.Tensor,
-    tokenizer: transformers.PreTrainedTokenizer,
-    padding_mask: Optional[torch.Tensor] = None,
-) -> torch.Tensor:
-    """Takes a batch of MLM inputs and return a mask for the tokens that should no be
-    changed: special tokens and possibly padding.
-    """
-    special_tokens_mask = torch.tensor(
-        [
-            tokenizer.get_special_tokens_mask(val, already_has_special_tokens=True)
-            for val in inputs.tolist()
-        ],
-        dtype=torch.bool,
-    )
-    keep_mask = special_tokens_mask
-    if padding_mask is not None:
-        keep_mask = keep_mask | padding_mask
-    elif tokenizer._pad_token is not None:
-        keep_mask = keep_mask | inputs.eq(tokenizer.pad_token_id)
-    return keep_mask
+import zeldarose.data
 
 
-class MaskedBatch(NamedTuple):
+class MaskedTokens(NamedTuple):
     inputs: torch.Tensor
     labels: torch.Tensor
 
@@ -41,14 +24,14 @@ def mask_tokens(
     inputs: torch.Tensor,
     input_mask_indice: int,
     vocabulary_size: int,
-    change_ratio: float = 0.15,
-    mask_ratio: float = 0.8,
-    switch_ratio: float = 0.1,
+    change_ratio: float,
+    mask_ratio: float,
+    switch_ratio: float,
     keep_mask: Optional[torch.Tensor] = None,
     label_mask_indice: int = -100,
-) -> MaskedBatch:
+) -> MaskedTokens:
     """Prepare masked tokens inputs/labels for masked language modeling
-
+    
     This modifies `inputs` in place, which is not very pure but avoids a (useless in practice) copy
     operation.
     """
@@ -80,12 +63,98 @@ def mask_tokens(
     inputs[switched_tokens] = random_words[switched_tokens]
 
     # The rest of the time (10% of the time) we keep the masked input tokens unchanged
-    return MaskedBatch(inputs, labels)
+    return MaskedTokens(inputs, labels)
+
+
+class MLMTaskConfig(pydantic.BaseModel):
+    change_ratio: float = 0.15
+    mask_ratio: float = 0.8
+    switch_ratio: float = 0.1
+
+
+class MLMBatch(NamedTuple):
+    tokens: torch.Tensor
+    attention_mask: torch.Tensor
+    token_type_ids: torch.Tensor
+    mlm_labels: torch.Tensor
+
+
+class MLMLoader(torch.utils.data.Dataloader):
+    def __init__(
+        self,
+        dataset: zeldarose.data.TextDataset,
+        task_config: MLMTaskConfig,
+        *args,
+        **kwargs
+    ):
+        super().__init__(*args, collate_fn=self.collate, **kwargs)
+        self.task_config = task_config
+        mask_token_index = getattr(self.dataset.tokenizer, "mask_token_id")
+        if mask_token_index is None:
+            mask_token_indexd = self.dataset.tokenizer.convert_tokens_to_ids(
+                self.dataset.tokenizer.mask_token
+            )
+        self.mask_token_indexd = mask_token_indexd
+        padding_value = getattr(self.dataset.tokenizer, "pad_token_id", 0)
+        if padding_value is None:
+            padding_value = self.dataset.tokenizer.convert_tokens_to_ids(
+                self.dataset.tokenizer.padding_value
+            )
+
+    def collate(self, batch: Sequence[torch.Tensor]) -> MLMBatch:
+        padded_batch = pad_sequence(
+            batch, batch_first=True, padding_value=self.padding_value
+        )
+        padding_mask = padded_batch.eq(self.padding_value)
+        # We only deal with single sequences here
+        token_type_ids = torch.zeros_like(padded_batch)
+        attention_mask = padding_mask.logical_not()
+
+        special_tokens_mask = torch.tensor(
+            [
+                self.dataset.tokenizer.get_special_tokens_mask(
+                    val, already_has_special_tokens=True
+                )
+                for val in batch
+            ],
+            dtype=torch.bool,
+        )
+        keep_mask = special_tokens_mask | padding_mask
+        masked = mask_tokens(
+            inputs=padded_batch,
+            input_mask_index=self.mask_token_id,
+            vocabulary_size=len(self.dataset.tokenizer),
+            change_ratio=self.task_config.change_ratio,
+            mask_ratio=self.task_config.mask_ratio,
+            switch_ratio=self.task_config.switch_ratio,
+            keep_mask=keep_mask,
+        )
+        return MLMBatch(
+            tokens=masked.inputs,
+            attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
+            mlm_labels=masked.labels,
+        )
+
+
+class MLMFinetunerConfig(pydantic.BaseModel):
+    batch_size: int
+    epsilon: float
+    learning_rate: float
+    num_steps: int
+    warmup_steps: int
+    weight_decay: float
 
 
 class MLMFinetuner(pl.LightningModule):
-    def __init__(self, model: transformers.PreTrainedModel):
+    def __init__(
+        self,
+        model: transformers.PreTrainedModel,
+        training_config: MLMFinetunerConfig,
+        task_config: MLMTaskConfig,
+    ):
         super().__init__()
+        self.config = training_config
         self.model = model
 
     def forward(
@@ -117,7 +186,6 @@ class MLMFinetuner(pl.LightningModule):
         loss = outputs[0]
         perplexity = torch.exp(loss)
 
-        self._log_lr()
         tensorboard_logs = {"train/train_loss": loss, "train/perplexity": perplexity}
         return {"loss": loss, "log": tensorboard_logs}
 
@@ -188,13 +256,5 @@ class MLMFinetuner(pl.LightningModule):
 
         return [optimizer], [scheduler_config]
 
-    def _log_lr(self):
-        """Logs learning rate to tensorboard.
-        """
-        # get LR schedulers from the pytorch-lightning trainer object.
-        scheduler = self.trainer.lr_schedulers[0]["scheduler"]
-
-        # tie LR stepping to global step.
-        for i, lr in enumerate(scheduler.get_lr()):
-            # add the scalar to the Experiment object.
-            self.logger.experiment.add_scalar(f"lr_{i}", lr, self.global_step)
+    def train_dataloader(self):
+        return MLMLoader(self.dataset, batch_size=self.config.batch_size)

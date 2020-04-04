@@ -1,10 +1,9 @@
 import pathlib
 import pickle  # nosec
 
-from typing import List, NamedTuple, Optional
+from typing import List
 
 import torch
-import torch.jit
 import torch.utils.data
 import tqdm
 import transformers
@@ -34,8 +33,7 @@ class TextDataset(torch.utils.data.Dataset):
         )
 
         cached_features_file = (
-            text_path.parent
-            / f"lm_{block_size}_{text_path.stem}_cache.pt"
+            text_path.parent / f"lm_{block_size}_{text_path.stem}_cache.pt"
         )
         if cached_features_file.exists() and not overwrite_cache:
             logger.info(f"Loading features from cached file {cached_features_file}")
@@ -138,6 +136,7 @@ class LineByLineTextDataset(TextDataset):
     Lines that are too long are simply truncated, so it is *your* responsibility to ensure that
     there not many of these or use a `TextDataset` instead)
     """
+
     def load_file(
         self, text_path: pathlib.Path, read_size_hint: int = 2 ** 20
     ) -> List[torch.Tensor]:
@@ -164,80 +163,3 @@ class LineByLineTextDataset(TextDataset):
                 raw_lines = in_stream.readlines(read_size_hint)
             pbar.close()
             return examples
-
-
-def get_keep_mask(
-    inputs: torch.Tensor,
-    tokenizer: transformers.PreTrainedTokenizer,
-    padding_mask: Optional[torch.Tensor] = None,
-) -> torch.Tensor:
-    """Takes a batch of MLM inputs and return a mask for the tokens that should no be
-    changed: special tokens and possibly padding.
-    """
-    special_tokens_mask = torch.tensor(
-        [
-            tokenizer.get_special_tokens_mask(val, already_has_special_tokens=True)
-            for val in inputs.tolist()
-        ],
-        dtype=torch.bool,
-    )
-    keep_mask = special_tokens_mask
-    if padding_mask is not None:
-        keep_mask = keep_mask | padding_mask
-    elif tokenizer._pad_token is not None:
-        keep_mask = keep_mask | inputs.eq(tokenizer.pad_token_id)
-    return keep_mask
-
-
-class MaskedBatch(NamedTuple):
-    inputs: torch.Tensor
-    labels: torch.Tensor
-
-
-# FUTURE: use `torch.logical_xxx` functions in torch >= 1.5.0
-# TODO: How to do whole-word masking?
-@torch.jit.script
-def mask_tokens(
-    inputs: torch.Tensor,
-    input_mask_indice: int,
-    vocabulary_size: int,
-    change_ratio: float = 0.15,
-    mask_ratio: float = 0.8,
-    switch_ratio: float = 0.1,
-    keep_mask: Optional[torch.Tensor] = None,
-    label_mask_indice: int = -100,
-) -> MaskedBatch:
-    """Prepare masked tokens inputs/labels for masked language modeling
-    
-    This modifies `inputs` in place, which is not very pure but avoids a (useless in practice) copy
-    operation.
-    """
-
-    labels = inputs.clone()
-    # Tells us what to do with each token according to its value `v` in `what_to_do`
-    # - `v <= change_ratio` change the token and use it in the loss
-    #   - `v <= change_ratio * mask_ratio`: replace with [MASK] ('s id)
-    #   - `change_ratio * mask_ratio < v <= change_ratio * (mask_ratio + switch_ratio)`: replace with a random word
-    #   - `change_ratio * (mask_ratio + switch_ratio) < v <= change_ratio`: keep as is
-    # - `change_ratio < v`: keep as is and don't use in the loss
-    what_to_do = torch.rand_like(labels)
-    if keep_mask is not None:
-        what_to_do.masked_fill_(keep_mask, 1.0)
-    preserved_tokens = what_to_do.gt(change_ratio)
-    # We only compute loss on masked tokens
-    labels.masked_fill_(preserved_tokens, label_mask_indice)
-
-    # replace some input tokens with tokenizer.mask_token ([MASK])
-    masked_tokens = what_to_do.le(change_ratio * mask_ratio)
-    inputs.masked_fill_(masked_tokens, input_mask_indice)
-
-    # Replace masked input tokens with random word
-    switched_tokens = (
-        what_to_do.le(change_ratio * (mask_ratio + switch_ratio))
-        & masked_tokens.logical_not()
-    )
-    random_words = torch.randint_like(labels, vocabulary_size)
-    inputs[switched_tokens] = random_words[switched_tokens]
-
-    # The rest of the time (10% of the time) we keep the masked input tokens unchanged
-    return MaskedBatch(inputs, labels)
