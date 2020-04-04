@@ -91,10 +91,10 @@ class MLMLoader(torch.utils.data.Dataloader):
         self.task_config = task_config
         mask_token_index = getattr(self.dataset.tokenizer, "mask_token_id")
         if mask_token_index is None:
-            mask_token_indexd = self.dataset.tokenizer.convert_tokens_to_ids(
+            mask_token_index = self.dataset.tokenizer.convert_tokens_to_ids(
                 self.dataset.tokenizer.mask_token
             )
-        self.mask_token_indexd = mask_token_indexd
+        self.mask_token_index = mask_token_index
         padding_value = getattr(self.dataset.tokenizer, "pad_token_id", 0)
         if padding_value is None:
             padding_value = self.dataset.tokenizer.convert_tokens_to_ids(
