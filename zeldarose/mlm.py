@@ -66,6 +66,7 @@ def mask_tokens(
     return MaskedTokens(inputs, labels)
 
 
+# TODO: add validation
 class MLMTaskConfig(pydantic.BaseModel):
     change_ratio: float = 0.15
     mask_ratio: float = 0.8
@@ -137,13 +138,14 @@ class MLMLoader(torch.utils.data.Dataloader):
         )
 
 
+# TODO: add validation
 class MLMFinetunerConfig(pydantic.BaseModel):
     batch_size: int
     epsilon: float
     learning_rate: float
     num_steps: int
     warmup_steps: int
-    weight_decay: float
+    weight_decay: Optional[float]
 
 
 class MLMFinetuner(pl.LightningModule):
@@ -214,29 +216,37 @@ class MLMFinetuner(pl.LightningModule):
         return {"avg_val_loss": avg_loss, "log": tensorboard_logs}
 
     def configure_optimizers(self):
-        no_decay = ["bias", "LayerNorm.weight"]
-        optimizer_grouped_parameters = [
-            {
-                "params": [
-                    p
-                    for n, p in self.model.named_parameters()
-                    if not any(nd in n for nd in no_decay)
-                ],
-                "weight_decay": self.config.weight_decay,
-            },
-            {
-                "params": [
-                    p
-                    for n, p in self.model.named_parameters()
-                    if any(nd in n for nd in no_decay)
-                ],
-                "weight_decay": 0.0,
-            },
-        ]
+        if self.config.weight_decay is not None:
+            no_decay = ["bias", "LayerNorm.weight"]
+            optimizer_grouped_parameters = [
+                {
+                    "params": [
+                        p
+                        for n, p in self.model.named_parameters()
+                        if not any(nd in n for nd in no_decay)
+                    ],
+                    "weight_decay": self.config.weight_decay,
+                },
+                {
+                    "params": [
+                        p
+                        for n, p in self.model.named_parameters()
+                        if any(nd in n for nd in no_decay)
+                    ],
+                    "weight_decay": 0.0,
+                },
+            ]
+        else:
+            optimizer_grouped_parameters = [
+                {
+                    "params": [p for n, p in self.model.named_parameters()],
+                    "weight_decay": 0.0,
+                },
+            ]
 
         t_total = self.config.num_steps
 
-        optimizer = torch.optim.Adam(
+        optimizer = torch.optim.AdamW(
             optimizer_grouped_parameters,
             lr=self.config.learning_rate,
             eps=self.config.epsilon,
