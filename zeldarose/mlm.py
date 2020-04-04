@@ -1,4 +1,4 @@
-from typing import NamedTuple, Optional, Sequence
+from typing import NamedTuple, Optional, Sequence, Tuple
 
 import pydantic
 import pytorch_lightning as pl
@@ -141,11 +141,12 @@ class MLMLoader(torch.utils.data.Dataloader):
 # TODO: add validation
 class MLMFinetunerConfig(pydantic.BaseModel):
     batch_size: int
-    epsilon: float
-    learning_rate: float
+    betas: Tuple[float, float] = (0.9, 0.98)
+    epsilon: float = 1e-8
+    learning_rate: float = 1e-4
     num_steps: int
     warmup_steps: int
-    weight_decay: Optional[float]
+    weight_decay: Optional[float] = None
 
 
 class MLMFinetuner(pl.LightningModule):
@@ -248,6 +249,7 @@ class MLMFinetuner(pl.LightningModule):
 
         optimizer = torch.optim.AdamW(
             optimizer_grouped_parameters,
+            betas=self.config.betas,
             lr=self.config.learning_rate,
             eps=self.config.epsilon,
         )
