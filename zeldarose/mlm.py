@@ -187,12 +187,15 @@ class MLMFinetuner(pl.LightningModule):
 
         return output
 
+    # TODO: masking should happen here ?
     def training_step(self, batch: MLMBatch, batch_idx: int):
+        # FIXME: this because lightning doesn't preserve namedtuples
+        tokens, attention_mask, token_type_ids, mlm_labels = batch
         outputs = self.forward(
-            tokens=batch.tokens,
-            attention_mask=batch.attention_mask,
-            token_type_ids=batch.token_type_ids,
-            mlm_labels=batch.mlm_labels,
+            tokens=tokens,
+            attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
+            mlm_labels=mlm_labels,
         )
 
         loss = outputs[0]
