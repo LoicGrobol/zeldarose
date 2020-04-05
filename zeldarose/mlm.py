@@ -22,7 +22,7 @@ class MaskedTokens(NamedTuple):
 @torch.jit.script
 def mask_tokens(
     inputs: torch.Tensor,
-    input_mask_indice: int,
+    input_mask_index: int,
     vocabulary_size: int,
     change_ratio: float,
     mask_ratio: float,
@@ -43,7 +43,10 @@ def mask_tokens(
     #   - `change_ratio * mask_ratio < v <= change_ratio * (mask_ratio + switch_ratio)`: replace with a random word
     #   - `change_ratio * (mask_ratio + switch_ratio) < v <= change_ratio`: keep as is
     # - `change_ratio < v`: keep as is and don't use in the loss
-    what_to_do = torch.rand_like(labels)
+    # FIXME: layout and device should be inferred here, file an issue
+    what_to_do = torch.rand_like(
+        labels, layout=torch.strided, dtype=torch.float, device=labels.device
+    )
     if keep_mask is not None:
         what_to_do.masked_fill_(keep_mask, 1.0)
     preserved_tokens = what_to_do.gt(change_ratio)
@@ -52,7 +55,7 @@ def mask_tokens(
 
     # replace some input tokens with tokenizer.mask_token ([MASK])
     masked_tokens = what_to_do.le(change_ratio * mask_ratio)
-    inputs.masked_fill_(masked_tokens, input_mask_indice)
+    inputs.masked_fill_(masked_tokens, input_mask_index)
 
     # Replace masked input tokens with random word
     switched_tokens = (
@@ -80,16 +83,20 @@ class MLMBatch(NamedTuple):
     mlm_labels: torch.Tensor
 
 
-class MLMLoader(torch.utils.data.Dataloader):
+class MLMLoader(torch.utils.data.DataLoader):
     def __init__(
         self,
         dataset: zeldarose.data.TextDataset,
-        task_config: MLMTaskConfig,
+        task_config: Optional[MLMTaskConfig] = None,
         *args,
         **kwargs
     ):
-        super().__init__(*args, collate_fn=self.collate, **kwargs)
-        self.task_config = task_config
+        self.dataset: zeldarose.data.TextDataset
+        super().__init__(dataset, *args, collate_fn=self.collate, **kwargs)
+        if task_config is None:
+            self.task_config = MLMTaskConfig()
+        else:
+            self.task_config = task_config
         mask_token_index = getattr(self.dataset.tokenizer, "mask_token_id")
         if mask_token_index is None:
             mask_token_index = self.dataset.tokenizer.convert_tokens_to_ids(
@@ -101,6 +108,7 @@ class MLMLoader(torch.utils.data.Dataloader):
             padding_value = self.dataset.tokenizer.convert_tokens_to_ids(
                 self.dataset.tokenizer.padding_value
             )
+        self.padding_value = padding_value
 
     def collate(self, batch: Sequence[torch.Tensor]) -> MLMBatch:
         padded_batch = pad_sequence(
@@ -123,7 +131,7 @@ class MLMLoader(torch.utils.data.Dataloader):
         keep_mask = special_tokens_mask | padding_mask
         masked = mask_tokens(
             inputs=padded_batch,
-            input_mask_index=self.mask_token_id,
+            input_mask_index=self.mask_token_index,
             vocabulary_size=len(self.dataset.tokenizer),
             change_ratio=self.task_config.change_ratio,
             mask_ratio=self.task_config.mask_ratio,
@@ -140,21 +148,26 @@ class MLMLoader(torch.utils.data.Dataloader):
 
 # TODO: add validation
 class MLMFinetunerConfig(pydantic.BaseModel):
-    batch_size: int
+    batch_size: int = 64
     betas: Tuple[float, float] = (0.9, 0.98)
     epsilon: float = 1e-8
     learning_rate: float = 1e-4
-    num_steps: int
-    warmup_steps: int
+    lr_decay_steps: Optional[int] = None
+    warmup_steps: int = 0
     weight_decay: Optional[float] = None
 
 
 class MLMFinetuner(pl.LightningModule):
     def __init__(
-        self, model: transformers.PreTrainedModel, config: MLMFinetunerConfig,
+        self,
+        model: transformers.PreTrainedModel,
+        config: Optional[MLMFinetunerConfig] = None,
     ):
         super().__init__()
-        self.config = config
+        if config is not None:
+            self.config = config
+        else:
+            self.config = MLMFinetunerConfig()
         self.model = model
 
     def forward(
@@ -167,7 +180,7 @@ class MLMFinetuner(pl.LightningModule):
 
         output = self.model(
             input_ids=tokens,
-            mlm_labels=mlm_labels,
+            masked_lm_labels=mlm_labels,
             attention_mask=attention_mask,
             token_type_ids=token_type_ids,
         )
@@ -188,33 +201,33 @@ class MLMFinetuner(pl.LightningModule):
         tensorboard_logs = {"train/train_loss": loss, "train/perplexity": perplexity}
         return {"loss": loss, "log": tensorboard_logs}
 
-    def validation_step(self, batch: MLMBatch, batch_idx: int):
-        outputs = self.forward(
-            tokens=batch.tokens,
-            attention_mask=batch.attention_mask,
-            token_type_ids=batch.token_type_ids,
-            mlm_labels=batch.mlm_labels,
-        )
-        loss = outputs[0]
+    # def validation_step(self, batch: MLMBatch, batch_idx: int):
+    #     outputs = self.forward(
+    #         tokens=batch.tokens,
+    #         attention_mask=batch.attention_mask,
+    #         token_type_ids=batch.token_type_ids,
+    #         mlm_labels=batch.mlm_labels,
+    #     )
+    #     loss = outputs[0]
 
-        preds = torch.argmax(outputs[1], dim=-1)
-        correct_preds = preds.eq(batch.mlm_labels) & batch.mlm_labels.ne(-100)
-        accuracy = correct_preds.mean()
+    #     preds = torch.argmax(outputs[1], dim=-1)
+    #     correct_preds = preds.eq(batch.mlm_labels) & batch.mlm_labels.ne(-100)
+    #     accuracy = correct_preds.mean()
 
-        return {"val_loss": loss, "val_accuracy": accuracy}
+    #     return {"val_loss": loss, "val_accuracy": accuracy}
 
-    def validation_end(self, outputs):
-        avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
-        avg_acc = torch.stack([x["val_acc"] for x in outputs]).mean()
+    # def validation_end(self, outputs):
+    #     avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
+    #     avg_acc = torch.stack([x["val_acc"] for x in outputs]).mean()
 
-        perplexity = torch.exp(avg_loss)
+    #     perplexity = torch.exp(avg_loss)
 
-        tensorboard_logs = {
-            "validation/loss": avg_loss,
-            "validation/accuracy": avg_acc,
-            "validation/perplexity": perplexity,
-        }
-        return {"avg_val_loss": avg_loss, "log": tensorboard_logs}
+    #     tensorboard_logs = {
+    #         "validation/loss": avg_loss,
+    #         "validation/accuracy": avg_acc,
+    #         "validation/perplexity": perplexity,
+    #     }
+    #     return {"avg_val_loss": avg_loss, "log": tensorboard_logs}
 
     def configure_optimizers(self):
         if self.config.weight_decay is not None:
@@ -245,20 +258,21 @@ class MLMFinetuner(pl.LightningModule):
                 },
             ]
 
-        t_total = self.config.num_steps
-
         optimizer = torch.optim.AdamW(
             optimizer_grouped_parameters,
             betas=self.config.betas,
             lr=self.config.learning_rate,
             eps=self.config.epsilon,
         )
-        scheduler = transformers.get_linear_schedule_with_warmup(
-            optimizer,
-            num_warmup_steps=self.config.warmup_steps,
-            num_training_steps=t_total,
-        )
+        if self.config.lr_decay_steps is not None:
+            schedule = transformers.get_linear_schedule_with_warmup(
+                optimizer,
+                num_warmup_steps=self.config.warmup_steps,
+                num_training_steps=self.config.num_steps,
+            )
 
-        scheduler_config = {"scheduler": scheduler, "interval": "step"}
+            schedulers = [{"scheduler": schedule, "interval": "step"}]
+        else:
+            schedulers = []
 
-        return [optimizer], [scheduler_config]
+        return [optimizer], schedulers
