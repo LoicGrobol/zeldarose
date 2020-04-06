@@ -98,7 +98,7 @@ class MLMLoader(torch.utils.data.DataLoader):
             self.task_config = MLMTaskConfig()
         else:
             self.task_config = task_config
-        logger.info(f"Using MLM config {config}")
+        logger.info(f"Using MLM config {self.task_config}")
         mask_token_index = getattr(self.dataset.tokenizer, "mask_token_id")
         if mask_token_index is None:
             mask_token_index = self.dataset.tokenizer.convert_tokens_to_ids(
