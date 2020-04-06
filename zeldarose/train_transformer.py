@@ -1,5 +1,6 @@
 import logging
 import pathlib
+import sys
 
 from typing import Optional, Type
 
@@ -12,6 +13,33 @@ from loguru import logger
 
 from zeldarose import data
 from zeldarose import mlm
+
+
+def setup_logging(verbose: bool, logfile: Optional[pathlib.Path]):
+    logger.remove(0)  # Remove the default logger
+    if verbose:
+        log_level = "DEBUG"
+        log_fmt = (
+            "[uuparser] "
+            "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> |"
+            "<level>{message}</level>"
+        )
+    else:
+        log_level = "INFO"
+        log_fmt = (
+            "[uuparser] "
+            "<green>{time:YYYY-MM-DD}T{time:HH:mm:ss}</green> {level}: "
+            "<level>{message}</level>"
+        )
+
+    logger.add(
+        sys.stderr, level=log_level, format=log_fmt, colorize=True,
+    )
+
+    if logfile:
+        logger.add(
+            logfile, level="DEBUG", colorize=False,
+        )
 
 
 # logging.getLogger(None).setLevel(logging.ERROR)
@@ -88,6 +116,7 @@ from zeldarose import mlm
     type=click_pathlib.Path(resolve_path=True, dir_okay=False, exists=True,),
     help="A fine-tuning config file",
 )
+@click.option("--verbose", is_flag=True, help="More detailed logs")
 def main(
     distributed_backend: Optional[str],
     line_by_line: bool,
@@ -101,7 +130,9 @@ def main(
     task_config_path: Optional[pathlib.Path],
     tokenizer_name: str,
     tuning_config_path: Optional[pathlib.Path],
+    verbose: bool,
 ):
+    setup_logging(verbose, out_dir / "train.log")
     if task_config_path is not None:
         task_config = mlm.MLMTaskConfig.parse_file(task_config_path)
     else:
@@ -136,7 +167,9 @@ def main(
     )
 
     logger.info(f"Creating dataloader")
-    train_loader = mlm.MLMLoader(train_set, task_config=task_config, batch_size=tuning_config.batch_size)
+    train_loader = mlm.MLMLoader(
+        train_set, task_config=task_config, batch_size=tuning_config.batch_size
+    )
 
     logger.info(f"Creating MLM Finetuner")
     finetuning_model = mlm.MLMFinetuner(model, config=tuning_config)

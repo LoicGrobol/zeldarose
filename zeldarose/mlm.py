@@ -32,7 +32,7 @@ def mask_tokens(
     label_mask_indice: int = -100,
 ) -> MaskedTokens:
     """Prepare masked tokens inputs/labels for masked language modeling
-    
+
     This modifies `inputs` in place, which is not very pure but avoids a (useless in practice) copy
     operation.
     """
