@@ -51,6 +51,12 @@ def setup_logging(verbose: bool, logfile: Optional[pathlib.Path]):
     "raw_text", type=click_pathlib.Path(resolve_path=True, exists=True, dir_okay=False),
 )
 @click.option(
+    "--batch-split",
+    type=int,
+    default=1,
+    help="Number of pieces in which to split batches during training (trades time for memory)",
+)
+@click.option(
     "--distributed-backend",
     type=str,
     help="The lightning distributed backed to use (see lightning doc)",
@@ -64,7 +70,7 @@ def setup_logging(verbose: bool, logfile: Optional[pathlib.Path]):
     "--model-config",
     "model_config_path",
     type=str,
-    default="roberta-large",
+    default="roberta-base",
     show_default=True,
     metavar="NAME_OR_PATH",
     help="A config name or path to create a muppet from scratch",
@@ -105,7 +111,7 @@ def setup_logging(verbose: bool, logfile: Optional[pathlib.Path]):
 @click.option(
     "--tokenizer-name",
     type=str,
-    default="roberta-large",
+    default="roberta-base",
     show_default=True,
     metavar="NAME_OR_PATH",
     help="A pretrained tokenizer model to use",
@@ -118,6 +124,7 @@ def setup_logging(verbose: bool, logfile: Optional[pathlib.Path]):
 )
 @click.option("--verbose", is_flag=True, help="More detailed logs")
 def main(
+    batch_split: int,
     distributed_backend: Optional[str],
     line_by_line: bool,
     model_config_path: Optional[str],
@@ -155,6 +162,10 @@ def main(
         model_config = transformers.AutoConfig.from_pretrained(model_config_path)
         logger.info(f"Generating model from config")
         model = transformers.AutoModelWithLMHead.from_config(model_config)
+    if tuning_config.batch_size % batch_split:
+        logger.warning(
+            f"Batch size ({tuning_config.batch_size}) is not a muliple of batch split ({batch_split})"
+        )
 
     dataset_type: Type[data.TextDataset]
     if line_by_line:
@@ -168,13 +179,16 @@ def main(
 
     logger.info(f"Creating dataloader")
     train_loader = mlm.MLMLoader(
-        train_set, task_config=task_config, batch_size=tuning_config.batch_size
+        train_set,
+        task_config=task_config,
+        batch_size=tuning_config.batch_size // batch_split,
     )
 
     logger.info(f"Creating MLM Finetuner")
     finetuning_model = mlm.MLMFinetuner(model, config=tuning_config)
     logger.info(f"Creating trainer")
     trainer = pl.Trainer(
+        accumulate_grad_batches=batch_split,
         distributed_backend=distributed_backend,
         default_save_path=out_dir,
         gpus=n_gpus,
