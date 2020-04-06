@@ -102,14 +102,27 @@ def main(
     tokenizer_name: str,
     tuning_config_path: Optional[pathlib.Path],
 ):
+    if task_config_path is not None:
+        task_config = mlm.MLMTaskConfig.parse_file(task_config_path)
+    else:
+        task_config = mlm.MLMTaskConfig()
+    if tuning_config_path is not None:
+        tuning_config = mlm.MLMFinetunerConfig.parse_file(tuning_config_path)
+    else:
+        tuning_config = mlm.MLMFinetunerConfig()
+
+    logger.info(f"Loading pretrained tokenizer {tokenizer_name}")
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         tokenizer_name, use_fast=True
     )
 
     if pretrained_model is not None:
+        logger.info(f"Loading pretrained model {pretrained_model}")
         model = transformers.AutoModelWithLMHead.from_pretrained(pretrained_model)
     elif model_config_path is not None:
+        logger.info(f"Loading pretrained config {model_config_path}")
         model_config = transformers.AutoConfig.from_pretrained(model_config_path)
+        logger.info(f"Generating model from config")
         model = transformers.AutoModelWithLMHead.from_config(model_config)
 
     dataset_type: Type[data.TextDataset]
@@ -117,25 +130,22 @@ def main(
         dataset_type = data.LineByLineTextDataset
     else:
         dataset_type = data.TextDataset
+    logger.info(f"Loading raw text dataset from {raw_text}")
     train_set = dataset_type(
         tokenizer=tokenizer, text_path=raw_text, overwrite_cache=overwrite_cache,
     )
 
-    if task_config_path is not None:
-        task_config = mlm.MLMTaskConfig.parse_file(task_config_path)
-    else:
-        task_config = mlm.MLMTaskConfig()
-    train_loader = mlm.MLMLoader(train_set, task_config=task_config)
+    logger.info(f"Creating dataloader")
+    train_loader = mlm.MLMLoader(train_set, task_config=task_config, batch_size=tuning_config.batch_size)
 
-    if tuning_config_path is not None:
-        tuning_config = mlm.MLMFinetunerConfig.parse_file(tuning_config_path)
-    else:
-        tuning_config = mlm.MLMFinetunerConfig()
+    logger.info(f"Creating MLM Finetuner")
     finetuning_model = mlm.MLMFinetuner(model, config=tuning_config)
+    logger.info(f"Creating trainer")
     trainer = pl.Trainer(
         distributed_backend=distributed_backend,
         default_save_path=out_dir,
         gpus=n_gpus,
+        reload_dataloaders_every_epoch=True,
     )
 
     logging.info("Training the model")
