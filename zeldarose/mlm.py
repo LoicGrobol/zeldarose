@@ -7,6 +7,7 @@ import torch.jit
 import torch.utils.data
 import transformers
 
+from loguru import logger
 from torch.nn.utils.rnn import pad_sequence
 
 import zeldarose.data
@@ -97,6 +98,7 @@ class MLMLoader(torch.utils.data.DataLoader):
             self.task_config = MLMTaskConfig()
         else:
             self.task_config = task_config
+        logger.info(f"Using MLM config {config}")
         mask_token_index = getattr(self.dataset.tokenizer, "mask_token_id")
         if mask_token_index is None:
             mask_token_index = self.dataset.tokenizer.convert_tokens_to_ids(
@@ -168,6 +170,7 @@ class MLMFinetuner(pl.LightningModule):
             self.config = config
         else:
             self.config = MLMFinetunerConfig()
+        logger.info(f"Training with config {self.config}")
         self.model = model
 
     def forward(
