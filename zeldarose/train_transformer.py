@@ -16,7 +16,8 @@ from zeldarose import mlm
 
 # logging.getLogger(None).setLevel(logging.ERROR)
 
-
+# TODO: allow reading all these from a config file (except perhaps for paths)
+# TODO: refactor the api to have a single `zeldarose` entrypoint with subcommands.
 @click.command()
 @click.argument(
     "raw_text", type=click_pathlib.Path(resolve_path=True, exists=True, dir_okay=False),
@@ -132,7 +133,6 @@ def main(
         tuning_config = mlm.MLMFinetunerConfig()
     finetuning_model = mlm.MLMFinetuner(model, config=tuning_config)
     trainer = pl.Trainer(
-        benchmark=True,
         distributed_backend=distributed_backend,
         default_save_path=out_dir,
         gpus=n_gpus,
