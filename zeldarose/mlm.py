@@ -98,7 +98,7 @@ class MLMLoader(torch.utils.data.DataLoader):
             self.task_config = MLMTaskConfig()
         else:
             self.task_config = task_config
-        logger.info(f"Using MLM config {self.task_config}")
+        logger.info(f"MLM task config: {self.task_config}")
         mask_token_index = getattr(self.dataset.tokenizer, "mask_token_id")
         if mask_token_index is None:
             mask_token_index = self.dataset.tokenizer.convert_tokens_to_ids(
@@ -170,7 +170,7 @@ class MLMFinetuner(pl.LightningModule):
             self.config = config
         else:
             self.config = MLMFinetunerConfig()
-        logger.info(f"Training with config {self.config}")
+        logger.info(f"MLM trainer config: {self.config}")
         self.model = model
 
     def forward(
@@ -270,7 +270,7 @@ class MLMFinetuner(pl.LightningModule):
             lr=self.config.learning_rate,
             eps=self.config.epsilon,
         )
-        if self.config.lr_decay_steps is not None:
+        if self.config.lr_decay_steps:
             schedule = transformers.get_linear_schedule_with_warmup(
                 optimizer,
                 num_warmup_steps=self.config.warmup_steps,

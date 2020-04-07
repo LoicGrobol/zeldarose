@@ -7,6 +7,7 @@ from typing import Optional, Type
 import click
 import click_pathlib
 import pytorch_lightning as pl
+import toml
 import transformers
 
 from loguru import logger
@@ -106,7 +107,7 @@ def setup_logging(verbose: bool, logfile: Optional[pathlib.Path]):
     "--task-config",
     "task_config_path",
     type=click_pathlib.Path(resolve_path=True, dir_okay=False, exists=True),
-    help="A task config file",
+    help="A task config file (in TOML format)",
 )
 @click.option(
     "--tokenizer-name",
@@ -120,7 +121,7 @@ def setup_logging(verbose: bool, logfile: Optional[pathlib.Path]):
     "--tuning-config",
     "tuning_config_path",
     type=click_pathlib.Path(resolve_path=True, dir_okay=False, exists=True,),
-    help="A fine-tuning config file",
+    help="A fine-tuning config file (in TOML format)",
 )
 @click.option("--verbose", is_flag=True, help="More detailed logs")
 def main(
@@ -141,11 +142,15 @@ def main(
 ):
     setup_logging(verbose, out_dir / "train.log")
     if task_config_path is not None:
-        task_config = mlm.MLMTaskConfig.parse_file(task_config_path)
+        task_config = mlm.MLMTaskConfig.parse_obj(
+            toml.loads(task_config_path.read_text())
+        )
     else:
         task_config = mlm.MLMTaskConfig()
     if tuning_config_path is not None:
-        tuning_config = mlm.MLMFinetunerConfig.parse_file(tuning_config_path)
+        tuning_config = mlm.MLMFinetunerConfig.parse_obj(
+            toml.loads(tuning_config_path.read_text())
+        )
     else:
         tuning_config = mlm.MLMFinetunerConfig()
 
@@ -155,13 +160,15 @@ def main(
     )
 
     if pretrained_model is not None:
-        logger.info(f"Loading pretrained model {pretrained_model}")
+        logger.info(f"Loading pretrained model {pretrained_model!r}")
         model = transformers.AutoModelWithLMHead.from_pretrained(pretrained_model)
     elif model_config_path is not None:
-        logger.info(f"Loading pretrained config {model_config_path}")
+        logger.info(f"Loading pretrained config {model_config_path!r}")
         model_config = transformers.AutoConfig.from_pretrained(model_config_path)
         logger.info(f"Generating model from config")
         model = transformers.AutoModelWithLMHead.from_config(model_config)
+    # TODO: try to automate this by estimating the memory used by the model
+    # (dummy_input) can probably help for that
     if tuning_config.batch_size % batch_split:
         logger.warning(
             f"Batch size ({tuning_config.batch_size}) is not a muliple of batch split ({batch_split})"
