@@ -117,6 +117,7 @@ class MLMLoader(torch.utils.data.DataLoader):
             batch, batch_first=True, padding_value=self.padding_value
         )
         padding_mask = padded_batch.eq(self.padding_value)
+        # FIXME: Is the next line general enough?
         # We only deal with single sequences here
         token_type_ids = torch.zeros_like(padded_batch)
         attention_mask = padding_mask.logical_not()

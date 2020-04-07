@@ -110,7 +110,7 @@ def setup_logging(verbose: bool, logfile: Optional[pathlib.Path]):
     help="A task config file (in TOML format)",
 )
 @click.option(
-    "--tokenizer-name",
+    "--tokenizer", "tokenizer_name",
     type=str,
     default="roberta-base",
     show_default=True,
