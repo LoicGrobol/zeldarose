@@ -21,14 +21,14 @@ def setup_logging(verbose: bool, logfile: Optional[pathlib.Path]):
     if verbose:
         log_level = "DEBUG"
         log_fmt = (
-            "[uuparser] "
+            "[zeldarose] "
             "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> |"
             "<level>{message}</level>"
         )
     else:
         log_level = "INFO"
         log_fmt = (
-            "[uuparser] "
+            "[zeldarose] "
             "<green>{time:YYYY-MM-DD}T{time:HH:mm:ss}</green> {level}: "
             "<level>{message}</level>"
         )
