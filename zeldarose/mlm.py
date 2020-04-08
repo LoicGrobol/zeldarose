@@ -113,6 +113,8 @@ class MLMLoader(torch.utils.data.DataLoader):
         self.padding_value = padding_value
 
     def collate(self, batch: Sequence[torch.Tensor]) -> MLMBatch:
+        # Note: this is not strictly necessary in our case since the examples are already padded by
+        # the dataset but more decoupling in the future would not hurt
         padded_batch = pad_sequence(
             batch, batch_first=True, padding_value=self.padding_value
         )

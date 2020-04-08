@@ -56,7 +56,7 @@ class TextDataset(torch.utils.data.Dataset):
         """Tokenize, encode and split a raw text in blocks.
 
         **Note**: This reads files by chunks of about 1MiB which seemed to work best for the roberta
-        fast tokenizer on my setup it might benefit from fine-tuning. The trade-off is: using larger
+        fast tokenizer on my setup it might benefit from fine-tuning. The tradeof is: using larger
         chunks will reduce the number of calls to `transformers.encode` but pass it larger texts, so
         what is most efficient depends on the implementation of this method. Of course a larger
         chunk size will also be heavier on the RAM (and significantly so for some tokenizers).
@@ -76,7 +76,7 @@ class TextDataset(torch.utils.data.Dataset):
                 mininterval=1,
             )
 
-            # Process by chunks loading everything in RAM
+            # Process by chunks instead of loading everything in RAM
             # We still read by line to ensure we don't end up in the middle of a unicode
             # characterload_file(text_path)
             raw_lines = in_stream.readlines(read_size_hint)  # Oh a := would be so handy
@@ -154,8 +154,12 @@ class LineByLineTextDataset(TextDataset):
             raw_lines = in_stream.readlines(read_size_hint)  # Oh a := would be so handy
             while raw_lines:
                 decoded = [l.decode("utf-8") for l in raw_lines]
+                # TODO: This pads the sequences, which should be done in the loader
                 encoded = self.tokenizer.batch_encode_plus(
-                    decoded, max_length=self.block_size, return_tensors="pt"
+                    decoded,
+                    max_length=self.block_size,
+                    pad_to_max_length=True,
+                    return_tensors="pt",
                 )["input_ids"]
                 examples.extend(encoded)
                 pbar.n = in_stream.tell()
