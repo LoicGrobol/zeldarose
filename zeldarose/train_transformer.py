@@ -198,8 +198,10 @@ def main(
     finetuning_model = mlm.MLMFinetuner(model, config=tuning_config)
     logger.info(f"Creating trainer")
     if profile:
+        logger.info("Running in profile mode")
+        profiler = pl.profiler.AdvancedProfiler(output_filename=out_dir / "profile.txt")
         profile_kwargs = {
-            "profile": True,
+            "profiler": profiler,
             "overfit_pct": 1000 / len(train_loader),
             "max_epochs": 2,
         }
