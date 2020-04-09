@@ -198,7 +198,11 @@ def main(
     finetuning_model = mlm.MLMFinetuner(model, config=tuning_config)
     logger.info(f"Creating trainer")
     if profile:
-        profile_kwargs = {"profile": True, "overfit_pct": 1000 / len(train_loader)}
+        profile_kwargs = {
+            "profile": True,
+            "overfit_pct": 1000 / len(train_loader),
+            "max_epochs": 2,
+        }
     else:
         profile_kwargs = dict()
     trainer = pl.Trainer(
