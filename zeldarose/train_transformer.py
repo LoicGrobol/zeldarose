@@ -103,6 +103,7 @@ def setup_logging(verbose: bool, logfile: Optional[pathlib.Path]):
     help="A pretrained model to fine-tune",
     metavar="NAME_OR_PATH",
 )
+@click.option("--profile", is_flag=True, help="Run in profiling mode")
 @click.option(
     "--task-config",
     "task_config_path",
@@ -134,6 +135,7 @@ def main(
     overwrite_cache: bool,
     n_gpus: Optional[int],
     pretrained_model: Optional[str],
+    profile: bool,
     raw_text: pathlib.Path,
     task_config_path: Optional[pathlib.Path],
     tokenizer_name: str,
@@ -194,15 +196,23 @@ def main(
     logger.info(f"Creating MLM Finetuner")
     finetuning_model = mlm.MLMFinetuner(model, config=tuning_config)
     logger.info(f"Creating trainer")
+    if profile:
+        profile_kwargs = {"profile": True, "overfit_pct": 0.01}
+    else:
+        profile_kwargs = dict()
     trainer = pl.Trainer(
         accumulate_grad_batches=batch_split,
         distributed_backend=distributed_backend,
         default_save_path=out_dir,
         gpus=n_gpus,
         reload_dataloaders_every_epoch=True,
+        **profile_kwargs,
     )
 
-    logging.info("Training the model")
+    if n_gpus:
+        logging.info(f"Training the model on {n_gpus} GPUs")
+    else:
+        logging.info(f"Training the model on CPU")
     trainer.fit(finetuning_model, train_dataloader=train_loader)
 
     logger.info(f"Saving model to {out_dir}")
