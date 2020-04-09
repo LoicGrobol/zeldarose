@@ -111,7 +111,8 @@ def setup_logging(verbose: bool, logfile: Optional[pathlib.Path]):
     help="A task config file (in TOML format)",
 )
 @click.option(
-    "--tokenizer", "tokenizer_name",
+    "--tokenizer",
+    "tokenizer_name",
     type=str,
     default="roberta-base",
     show_default=True,
@@ -197,7 +198,7 @@ def main(
     finetuning_model = mlm.MLMFinetuner(model, config=tuning_config)
     logger.info(f"Creating trainer")
     if profile:
-        profile_kwargs = {"profile": True, "overfit_pct": 0.01}
+        profile_kwargs = {"profile": True, "overfit_pct": 1000 / len(train_loader)}
     else:
         profile_kwargs = dict()
     trainer = pl.Trainer(
