@@ -52,10 +52,12 @@ def setup_logging(verbose: bool, logfile: Optional[pathlib.Path]):
     "raw_text", type=click_pathlib.Path(resolve_path=True, exists=True, dir_okay=False),
 )
 @click.option(
-    "--batch-split",
+    "--device-batch-size",
     type=int,
-    default=1,
-    help="Number of pieces in which to split batches during training (trades time for memory)",
+    help=(
+        "Number of samples in a processing batch"
+        " (must be a divisor of training bath size, defaults to training batch size)"
+    ),
 )
 @click.option(
     "--distributed-backend",
@@ -127,7 +129,7 @@ def setup_logging(verbose: bool, logfile: Optional[pathlib.Path]):
 )
 @click.option("--verbose", is_flag=True, help="More detailed logs")
 def main(
-    batch_split: int,
+    device_batch_size: Optional[int],
     distributed_backend: Optional[str],
     line_by_line: bool,
     model_config_path: Optional[str],
@@ -172,9 +174,12 @@ def main(
         model = transformers.AutoModelWithLMHead.from_config(model_config)
     # TODO: try to automate this by estimating the memory used by the model
     # (dummy_input) can probably help for that
-    if tuning_config.batch_size % batch_split:
+    if device_batch_size is None:
+        device_batch_size = tuning_config.batch_size
+    elif tuning_config.batch_size % device_batch_size:
         logger.warning(
-            f"Batch size ({tuning_config.batch_size}) is not a muliple of batch split ({batch_split})"
+            f"Batch size ({tuning_config.batch_size}) is not a muliple"
+            f" of device batch size({device_batch_size})"
         )
 
     dataset_type: Type[data.TextDataset]
@@ -189,9 +194,7 @@ def main(
 
     logger.info(f"Creating dataloader")
     train_loader = mlm.MLMLoader(
-        train_set,
-        task_config=task_config,
-        batch_size=tuning_config.batch_size // batch_split,
+        train_set, task_config=task_config, batch_size=device_batch_size,
     )
 
     logger.info(f"Creating MLM Finetuner")
@@ -208,7 +211,7 @@ def main(
     else:
         profile_kwargs = dict()
     trainer = pl.Trainer(
-        accumulate_grad_batches=batch_split,
+        accumulate_grad_batches=tuning_config.batch_size // device_batch_size,
         distributed_backend=distributed_backend,
         default_save_path=out_dir,
         gpus=n_gpus,
