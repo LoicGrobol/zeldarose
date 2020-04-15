@@ -51,7 +51,7 @@ def max_gpu_batch_size(
     dataset: data.TextDataset,
     finetuner: pl.LightningModule,
     task_config: mlm.MLMTaskConfig,
-    n_samples: int = 100,
+    n_samples: int = 128,
     device: Union[torch.device, int] = 0,
 ) -> int:
     """
@@ -61,7 +61,6 @@ def max_gpu_batch_size(
     Should be reliable, but slow, you probably only want to run it once.
     """
     device = torch.device(device)  # type: ignore
-    assert 2 <= min_batch_size
 
     def test_run(batch_size):
         with tempfile.TemporaryDirectory(prefix="zeldarose-profile") as temp_dir:
@@ -95,6 +94,11 @@ def max_gpu_batch_size(
         # This will only change as long as we don't break out, at which point it will
         # equal the usage for the previous test run
         usage_with_min_size = usage_with_max_size
+    if usage_with_max_size is not None:
+        logger.warning(
+            f"Ran out of examples without finding a match batch size (max tried: {max_size})"
+            ", you probably want to try with more examples"
+        )
 
     # Bissect to find the max batch size
     min_size = max_size // 2
@@ -115,7 +119,7 @@ def max_gpu_batch_size_affine(
     finetuner: pl.LightningModule,
     task_config: mlm.MLMTaskConfig,
     guess_batch_size: int = 4,
-    n_samples: int = 100,
+    n_samples: int = 128,
     device: Union[torch.device, int] = 0,
 ) -> int:
     """Tries to find a maximal batch size for a device, assumes that it can fit at least a batch
