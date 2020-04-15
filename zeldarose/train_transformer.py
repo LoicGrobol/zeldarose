@@ -74,6 +74,10 @@ def max_gpu_batch_size(
         )
         trainer.fit(finetuner, train_dataloader=loader)
         usage_with_guess = torch.cuda.max_memory_allocated(device)
+        logger.debug(
+            f"Memory usage with batch size {guess_batch_size}: {usage_with_guess}"
+        )
+    with tempfile.TemporaryDirectory(prefix="zeldarose-profile") as temp_dir:
         torch.cuda.reset_peak_memory_stats(device)
         loader = mlm.MLMLoader(
             dataset, task_config=task_config, batch_size=guess_batch_size // 2,
@@ -86,6 +90,9 @@ def max_gpu_batch_size(
         )
         trainer.fit(finetuner, train_dataloader=loader)
         usage_with_half_guess = torch.cuda.max_memory_allocated(device)
+        logger.debug(
+            f"Memory usage with batch size {guess_batch_size // 2}: {usage_with_half_guess}"
+        )
     mem_per_sample = math.ceil(
         2 * (usage_with_guess - usage_with_half_guess) / guess_batch_size
     )
