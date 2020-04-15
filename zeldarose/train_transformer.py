@@ -101,9 +101,11 @@ def max_gpu_batch_size(
     try:
         usage_with_max_size = test_run(res)
     except RuntimeError as e:
-        if "CUDA out of memory" in e.message:
+        if "CUDA out of memory" in str(e):
             logger.warning(f"Non-affine or unstable memory usage: assuming linear")
             return math.floor(guess_batch_size * device_max_mem / usage_with_guess)
+        else:
+            raise e
     logger.debug(f"Mem usage with inferred batch size: {usage_with_max_size} B")
     return res
 
