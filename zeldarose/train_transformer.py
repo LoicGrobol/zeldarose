@@ -57,43 +57,36 @@ def max_gpu_batch_size(
 ) -> int:
     """Tries to find a maximal batch size for a device, assumes that it can fit at least a batch
     size of 2 and that memory usage is an affine function of batch size.
-    
+
     The estimate is rather conservative, so hopefully with this batch size, no crash should occur.
     """
     device = torch.device(device)  # type: ignore
     assert 2 <= guess_batch_size
-    with tempfile.TemporaryDirectory(prefix="zeldarose-profile") as temp_dir:
-        torch.cuda.reset_peak_memory_stats(device)
-        loader = mlm.MLMLoader(
-            dataset, task_config=task_config, batch_size=guess_batch_size,
-        )
-        trainer = pl.Trainer(
-            default_save_path=temp_dir,
-            overfit_pct=n_samples / len(loader),
-            gpus=[device.index],
-            max_epochs=2,
-        )
-        trainer.fit(finetuner, train_dataloader=loader)
-        usage_with_guess = torch.cuda.max_memory_allocated(device)
-        logger.debug(
-            f"Memory usage with batch size {guess_batch_size}: {usage_with_guess} B"
-        )
-    with tempfile.TemporaryDirectory(prefix="zeldarose-profile") as temp_dir:
-        torch.cuda.reset_peak_memory_stats(device)
-        loader = mlm.MLMLoader(
-            dataset, task_config=task_config, batch_size=guess_batch_size // 2,
-        )
-        trainer = pl.Trainer(
-            default_save_path=temp_dir,
-            overfit_pct=n_samples / len(loader),
-            gpus=[device.index],
-            max_epochs=2,
-        )
-        trainer.fit(finetuner, train_dataloader=loader)
-        usage_with_half_guess = torch.cuda.max_memory_allocated(device)
-        logger.debug(
-            f"Memory usage with batch size {guess_batch_size // 2}: {usage_with_half_guess} B"
-        )
+
+    def test_run(batch_size):
+        with tempfile.TemporaryDirectory(prefix="zeldarose-profile") as temp_dir:
+            torch.cuda.empty_cache()
+            torch.cuda.reset_peak_memory_stats(device)
+            loader = mlm.MLMLoader(
+                dataset, task_config=task_config, batch_size=batch_size,
+            )
+            trainer = pl.Trainer(
+                default_save_path=temp_dir,
+                overfit_pct=n_samples / len(loader),
+                gpus=[device.index],
+                max_epochs=2,
+            )
+            trainer.fit(finetuner, train_dataloader=loader)
+        return torch.cuda.max_memory_allocated(device)
+
+    usage_with_guess = test_run(guess_batch_size)
+    logger.debug(
+        f"Memory usage with batch size {guess_batch_size}: {usage_with_guess} B"
+    )
+    usage_with_half_guess = test_run(guess_batch_size // 2)
+    logger.debug(
+        f"Memory usage with batch size {guess_batch_size // 2}: {usage_with_half_guess} B"
+    )
     mem_per_sample = math.ceil(
         2 * (usage_with_guess - usage_with_half_guess) / guess_batch_size
     )
@@ -104,6 +97,14 @@ def max_gpu_batch_size(
     logger.debug(f"Device total memory: {device_max_mem} B")
     res = math.floor((device_max_mem - fixed_mem) / mem_per_sample)
     assert guess_batch_size <= res
+    logger.debug(f"Inferred max batch size: {res}, making a test run")
+    try:
+        usage_with_max_size = test_run(res)
+    except RuntimeError as e:
+        if "CUDA out of memory" in e.message:
+            logger.warning(f"Non-affine or unstable memory usage: assuming linear")
+            return math.floor(guess_batch_size * device_max_mem / usage_with_guess)
+    logger.debug(f"Mem usage with inferred batch size: {usage_with_max_size} B")
     return res
 
 
