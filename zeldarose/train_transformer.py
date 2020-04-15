@@ -61,6 +61,7 @@ def max_gpu_batch_size(
     The estimate is rather conservative, so hopefully with this batch size, no crash should occur.
     """
     device = torch.device(device)  # type: ignore
+    assert 2 <= guess_batch_size
     with tempfile.TemporaryDirectory(prefix="zeldarose-profile") as temp_dir:
         torch.cuda.reset_peak_memory_stats(device)
         loader = mlm.MLMLoader(
@@ -75,7 +76,7 @@ def max_gpu_batch_size(
         trainer.fit(finetuner, train_dataloader=loader)
         usage_with_guess = torch.cuda.max_memory_allocated(device)
         logger.debug(
-            f"Memory usage with batch size {guess_batch_size}: {usage_with_guess}"
+            f"Memory usage with batch size {guess_batch_size}: {usage_with_guess} B"
         )
     with tempfile.TemporaryDirectory(prefix="zeldarose-profile") as temp_dir:
         torch.cuda.reset_peak_memory_stats(device)
@@ -91,14 +92,19 @@ def max_gpu_batch_size(
         trainer.fit(finetuner, train_dataloader=loader)
         usage_with_half_guess = torch.cuda.max_memory_allocated(device)
         logger.debug(
-            f"Memory usage with batch size {guess_batch_size // 2}: {usage_with_half_guess}"
+            f"Memory usage with batch size {guess_batch_size // 2}: {usage_with_half_guess} B"
         )
     mem_per_sample = math.ceil(
         2 * (usage_with_guess - usage_with_half_guess) / guess_batch_size
     )
-    return math.floor(
-        torch.cuda.get_device_properties(device.index).total_memory / mem_per_sample
-    )
+    logger.debug(f"Inferred memory usage per sample: {mem_per_sample} B")
+    fixed_mem = math.ceil(usage_with_guess - guess_batch_size * mem_per_sample)
+    logger.debug(f"Inferred fixed memory usage: {fixed_mem} B")
+    device_max_mem = torch.cuda.get_device_properties(device.index).total_memory
+    logger.debug(f"Device total memory: {device_max_mem} B")
+    res = math.floor((device_max_mem - fixed_mem) / mem_per_sample)
+    assert guess_batch_size <= res
+    return res
 
 
 # logging.getLogger(None).setLevel(logging.ERROR)
