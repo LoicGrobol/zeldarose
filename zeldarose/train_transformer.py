@@ -51,6 +51,69 @@ def max_gpu_batch_size(
     dataset: data.TextDataset,
     finetuner: pl.LightningModule,
     task_config: mlm.MLMTaskConfig,
+    n_samples: int = 100,
+    device: Union[torch.device, int] = 0,
+) -> int:
+    """
+    Tries to find a maximal batch size for a device, assuming only that the memory usage of the
+    model and the total available memory are both stable.
+
+    Should be reliable, but slow, you probably only want to run it once.
+    """
+    device = torch.device(device)  # type: ignore
+    assert 2 <= min_batch_size
+
+    def test_run(batch_size):
+        with tempfile.TemporaryDirectory(prefix="zeldarose-profile") as temp_dir:
+            torch.cuda.empty_cache()
+            torch.cuda.reset_peak_memory_stats(device)
+            loader = mlm.MLMLoader(
+                dataset, task_config=task_config, batch_size=batch_size,
+            )
+            trainer = pl.Trainer(
+                default_save_path=temp_dir,
+                overfit_pct=n_samples / len(loader),
+                gpus=[device.index],
+                max_epochs=2,
+            )
+            try:
+                trainer.fit(finetuner, train_dataloader=loader)
+            except RuntimeError as e:
+                if "CUDA out of memory" in str(e):
+                    return None
+                else:
+                    raise e
+        return torch.cuda.max_memory_allocated(device)
+
+    # Find a majoration of max batch size as a power of two
+    usage_with_min_size = 0
+    for exponent in range(math.floor(math.log2(n_samples)) + 1):
+        max_size = 2 ** exponent
+        usage_with_max_size = test_run(max_size)
+        if usage_with_max_size is None:
+            break
+        # This will only change as long as we don't break out, at which point it will
+        # equal the usage for the previous test run
+        usage_with_min_size = usage_with_max_size
+
+    # Bissect to find the max batch size
+    min_size = max_size // 2
+    while max_size - min_size > 1:
+        try_size = (max_size + min_size) // 2
+        usage_with_try_size = test_run(try_size)
+        if usage_with_try_size is None:
+            max_size = try_size
+        else:
+            min_size = try_size
+            usage_with_min_size = usage_with_try_size
+    logger.debug(f"Mem usage with inferred batch size: {usage_with_min_size} B")
+    return min_size
+
+
+def max_gpu_batch_size_affine(
+    dataset: data.TextDataset,
+    finetuner: pl.LightningModule,
+    task_config: mlm.MLMTaskConfig,
     guess_batch_size: int = 4,
     n_samples: int = 100,
     device: Union[torch.device, int] = 0,
