@@ -51,13 +51,14 @@ def max_gpu_batch_size(
     dataset: data.TextDataset,
     finetuner: pl.LightningModule,
     task_config: mlm.MLMTaskConfig,
-    distributed_backend: str,
     guess_batch_size: int = 2,
     n_samples: int = 100,
     device: Union[torch.device, int] = 0,
 ) -> int:
     """Tries to find a maximal batch size for a device, assumes that it can fit at least a batch
     size of 2 and that memory usage is an affine function of batch size.
+    
+    The estimate is rather conservative, so hopefully with this batch size, no crash should occur.
     """
     device = torch.device(device)  # type: ignore
     with tempfile.TemporaryDirectory(prefix="zeldarose-profile") as temp_dir:
@@ -67,7 +68,6 @@ def max_gpu_batch_size(
         )
         trainer = pl.Trainer(
             default_save_path=temp_dir,
-            distributed_backend=distributed_backend,
             overfit_pct=n_samples / len(loader),
             gpus=[device.index],
         )
@@ -79,13 +79,17 @@ def max_gpu_batch_size(
         )
         trainer = pl.Trainer(
             default_save_path=temp_dir,
-            distributed_backend=distributed_backend,
             overfit_pct=n_samples / len(loader),
             gpus=[device.index],
         )
         trainer.fit(finetuner, train_dataloader=loader)
         usage_with_half_guess = torch.cuda.max_memory_allocated(device)
-    return math.floor(2 * (usage_with_guess - usage_with_half_guess))
+    mem_per_sample = math.ceil(
+        2 * (usage_with_guess - usage_with_half_guess) / guess_batch_size
+    )
+    return math.floor(
+        torch.cuda.get_device_properties(device.index).total_memory / mem_per_sample
+    )
 
 
 # logging.getLogger(None).setLevel(logging.ERROR)
@@ -246,10 +250,7 @@ def main(
         if guess_batch_size:
             logger.info("Running a quick profile to find out the best batch size")
             device_batch_size = max_gpu_batch_size(
-                dataset=train_set,
-                finetuner=finetuning_model,
-                task_config=task_config,
-                distributed_backend=distributed_backend,
+                dataset=train_set, finetuner=finetuning_model, task_config=task_config,
             )
             logger.info(f"Inferred max batch size: {device_batch_size}")
         else:
