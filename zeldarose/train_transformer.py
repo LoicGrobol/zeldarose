@@ -63,6 +63,7 @@ def max_gpu_batch_size(
     device = torch.device(device)  # type: ignore
 
     def test_run(batch_size):
+        logger.debug(f"Trying a run with batch size {batch_size}")
         with tempfile.TemporaryDirectory(prefix="zeldarose-profile") as temp_dir:
             torch.cuda.empty_cache()
             torch.cuda.reset_peak_memory_stats(device)
@@ -82,7 +83,9 @@ def max_gpu_batch_size(
                     return None
                 else:
                     raise e
-        return torch.cuda.max_memory_allocated(device)
+        usage = torch.cuda.max_memory_allocated(device)
+        logger.info(f"Registered usage: {usage}")
+        return usage
 
     # Find a majoration of max batch size as a power of two
     usage_with_min_size = 0
