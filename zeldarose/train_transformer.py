@@ -69,7 +69,7 @@ def max_gpu_batch_size(
             default_save_path=temp_dir,
             distributed_backend=distributed_backend,
             overfit_pct=n_samples / len(loader),
-            gpus=[device],
+            gpus=[device.index],
         )
         trainer.fit(finetuner, train_dataloader=loader)
         usage_with_guess = torch.cuda.max_memory_allocated(device)
@@ -81,7 +81,7 @@ def max_gpu_batch_size(
             default_save_path=temp_dir,
             distributed_backend=distributed_backend,
             overfit_pct=n_samples / len(loader),
-            gpus=[device],
+            gpus=[device.index],
         )
         trainer.fit(finetuner, train_dataloader=loader)
         usage_with_half_guess = torch.cuda.max_memory_allocated(device)
