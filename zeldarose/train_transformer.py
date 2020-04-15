@@ -80,11 +80,12 @@ def max_gpu_batch_size(
                 trainer.fit(finetuner, train_dataloader=loader)
             except RuntimeError as e:
                 if "CUDA out of memory" in str(e):
+                    logger.debug("Exceeded memory capacity")
                     return None
                 else:
                     raise e
         usage = torch.cuda.max_memory_allocated(device)
-        logger.info(f"Registered usage: {usage}")
+        logger.debug(f"Registered usage: {usage}")
         return usage
 
     # Find a majoration of max batch size as a power of two
