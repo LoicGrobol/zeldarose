@@ -28,9 +28,15 @@ class TextDataset(torch.utils.data.Dataset):
             raise ValueError(f"{text_path} is not a valid text file.")
         self.tokenizer = tokenizer
 
-        self.block_size = block_size - (
-            tokenizer.max_len - tokenizer.max_len_single_sentence
-        )
+        try:
+            self.block_size = block_size - tokenizer.num_special_tokens_to_add(
+                pair=False
+            )
+        except AttributeError:
+            # Non-fast tokenizers
+            self.block_size = block_size - (
+                tokenizer.max_len - tokenizer.max_len_single_sentence
+            )
 
         cached_features_file = (
             text_path.parent / f"lm_{block_size}_{text_path.stem}_cache.pt"
