@@ -51,7 +51,7 @@ def max_gpu_batch_size(
     dataset: data.TextDataset,
     finetuner: pl.LightningModule,
     task_config: mlm.MLMTaskConfig,
-    guess_batch_size: int = 2,
+    guess_batch_size: int = 4,
     n_samples: int = 100,
     device: Union[torch.device, int] = 0,
 ) -> int:
