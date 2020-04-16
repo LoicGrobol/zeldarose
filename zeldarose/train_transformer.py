@@ -50,7 +50,6 @@ def setup_logging(verbose: bool, logfile: Optional[pathlib.Path]):
 def max_gpu_batch_size(
     dataset: data.TextDataset,
     finetuner: pl.LightningModule,
-    task_config: mlm.MLMTaskConfig,
     n_samples: int = 128,
     device: Union[torch.device, int] = 0,
 ) -> int:
@@ -67,9 +66,7 @@ def max_gpu_batch_size(
         with tempfile.TemporaryDirectory(prefix="zeldarose-profile") as temp_dir:
             torch.cuda.empty_cache()
             torch.cuda.reset_peak_memory_stats(device)
-            loader = mlm.MLMLoader(
-                dataset, task_config=task_config, batch_size=batch_size,
-            )
+            loader = data.TextLoader(dataset, batch_size=batch_size,)
             trainer = pl.Trainer(
                 default_save_path=temp_dir,
                 overfit_pct=n_samples / len(loader),
@@ -121,7 +118,6 @@ def max_gpu_batch_size(
 def max_gpu_batch_size_affine(
     dataset: data.TextDataset,
     finetuner: pl.LightningModule,
-    task_config: mlm.MLMTaskConfig,
     guess_batch_size: int = 4,
     n_samples: int = 128,
     device: Union[torch.device, int] = 0,
@@ -138,9 +134,7 @@ def max_gpu_batch_size_affine(
         with tempfile.TemporaryDirectory(prefix="zeldarose-profile") as temp_dir:
             torch.cuda.empty_cache()
             torch.cuda.reset_peak_memory_stats(device)
-            loader = mlm.MLMLoader(
-                dataset, task_config=task_config, batch_size=batch_size,
-            )
+            loader = data.TextLoader(dataset, batch_size=batch_size,)
             trainer = pl.Trainer(
                 default_save_path=temp_dir,
                 overfit_pct=n_samples / len(loader),
@@ -336,7 +330,7 @@ def main(
         if guess_batch_size:
             logger.info("Running a quick profile to find out the best batch size")
             device_batch_size = max_gpu_batch_size(
-                dataset=train_set, finetuner=finetuning_model, task_config=task_config,
+                dataset=train_set, finetuner=finetuning_model
             )
             logger.info(f"Inferred max batch size: {device_batch_size}")
         else:
