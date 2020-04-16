@@ -190,6 +190,12 @@ def max_gpu_batch_size_affine(
     "raw_text", type=click_pathlib.Path(resolve_path=True, exists=True, dir_okay=False),
 )
 @click.option(
+    "--config",
+    "config_path",
+    type=click_pathlib.Path(resolve_path=True, dir_okay=False, exists=True),
+    help="A config file (in TOML format)",
+)
+@click.option(
     "--device-batch-size",
     type=int,
     help=(
@@ -208,7 +214,7 @@ def max_gpu_batch_size_affine(
 @click.option(
     "--distributed-backend",
     type=str,
-    help="The lightning distributed backed to use (see lightning doc)",
+    help="The lightning distributed backend to use (see lightning doc)",
 )
 @click.option(
     "--line-by-line",
@@ -253,12 +259,6 @@ def max_gpu_batch_size_affine(
 )
 @click.option("--profile", is_flag=True, help="Run in profiling mode")
 @click.option(
-    "--task-config",
-    "task_config_path",
-    type=click_pathlib.Path(resolve_path=True, dir_okay=False, exists=True),
-    help="A task config file (in TOML format)",
-)
-@click.option(
     "--tokenizer",
     "tokenizer_name",
     type=str,
@@ -267,14 +267,9 @@ def max_gpu_batch_size_affine(
     metavar="NAME_OR_PATH",
     help="A pretrained tokenizer model to use",
 )
-@click.option(
-    "--tuning-config",
-    "tuning_config_path",
-    type=click_pathlib.Path(resolve_path=True, dir_okay=False, exists=True,),
-    help="A fine-tuning config file (in TOML format)",
-)
 @click.option("--verbose", is_flag=True, help="More detailed logs")
 def main(
+    config_path: Optional[pathlib.Path],
     device_batch_size: Optional[int],
     distributed_backend: Optional[str],
     guess_batch_size: bool,
@@ -287,23 +282,16 @@ def main(
     pretrained_model: Optional[str],
     profile: bool,
     raw_text: pathlib.Path,
-    task_config_path: Optional[pathlib.Path],
     tokenizer_name: str,
-    tuning_config_path: Optional[pathlib.Path],
     verbose: bool,
 ):
     setup_logging(verbose, out_dir / "train.log")
-    if task_config_path is not None:
-        task_config = mlm.MLMTaskConfig.parse_obj(
-            toml.loads(task_config_path.read_text())
-        )
+    if config_path is not None:
+        config = toml.loads(config_path.read_text())
+        task_config = mlm.MLMTaskConfig.parse_obj(config["task"])
+        tuning_config = mlm.MLMFinetunerConfig.parse_obj(config["tuning"])
     else:
         task_config = mlm.MLMTaskConfig()
-    if tuning_config_path is not None:
-        tuning_config = mlm.MLMFinetunerConfig.parse_obj(
-            toml.loads(tuning_config_path.read_text())
-        )
-    else:
         tuning_config = mlm.MLMFinetunerConfig()
 
     logger.info(f"Loading pretrained tokenizer {tokenizer_name}")
@@ -331,7 +319,16 @@ def main(
     )
 
     logger.info(f"Creating MLM Finetuner")
-    finetuning_model = mlm.MLMFinetuner(model, config=tuning_config)
+    mask_token_index = getattr(tokenizer, "mask_token_id")
+    if mask_token_index is None:
+        mask_token_index = tokenizer.convert_tokens_to_ids(tokenizer.mask_token)
+    finetuning_model = mlm.MLMFinetuner(
+        model,
+        mask_token_index=mask_token_index,
+        vocabulary_size=len(tokenizer),
+        config=tuning_config,
+        task_config=task_config,
+    )
 
     # TODO: try to automate this by estimating the memory used by the model
     # (dummy_input) can probably help for that
@@ -351,9 +348,7 @@ def main(
         )
 
     logger.info(f"Creating dataloader")
-    train_loader = mlm.MLMLoader(
-        train_set, task_config=task_config, batch_size=device_batch_size,
-    )
+    train_loader = data.TextLoader(train_set, batch_size=device_batch_size,)
 
     logger.info(f"Creating trainer")
     if profile:
@@ -361,7 +356,7 @@ def main(
         profiler = pl.profiler.AdvancedProfiler(output_filename=out_dir / "profile.txt")
         profile_kwargs = {
             "profiler": profiler,
-            "overfit_pct": 1000 / len(train_loader),
+            "overfit_pct": 1024 / len(train_loader),
             "max_epochs": 2,
         }
     else:

@@ -1,7 +1,7 @@
 import pathlib
 import pickle  # nosec
 
-from typing import List
+from typing import List, NamedTuple, Sequence
 
 import torch
 import torch.utils.data
@@ -9,6 +9,7 @@ import tqdm
 import transformers
 
 from loguru import logger
+from torch.nn.utils.rnn import pad_sequence
 
 
 # TODO: this is in-memory, if need be we can change it for a memmap (possibly lmdb) backed dataset
@@ -173,3 +174,64 @@ class LineByLineTextDataset(TextDataset):
                 raw_lines = in_stream.readlines(read_size_hint)
             pbar.close()
             return examples
+
+
+class TextBatch(NamedTuple):
+    """A batch of text for self-supervised tasks.
+
+    Attributes
+    ==========
+
+    :tokens: A batch of encoded (with special tokens) and padded tokens.
+    :attention_mask: A boolean mask, `True` for content and special tokens, `False` for padding.
+    :internal_tokens_mask: A boolean mask, `True` for content tokens, `False` for padding and
+      special tokens.
+    :token_type_ids: The `token_type_ids` tensor needed internally for hugginface transformers
+      implementations.
+    """
+
+    tokens: torch.Tensor
+    attention_mask: torch.Tensor
+    internal_tokens_mask: torch.Tensor
+    token_type_ids: torch.Tensor
+
+
+class TextLoader(torch.utils.data.DataLoader):
+    def __init__(self, dataset: TextDataset, *args, **kwargs):
+        self.dataset: TextDataset
+        super().__init__(dataset, *args, collate_fn=self.collate, **kwargs)
+        padding_value = getattr(self.dataset.tokenizer, "pad_token_id")
+        if padding_value is None:
+            padding_value = self.dataset.tokenizer.convert_tokens_to_ids(
+                self.dataset.tokenizer.padding_value
+            )
+        self.padding_value = padding_value
+
+    def collate(self, batch: Sequence[torch.Tensor]) -> TextBatch:
+        # Note: this is not strictly necessary in our case since the examples are already padded by
+        # the dataset but more decoupling in the future would not hurt
+        padded_batch = pad_sequence(
+            batch, batch_first=True, padding_value=self.padding_value
+        )
+        padding_mask = padded_batch.eq(self.padding_value)
+        # FIXME: Is the next line general enough?
+        # We only deal with single sequences here
+        token_type_ids = torch.zeros_like(padded_batch)
+        attention_mask = padding_mask.logical_not()
+
+        special_tokens_mask = torch.tensor(
+            [
+                self.dataset.tokenizer.get_special_tokens_mask(
+                    val, already_has_special_tokens=True
+                )
+                for val in batch
+            ],
+            dtype=torch.bool,
+        )
+        internal_tokens_mask = special_tokens_mask | padding_mask
+        return TextBatch(
+            tokens=padded_batch,
+            attention_mask=attention_mask,
+            internal_tokens_mask=internal_tokens_mask,
+            token_type_ids=token_type_ids,
+        )

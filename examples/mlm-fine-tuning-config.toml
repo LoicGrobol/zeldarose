@@ -1,8 +1,0 @@
-# The default MLM fine-tuning config as a config file
-batch_size = 64
-betas = [0.9, 0.98]
-epsilon = 1e-8
-learning_rate = 1e-4
-lr_decay_steps = 0
-warmup_steps = 0
-weight_decay = 0.0

@@ -19,9 +19,9 @@ Here is a short example:
 zeldarose-transformer --tokenizer roberta-base --pretrained-model roberta-large --out-dir my/experiment/dir my_raw_corpus.txt
 ```
 
-There are other parameters (see `zeldarose-transformer --help` for a comprehensive list), the ones
-you are probably mostly interested in are `--task-config` and `--tuning-config` (for which there are
-examples target in [`examples/`](examples)).
+There are other parameters (see `zeldarose-transformer --help` for a comprehensive list), the one
+you are probably mostly interested in is `--config` (for which there is an example target in
+[`examples/`](examples)).
 
 The parameters `--pretrained-models`, `--tokenizer` and `--model-config` are all fed directly to
 [Huggingface's `transformers`](https://huggingface.co/transformers) and can be [pretrained

@@ -1,4 +1,4 @@
-from typing import NamedTuple, Optional, Sequence, Tuple
+from typing import NamedTuple, Optional, Tuple
 
 import pydantic
 import pytorch_lightning as pl
@@ -8,7 +8,6 @@ import torch.utils.data
 import transformers
 
 from loguru import logger
-from torch.nn.utils.rnn import pad_sequence
 
 import zeldarose.data
 
@@ -77,80 +76,6 @@ class MLMTaskConfig(pydantic.BaseModel):
     switch_ratio: float = 0.1
 
 
-class MLMBatch(NamedTuple):
-    tokens: torch.Tensor
-    attention_mask: torch.Tensor
-    token_type_ids: torch.Tensor
-    mlm_labels: torch.Tensor
-
-
-class MLMLoader(torch.utils.data.DataLoader):
-    def __init__(
-        self,
-        dataset: zeldarose.data.TextDataset,
-        task_config: Optional[MLMTaskConfig] = None,
-        *args,
-        **kwargs
-    ):
-        self.dataset: zeldarose.data.TextDataset
-        super().__init__(dataset, *args, collate_fn=self.collate, **kwargs)
-        if task_config is None:
-            self.task_config = MLMTaskConfig()
-        else:
-            self.task_config = task_config
-        logger.info(f"MLM task config: {self.task_config}")
-        mask_token_index = getattr(self.dataset.tokenizer, "mask_token_id")
-        if mask_token_index is None:
-            mask_token_index = self.dataset.tokenizer.convert_tokens_to_ids(
-                self.dataset.tokenizer.mask_token
-            )
-        self.mask_token_index = mask_token_index
-        padding_value = getattr(self.dataset.tokenizer, "pad_token_id", 0)
-        if padding_value is None:
-            padding_value = self.dataset.tokenizer.convert_tokens_to_ids(
-                self.dataset.tokenizer.padding_value
-            )
-        self.padding_value = padding_value
-
-    def collate(self, batch: Sequence[torch.Tensor]) -> MLMBatch:
-        # Note: this is not strictly necessary in our case since the examples are already padded by
-        # the dataset but more decoupling in the future would not hurt
-        padded_batch = pad_sequence(
-            batch, batch_first=True, padding_value=self.padding_value
-        )
-        padding_mask = padded_batch.eq(self.padding_value)
-        # FIXME: Is the next line general enough?
-        # We only deal with single sequences here
-        token_type_ids = torch.zeros_like(padded_batch)
-        attention_mask = padding_mask.logical_not()
-
-        special_tokens_mask = torch.tensor(
-            [
-                self.dataset.tokenizer.get_special_tokens_mask(
-                    val, already_has_special_tokens=True
-                )
-                for val in batch
-            ],
-            dtype=torch.bool,
-        )
-        keep_mask = special_tokens_mask | padding_mask
-        masked = mask_tokens(
-            inputs=padded_batch,
-            input_mask_index=self.mask_token_index,
-            vocabulary_size=len(self.dataset.tokenizer),
-            change_ratio=self.task_config.change_ratio,
-            mask_ratio=self.task_config.mask_ratio,
-            switch_ratio=self.task_config.switch_ratio,
-            keep_mask=keep_mask,
-        )
-        return MLMBatch(
-            tokens=masked.inputs,
-            attention_mask=attention_mask,
-            token_type_ids=token_type_ids,
-            mlm_labels=masked.labels,
-        )
-
-
 # TODO: add validation
 class MLMFinetunerConfig(pydantic.BaseModel):
     batch_size: int = 64
@@ -166,15 +91,25 @@ class MLMFinetuner(pl.LightningModule):
     def __init__(
         self,
         model: transformers.PreTrainedModel,
+        mask_token_index: int,
+        vocabulary_size: int,
         config: Optional[MLMFinetunerConfig] = None,
+        task_config: Optional[MLMTaskConfig] = None,
     ):
         super().__init__()
         if config is not None:
             self.config = config
         else:
             self.config = MLMFinetunerConfig()
+        if task_config is not None:
+            self.task_config = task_config
+        else:
+            self.task_config = MLMTaskConfig()
         logger.info(f"MLM trainer config: {self.config}")
+        logger.info(f"MLM task config: {self.task_config}")
         self.model = model
+        self.mask_token_index = mask_token_index
+        self.vocabulary_size = vocabulary_size
 
     def forward(
         self,
@@ -194,14 +129,23 @@ class MLMFinetuner(pl.LightningModule):
         return output
 
     # TODO: masking should happen here ?
-    def training_step(self, batch: MLMBatch, batch_idx: int):
+    def training_step(self, batch: zeldarose.data.TextBatch, batch_idx: int):
         # FIXME: this because lightning doesn't preserve namedtuples
-        tokens, attention_mask, token_type_ids, mlm_labels = batch
+        tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
+        masked = mask_tokens(
+            inputs=tokens,
+            input_mask_index=self.mask_token_index,
+            vocabulary_size=self.vocabulary_size,
+            change_ratio=self.task_config.change_ratio,
+            mask_ratio=self.task_config.mask_ratio,
+            switch_ratio=self.task_config.switch_ratio,
+            keep_mask=internal_tokens_mask,
+        )
         outputs = self.forward(
-            tokens=tokens,
+            tokens=masked.inputs,
             attention_mask=attention_mask,
             token_type_ids=token_type_ids,
-            mlm_labels=mlm_labels,
+            mlm_labels=masked.labels,
         )
 
         loss = outputs[0]
