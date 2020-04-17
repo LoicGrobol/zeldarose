@@ -66,7 +66,7 @@ def max_gpu_batch_size(
         with tempfile.TemporaryDirectory(prefix="zeldarose-profile") as temp_dir:
             torch.cuda.empty_cache()
             torch.cuda.reset_peak_memory_stats(device)
-            loader = data.TextLoader(dataset, batch_size=batch_size,)
+            loader = data.TextLoader(dataset, batch_size=batch_size)
             trainer = pl.Trainer(
                 default_save_path=temp_dir,
                 overfit_pct=n_samples / len(loader),
@@ -235,6 +235,9 @@ def max_gpu_batch_size_affine(
     "--n-gpus", type=int, help="How many GPUs to train on",
 )
 @click.option(
+    "--n-workers", type=int, default=0, help="How many data loading workers to use",
+)
+@click.option(
     "--out-dir",
     default=".",
     type=click_pathlib.Path(resolve_path=True, file_okay=False, allow_dash=True),
@@ -273,6 +276,7 @@ def main(
     out_dir: pathlib.Path,
     overwrite_cache: bool,
     n_gpus: Optional[int],
+    n_workers: int,
     pretrained_model: Optional[str],
     profile: bool,
     raw_text: pathlib.Path,
@@ -342,7 +346,9 @@ def main(
         )
 
     logger.info(f"Creating dataloader")
-    train_loader = data.TextLoader(train_set, batch_size=device_batch_size,)
+    train_loader = data.TextLoader(
+        train_set, batch_size=device_batch_size, n_workers=n_workers
+    )
 
     logger.info(f"Creating trainer")
     if profile:
