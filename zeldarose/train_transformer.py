@@ -30,6 +30,7 @@ def setup_logging(verbose: bool, logfile: Optional[pathlib.Path]):
             "<level>{message}</level>"
         )
     else:
+        logging.basicConfig(level=logging.ERRORs)
         log_level = "INFO"
         log_fmt = (
             "[zeldarose] "
@@ -347,7 +348,7 @@ def main(
 
     logger.info(f"Creating dataloader")
     train_loader = data.TextLoader(
-        train_set, batch_size=device_batch_size, n_workers=n_workers
+        train_set, batch_size=device_batch_size, num_workers=n_workers
     )
 
     logger.info(f"Creating trainer")
@@ -371,9 +372,9 @@ def main(
     )
 
     if n_gpus:
-        logging.info(f"Training the model on {n_gpus} GPUs")
+        logger.info(f"Training the model on {n_gpus} GPUs")
     else:
-        logging.info(f"Training the model on CPU")
+        logger.info(f"Training the model on CPU")
     trainer.fit(finetuning_model, train_dataloader=train_loader)
 
     logger.info(f"Saving model to {out_dir}")
