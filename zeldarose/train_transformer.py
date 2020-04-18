@@ -30,7 +30,7 @@ def setup_logging(verbose: bool, logfile: Optional[pathlib.Path]):
             "<level>{message}</level>"
         )
     else:
-        logging.basicConfig(level=logging.ERRORs)
+        logging.basicConfig(level=logging.ERROR)
         log_level = "INFO"
         log_fmt = (
             "[zeldarose] "
@@ -293,6 +293,20 @@ def main(
         task_config = mlm.MLMTaskConfig()
         tuning_config = mlm.MLMFinetunerConfig()
 
+    # Every tuning batch is split in k loading batches, which are themselves split among the n_gpus
+    # device batches so
+    if n_gpus is not None:
+        if tuning_config.batch_size % n_gpus:
+            logging.warning(
+                f"Batch size ({tuning_config.batch_size})"
+                f" is not a multiple of the number of devices ({n_gpus})"
+                " which might cause issues later on,"
+                " see https://github.com/PyTorchLightning/pytorch-lightning/issues/1218"
+            )
+        n_devices = n_gpus
+    else:
+        n_devices = 1
+
     logger.info(f"Loading pretrained tokenizer {tokenizer_name}")
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         tokenizer_name, use_fast=True
@@ -329,26 +343,36 @@ def main(
         task_config=task_config,
     )
 
-    # TODO: try to automate this by estimating the memory used by the model
-    # (dummy_input) can probably help for that
     if device_batch_size is None:
         if guess_batch_size:
-            logger.info("Running a quick profile to find out the best batch size")
-            device_batch_size = max_gpu_batch_size(
+            logger.info(
+                "Running a quick profile to find out the best device batch size"
+            )
+            max_device_batch_size = max_gpu_batch_size(
                 dataset=train_set, finetuner=finetuning_model
             )
-            logger.info(f"Inferred max batch size: {device_batch_size}")
+            logger.info(f"Inferred max device batch size: {device_batch_size}")
+            device_batch_size = (
+                math.gcd(max_device_batch_size * n_devices, tuning_config.batch_size)
+                // n_devices
+            )
+            logger.info(
+                f"Coercing device batch size to {device_batch_size}"
+                f" such that a tuning batch ({tuning_config.batch_size} samples) is"
+                f" a whole number of loader batches ({n_devices*device_batch_size} samples)"
+            )
         else:
             device_batch_size = tuning_config.batch_size
-    elif tuning_config.batch_size % device_batch_size:
+    elif tuning_config.batch_size % device_batch_size * n_devices:
         logger.warning(
             f"Batch size ({tuning_config.batch_size}) is not a muliple"
-            f" of device batch size({device_batch_size})"
+            f" of loader batch size({device_batch_size} samples per device × {n_devices} devices)"
         )
 
     logger.info(f"Creating dataloader")
+    loader_batch_size = device_batch_size * n_devices
     train_loader = data.TextLoader(
-        train_set, batch_size=device_batch_size, num_workers=n_workers
+        train_set, batch_size=loader_batch_size, num_workers=n_workers,
     )
 
     logger.info(f"Creating trainer")
@@ -363,7 +387,7 @@ def main(
     else:
         profile_kwargs = dict()
     trainer = pl.Trainer(
-        accumulate_grad_batches=tuning_config.batch_size // device_batch_size,
+        accumulate_grad_batches=tuning_config.batch_size // loader_batch_size,
         distributed_backend=distributed_backend,
         default_save_path=out_dir,
         gpus=n_gpus,

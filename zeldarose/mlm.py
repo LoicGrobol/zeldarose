@@ -63,6 +63,7 @@ def mask_tokens(
         & masked_tokens.logical_not()
     )
     random_words = torch.randint_like(labels, vocabulary_size)
+    # FIXME: probably still an unnecessary copy here
     inputs[switched_tokens] = random_words[switched_tokens]
 
     # The rest of the time (10% of the time) we keep the masked input tokens unchanged
