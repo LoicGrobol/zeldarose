@@ -61,6 +61,7 @@ def max_gpu_batch_size(
     Should be reliable, but slow, you probably only want to run it once.
     """
     device = torch.device(device)  # type: ignore
+    device_max_mem = torch.cuda.get_device_properties(device.index).total_memory
 
     def test_run(batch_size):
         logger.debug(f"Trying a run with batch size {batch_size}")
@@ -83,7 +84,7 @@ def max_gpu_batch_size(
                 else:
                     raise e
         usage = torch.cuda.max_memory_allocated(device)
-        logger.debug(f"Registered usage: {usage}")
+        logger.debug(f"Registered usage: {usage} / {device_max_mem} B")
         return usage
 
     # Find a majoration of max batch size as a power of two
@@ -112,7 +113,9 @@ def max_gpu_batch_size(
         else:
             min_size = try_size
             usage_with_min_size = usage_with_try_size
-    logger.debug(f"Mem usage with inferred batch size: {usage_with_min_size} B")
+    logger.debug(
+        f"Mem usage with inferred batch size: {usage_with_min_size} / {device_max_mem} B"
+    )
     return min_size
 
 
