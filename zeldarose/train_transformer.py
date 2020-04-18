@@ -20,7 +20,7 @@ from zeldarose import data
 from zeldarose import mlm
 
 
-def setup_logging(verbose: bool, logfile: Optional[pathlib.Path]):
+def setup_logging(verbose: bool, logfile: Optional[pathlib.Path] = None):
     logger.remove(0)  # Remove the default logger
     if verbose:
         log_level = "DEBUG"
@@ -287,7 +287,7 @@ def main(
     tokenizer_name: str,
     verbose: bool,
 ):
-    setup_logging(verbose, out_dir / "train.log")
+    setup_logging(verbose, )
     if config_path is not None:
         config = toml.loads(config_path.read_text())
         task_config = mlm.MLMTaskConfig.parse_obj(config["task"])
