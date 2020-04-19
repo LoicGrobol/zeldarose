@@ -23,6 +23,7 @@ class TextDataset(torch.utils.data.Dataset):
         tokenizer: transformers.PreTrainedTokenizer,
         text_path: pathlib.Path,
         block_size: int = 512,
+        model_name: str = "lm",
         overwrite_cache: bool = False,
     ):
         if not text_path.is_file():
@@ -40,7 +41,7 @@ class TextDataset(torch.utils.data.Dataset):
             )
 
         cached_features_file = (
-            text_path.parent / f"lm_{block_size}_{text_path.stem}_cache.pt"
+            text_path.parent / f"{model_name}_{block_size}_{text_path.stem}_cache.pt"
         )
         if cached_features_file.exists() and not overwrite_cache:
             logger.info(f"Loading features from cached file {cached_features_file}")

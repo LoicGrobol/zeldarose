@@ -133,15 +133,16 @@ class MLMFinetuner(pl.LightningModule):
     def training_step(self, batch: zeldarose.data.TextBatch, batch_idx: int):
         # FIXME: this because lightning doesn't preserve namedtuples
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
-        masked = mask_tokens(
-            inputs=tokens,
-            input_mask_index=self.mask_token_index,
-            vocabulary_size=self.vocabulary_size,
-            change_ratio=self.task_config.change_ratio,
-            mask_ratio=self.task_config.mask_ratio,
-            switch_ratio=self.task_config.switch_ratio,
-            keep_mask=internal_tokens_mask,
-        )
+        with torch.no_grad():
+            masked = mask_tokens(
+                inputs=tokens,
+                input_mask_index=self.mask_token_index,
+                vocabulary_size=self.vocabulary_size,
+                change_ratio=self.task_config.change_ratio,
+                mask_ratio=self.task_config.mask_ratio,
+                switch_ratio=self.task_config.switch_ratio,
+                keep_mask=internal_tokens_mask,
+            )
         outputs = self.forward(
             tokens=masked.inputs,
             attention_mask=attention_mask,
@@ -154,6 +155,13 @@ class MLMFinetuner(pl.LightningModule):
 
         tensorboard_logs = {"train/train_loss": loss, "train/perplexity": perplexity}
         return {"loss": loss, "log": tensorboard_logs}
+
+    def training_epoch_end(self, outputs):
+        avg_loss = torch.stack([x["loss"] for x in outputs]).mean()
+        perplexity = torch.exp(avg_loss)
+
+        results = {"avg_train_loss": avg_loss, "train_perplexity": perplexity}
+        return results
 
     # def validation_step(self, batch: MLMBatch, batch_idx: int):
     #     outputs = self.forward(

@@ -30,7 +30,7 @@ def setup_logging(verbose: bool, logfile: Optional[pathlib.Path] = None):
             "<level>{message}</level>"
         )
     else:
-        logging.basicConfig(level=logging.ERROR)
+        logging.getLogger("None").setLevel(logging.CRITICAL)
         log_level = "INFO"
         log_fmt = (
             "[zeldarose] "
@@ -220,6 +220,12 @@ def max_gpu_batch_size_affine(
     help="Assume that the dataset is pre-segmented in sentences",
 )
 @click.option(
+    "--max-epochs", type=int, help="How many steps to train foor",
+)
+@click.option(
+    "--max-steps", type=int, help="How many steps to train foor",
+)
+@click.option(
     "--model-config",
     "model_config_path",
     type=str,
@@ -275,6 +281,8 @@ def main(
     distributed_backend: Optional[str],
     guess_batch_size: bool,
     line_by_line: bool,
+    max_epochs: Optional[int],
+    max_steps: Optional[int],
     model_config_path: Optional[str],
     model_name: str,
     out_dir: pathlib.Path,
@@ -287,7 +295,7 @@ def main(
     tokenizer_name: str,
     verbose: bool,
 ):
-    setup_logging(verbose, )
+    setup_logging(verbose, out_dir / "train.log")
     if config_path is not None:
         config = toml.loads(config_path.read_text())
         task_config = mlm.MLMTaskConfig.parse_obj(config["task"])
@@ -331,13 +339,17 @@ def main(
         dataset_type = data.TextDataset
     logger.info(f"Loading raw text dataset from {raw_text}")
     train_set = dataset_type(
-        tokenizer=tokenizer, text_path=raw_text, overwrite_cache=overwrite_cache,
+        tokenizer=tokenizer,
+        text_path=raw_text,
+        model_name=model_name,
+        overwrite_cache=overwrite_cache,
     )
 
     logger.info(f"Creating MLM Finetuner")
     mask_token_index = getattr(tokenizer, "mask_token_id")
     if mask_token_index is None:
         mask_token_index = tokenizer.convert_tokens_to_ids(tokenizer.mask_token)
+    logger.debug(f"Mask token index: {mask_token_index}")
     finetuning_model = mlm.MLMFinetuner(
         model,
         mask_token_index=mask_token_index,
@@ -385,16 +397,17 @@ def main(
         profile_kwargs = {
             "profiler": profiler,
             "overfit_pct": 1024 / len(train_loader),
-            "max_epochs": 2,
         }
     else:
         profile_kwargs = dict()
     trainer = pl.Trainer(
         accumulate_grad_batches=tuning_config.batch_size // loader_batch_size,
-        distributed_backend=distributed_backend,
         default_save_path=out_dir,
+        distributed_backend=distributed_backend,
         gpus=n_gpus,
-        reload_dataloaders_every_epoch=True,
+        max_epochs=max_epochs,
+        max_steps=max_steps,
+        track_grad_norm=2,
         **profile_kwargs,
     )
 
