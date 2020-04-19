@@ -48,7 +48,7 @@ class TextDataset(torch.utils.data.Dataset):
             with open(cached_features_file, "rb") as handle:
                 self.examples = torch.load(handle)
         else:
-            logger.info(f"Creating features from dataset file at {text_path.parent}")
+            logger.info(f"Creating features from dataset file at {text_path}")
 
             self.examples = self.load_file(text_path)
 

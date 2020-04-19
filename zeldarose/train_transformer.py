@@ -298,8 +298,8 @@ def main(
     setup_logging(verbose, out_dir / "train.log")
     if config_path is not None:
         config = toml.loads(config_path.read_text())
-        task_config = mlm.MLMTaskConfig.parse_obj(config["task"])
-        tuning_config = mlm.MLMFinetunerConfig.parse_obj(config["tuning"])
+        task_config = mlm.MLMTaskConfig.parse_obj(config.get("task", dict()))
+        tuning_config = mlm.MLMFinetunerConfig.parse_obj(config.get("tuning", dict()))
     else:
         task_config = mlm.MLMTaskConfig()
         tuning_config = mlm.MLMFinetunerConfig()
