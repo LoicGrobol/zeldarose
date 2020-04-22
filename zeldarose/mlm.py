@@ -17,7 +17,6 @@ class MaskedTokens(NamedTuple):
     labels: torch.Tensor
 
 
-# FUTURE: use `torch.logical_xxx` functions in torch >= 1.5.0
 # TODO: How to do whole-word masking?
 @torch.jit.script
 def mask_tokens(
@@ -58,10 +57,9 @@ def mask_tokens(
     inputs.masked_fill_(masked_tokens, input_mask_index)
 
     # Replace masked input tokens with random word
-    switched_tokens = (
-        what_to_do.le(change_ratio * (mask_ratio + switch_ratio))
-        & masked_tokens.logical_not()
-    )
+    switched_tokens = what_to_do.le(
+        change_ratio * (mask_ratio + switch_ratio)
+    ).logical_and(masked_tokens.logical_not())
     random_words = torch.randint_like(labels, vocabulary_size)
     # FIXME: probably still an unnecessary copy here
     inputs[switched_tokens] = random_words[switched_tokens]
