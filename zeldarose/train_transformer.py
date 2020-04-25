@@ -235,7 +235,11 @@ def max_gpu_batch_size_affine(
     help="A config name or path to create a muppet from scratch",
 )
 @click.option(
-    "--model-name", type=str, metavar="NAME", help="A name to give to the model",
+    "--model-name",
+    type=str,
+    default="muppet",
+    metavar="NAME",
+    help="A name to give to the model",
 )
 @click.option(
     "--n-gpus", type=int, help="How many GPUs to train on",
