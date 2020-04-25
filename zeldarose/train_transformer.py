@@ -202,17 +202,17 @@ def max_gpu_batch_size_affine(
     ),
 )
 @click.option(
+    "--distributed-backend",
+    type=str,
+    help="The lightning distributed backend to use (see lightning doc)",
+)
+@click.option(
     "--guess-batch-size",
     is_flag=True,
     help=(
         "Try to find the max device batch size automatically"
         " (ignored if --device-batch-size is provided)"
     ),
-)
-@click.option(
-    "--distributed-backend",
-    type=str,
-    help="The lightning distributed backend to use (see lightning doc)",
 )
 @click.option(
     "--line-by-line",
@@ -235,11 +235,7 @@ def max_gpu_batch_size_affine(
     help="A config name or path to create a muppet from scratch",
 )
 @click.option(
-    "--model-name",
-    type=str,
-    default="generic_muppet",
-    metavar="NAME",
-    help="A name to give to the model",
+    "--model-name", type=str, metavar="NAME", help="A name to give to the model",
 )
 @click.option(
     "--n-gpus", type=int, help="How many GPUs to train on",
@@ -269,10 +265,12 @@ def max_gpu_batch_size_affine(
     "--tokenizer",
     "tokenizer_name",
     type=str,
-    default="roberta-base",
     show_default=True,
     metavar="NAME_OR_PATH",
-    help="A pretrained tokenizer model to use",
+    help=(
+        "A pretrained tokenizer model to use"
+        " (default to the pretrained transformer model if there is one)"
+    ),
 )
 @click.option("--verbose", is_flag=True, help="More detailed logs")
 def main(
@@ -284,7 +282,7 @@ def main(
     max_epochs: Optional[int],
     max_steps: Optional[int],
     model_config_path: Optional[str],
-    model_name: str,
+    model_name: Optional[str],
     out_dir: pathlib.Path,
     overwrite_cache: bool,
     n_gpus: Optional[int],
@@ -292,7 +290,7 @@ def main(
     pretrained_model: Optional[str],
     profile: bool,
     raw_text: pathlib.Path,
-    tokenizer_name: str,
+    tokenizer_name: Optional[str],
     verbose: bool,
 ):
     setup_logging(verbose, out_dir / "train.log")
@@ -318,11 +316,6 @@ def main(
     else:
         n_devices = 1
 
-    logger.info(f"Loading pretrained tokenizer {tokenizer_name}")
-    tokenizer = transformers.AutoTokenizer.from_pretrained(
-        tokenizer_name, use_fast=True
-    )
-
     if pretrained_model is not None:
         logger.info(f"Loading pretrained model {pretrained_model!r}")
         model = transformers.AutoModelWithLMHead.from_pretrained(pretrained_model)
@@ -331,6 +324,16 @@ def main(
         model_config = transformers.AutoConfig.from_pretrained(model_config_path)
         logger.info(f"Generating model from config")
         model = transformers.AutoModelWithLMHead.from_config(model_config)
+
+    if tokenizer_name is None:
+        if pretrained_model is not None:
+            tokenizer_name = pretrained_model
+        else:
+            raise ValueError("Missing both pretrained tokenizer and pretrained model")
+    logger.info(f"Loading pretrained tokenizer {tokenizer_name}")
+    tokenizer = transformers.AutoTokenizer.from_pretrained(
+        tokenizer_name, use_fast=True
+    )
 
     dataset_type: Type[data.TextDataset]
     if line_by_line:
