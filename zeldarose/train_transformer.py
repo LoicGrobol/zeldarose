@@ -220,10 +220,10 @@ def max_gpu_batch_size_affine(
     help="Assume that the dataset is pre-segmented in sentences",
 )
 @click.option(
-    "--max-epochs", type=int, help="How many steps to train foor",
+    "--max-epochs", type=int, default=2, help="How many steps to train for",
 )
 @click.option(
-    "--max-steps", type=int, help="How many steps to train foor",
+    "--max-steps", type=int, help="How many steps to train for",
 )
 @click.option(
     "--model-config",
@@ -283,7 +283,7 @@ def main(
     distributed_backend: Optional[str],
     guess_batch_size: bool,
     line_by_line: bool,
-    max_epochs: Optional[int],
+    max_epochs: int,
     max_steps: Optional[int],
     model_config_path: Optional[str],
     model_name: str,
