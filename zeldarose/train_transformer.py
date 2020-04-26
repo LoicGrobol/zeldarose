@@ -286,7 +286,7 @@ def main(
     max_epochs: Optional[int],
     max_steps: Optional[int],
     model_config_path: Optional[str],
-    model_name: Optional[str],
+    model_name: str,
     out_dir: pathlib.Path,
     overwrite_cache: bool,
     n_gpus: Optional[int],
@@ -394,7 +394,7 @@ def main(
     logger.info(f"Creating dataloader")
     loader_batch_size = device_batch_size * n_devices
     train_loader = data.TextLoader(
-        train_set, batch_size=loader_batch_size, num_workers=n_workers,
+        train_set, batch_size=loader_batch_size, num_workers=n_workers, shuffle=True
     )
 
     logger.info(f"Creating trainer")
