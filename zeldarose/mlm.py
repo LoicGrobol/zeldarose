@@ -18,7 +18,7 @@ class MaskedTokens(NamedTuple):
 
 
 # TODO: How to do whole-word masking?
-# @torch.jit.script
+@torch.jit.script
 def mask_tokens(
     inputs: torch.Tensor,
     input_mask_index: int,
