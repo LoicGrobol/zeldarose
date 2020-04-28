@@ -328,6 +328,7 @@ def main(
         model_config = transformers.AutoConfig.from_pretrained(model_config_path)
         logger.info(f"Generating model from config")
         model = transformers.AutoModelWithLMHead.from_config(model_config)
+    model.train()
 
     if tokenizer_name is None:
         if pretrained_model is not None:

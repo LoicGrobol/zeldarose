@@ -18,7 +18,7 @@ class MaskedTokens(NamedTuple):
 
 
 # TODO: How to do whole-word masking?
-@torch.jit.script
+# @torch.jit.script
 def mask_tokens(
     inputs: torch.Tensor,
     input_mask_index: int,
@@ -127,7 +127,6 @@ class MLMFinetuner(pl.LightningModule):
 
         return output
 
-    # TODO: masking should happen here ?
     def training_step(self, batch: zeldarose.data.TextBatch, batch_idx: int):
         # FIXME: this because lightning doesn't preserve namedtuples
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
