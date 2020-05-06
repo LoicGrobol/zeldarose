@@ -1,3 +1,4 @@
+import functools
 import pathlib
 import pickle  # nosec
 
@@ -87,8 +88,9 @@ class TextDataset(torch.utils.data.Dataset):
             # Process by chunks instead of loading everything in RAM
             # We still read by line to ensure we don't end up in the middle of a unicode
             # characterload_file(text_path)
-            raw_lines = in_stream.readlines(read_size_hint)  # Oh a := would be so handy
-            while raw_lines:
+            for raw_lines in iter(
+                functools.partial(in_stream.readlines, read_size_hint), b""
+            ):
                 chunk = b"".join(raw_lines)
                 decoded = chunk.decode(encoding="utf-8")
                 # This is the best choice for fast tokenizers
@@ -127,7 +129,6 @@ class TextDataset(torch.utils.data.Dataset):
                     offset = new_offset
                 pbar.n = in_stream.tell()
                 pbar.update(0)
-                raw_lines = in_stream.readlines(read_size_hint)
             pbar.close()
         return examples
 
@@ -159,8 +160,9 @@ class LineByLineTextDataset(TextDataset):
                 unit_scale=True,
                 mininterval=1,
             )
-            raw_lines = in_stream.readlines(read_size_hint)  # Oh a := would be so handy
-            while raw_lines:
+            for raw_lines in iter(
+                functools.partial(in_stream.readlines, read_size_hint), b""
+            ):
                 decoded = [l.decode("utf-8") for l in raw_lines]
                 # TODO: This pads the sequences, which should be done in the loader
                 encoded = self.tokenizer.batch_encode_plus(
@@ -172,7 +174,6 @@ class LineByLineTextDataset(TextDataset):
                 examples.extend(encoded)
                 pbar.n = in_stream.tell()
                 pbar.update(0)
-                raw_lines = in_stream.readlines(read_size_hint)
             pbar.close()
             return examples
 
