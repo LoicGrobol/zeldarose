@@ -48,6 +48,8 @@ def setup_logging(verbose: bool, logfile: Optional[pathlib.Path] = None):
         )
 
 
+# FUTURE: remove this as soon as https://github.com/PyTorchLightning/pytorch-lightning/pull/1638 is
+# merged
 def max_gpu_batch_size(
     dataset: data.TextDataset,
     finetuner: pl.LightningModule,
