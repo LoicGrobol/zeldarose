@@ -89,7 +89,7 @@ class TextDataset(torch.utils.data.Dataset):
             # We still read by line to ensure we don't end up in the middle of a unicode
             # characterload_file(text_path)
             for raw_lines in iter(
-                functools.partial(in_stream.readlines, read_size_hint), b""
+                functools.partial(in_stream.readlines, read_size_hint), []
             ):
                 chunk = b"".join(raw_lines)
                 decoded = chunk.decode(encoding="utf-8")
@@ -161,7 +161,7 @@ class LineByLineTextDataset(TextDataset):
                 mininterval=1,
             )
             for raw_lines in iter(
-                functools.partial(in_stream.readlines, read_size_hint), b""
+                functools.partial(in_stream.readlines, read_size_hint), []
             ):
                 decoded = [l.decode("utf-8") for l in raw_lines]
                 # TODO: This pads the sequences, which should be done in the loader
