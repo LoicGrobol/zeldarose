@@ -131,16 +131,16 @@ class MLMFinetuner(pl.LightningModule):
     def training_step(self, batch: zeldarose.data.TextBatch, batch_idx: int):
         # FIXME: this because lightning doesn't preserve namedtuples
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
-        # with torch.no_grad():
-        #     masked = mask_tokens(
-        #         inputs=tokens,
-        #         input_mask_index=self.mask_token_index,
-        #         vocabulary_size=self.vocabulary_size,
-        #         change_ratio=self.task_config.change_ratio,
-        #         mask_ratio=self.task_config.mask_ratio,
-        #         switch_ratio=self.task_config.switch_ratio,
-        #         keep_mask=internal_tokens_mask,
-        #     )
+        with torch.no_grad():
+            masked = mask_tokens(
+                inputs=tokens,
+                input_mask_index=self.mask_token_index,
+                vocabulary_size=self.vocabulary_size,
+                change_ratio=self.task_config.change_ratio,
+                mask_ratio=self.task_config.mask_ratio,
+                switch_ratio=self.task_config.switch_ratio,
+                keep_mask=internal_tokens_mask,
+            )
 
         outputs = self.forward(
             tokens=tokens,
