@@ -247,6 +247,9 @@ def max_gpu_batch_size_affine(
     "--n-gpus", type=int, help="How many GPUs to train on",
 )
 @click.option(
+    "--n-nodes", type=int, default=1, help="How many nodes to train on (for SLURM clusters)",
+)
+@click.option(
     "--n-workers", type=int, default=0, help="How many data loading workers to use",
 )
 @click.option(
@@ -289,10 +292,11 @@ def main(
     max_steps: Optional[int],
     model_config_path: Optional[str],
     model_name: str,
+    n_gpus: Optional[int],
+    n_nodes: int,
+    n_workers: int,
     out_dir: pathlib.Path,
     overwrite_cache: bool,
-    n_gpus: Optional[int],
-    n_workers: int,
     pretrained_model: Optional[str],
     profile: bool,
     raw_text: pathlib.Path,
@@ -419,6 +423,7 @@ def main(
         default_save_path=out_dir,
         distributed_backend=distributed_backend,
         gpus=n_gpus,
+        num_nodes=n_nodes,
         max_epochs=max_epochs,
         max_steps=max_steps,
         track_grad_norm=2,
