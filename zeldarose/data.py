@@ -162,7 +162,9 @@ class LineByLineTextDataset(TextDataset):
             ):
                 decoded = [l.decode("utf-8") for l in raw_lines]
                 encoded = self.tokenizer.batch_encode_plus(
-                    decoded, add_special_tokens=True
+                    decoded,
+                    add_special_tokens=True,
+                    max_length=self.tokenizer.max_len_single_sentence,
                 )["input_ids"]
                 examples.extend(encoded)
                 pbar.n = in_stream.tell()
