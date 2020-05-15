@@ -116,10 +116,7 @@ class TextDataset(torch.utils.data.Dataset):
                             len(encoded) - remaining : len(encoded) - next_remaining
                         ]
                         examples.append(
-                            torch.tensor(
-                                self.tokenizer.build_inputs_with_special_tokens(block),
-                                dtype=torch.long,
-                            )
+                            self.tokenizer.build_inputs_with_special_tokens(block),
                         )
                         remaining = next_remaining
                     buffer[:remaining] = encoded[len(encoded) - remaining :]
@@ -136,7 +133,7 @@ class TextDataset(torch.utils.data.Dataset):
         return len(self.examples)
 
     def __getitem__(self, item):
-        return self.examples[item]
+        return torch.tensor(self.examples[item])
 
 
 class LineByLineTextDataset(TextDataset):
@@ -167,7 +164,7 @@ class LineByLineTextDataset(TextDataset):
                 encoded = self.tokenizer.batch_encode_plus(
                     decoded, add_special_tokens=True
                 )["input_ids"]
-                examples.extend(torch.tensor(l) for l in encoded)
+                examples.extend(encoded)
                 pbar.n = in_stream.tell()
                 pbar.update(0)
             pbar.close()
