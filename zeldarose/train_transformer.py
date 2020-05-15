@@ -395,7 +395,11 @@ def main(
         )
 
     logger.info(f"Creating dataloader")
-    loader_batch_size = device_batch_size * n_devices
+    # In DP mode, every batch is split between the devicex
+    if distributed_backend == "dp":
+        loader_batch_size = device_batch_size * n_devices
+    else:
+        loader_batch_size = device_batch_size
     train_loader = data.TextLoader(
         train_set, batch_size=loader_batch_size, num_workers=n_workers, shuffle=True,
     )
