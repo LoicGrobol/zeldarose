@@ -71,7 +71,7 @@ class TextDataset(torch.utils.data.Dataset):
                     )
                 cached_features_lock.release()
         finally:
-            if cached_features_lock.is_locked():
+            if cached_features_lock.is_locked:
                 cached_features_lock.release()
 
     def load_file(
