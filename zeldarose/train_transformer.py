@@ -261,7 +261,7 @@ def max_gpu_batch_size_affine(
 @click.option(
     "--overwrite-cache",
     is_flag=True,
-    help="Do not load the dataset from a pre-existing cache",
+    help="Ignore pre-existing dataset cache (problematic in multiprocessing context)",
 )
 @click.option(
     "--pretrained-model",

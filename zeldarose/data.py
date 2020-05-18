@@ -4,6 +4,7 @@ import pickle  # nosec
 
 from typing import List, NamedTuple, Sequence
 
+import filelock
 import torch
 import torch.utils.data
 import tqdm
@@ -41,23 +42,37 @@ class TextDataset(torch.utils.data.Dataset):
                 tokenizer.max_len - tokenizer.max_len_single_sentence
             )
 
-        cached_features_file = (
-            text_path.parent / f"{model_name}_{block_size}_{text_path.stem}_cache.pt"
+        cached_features_filename = (
+            f"{model_name}_{block_size}_{text_path.stem}_cache.pt"
         )
-        if cached_features_file.exists() and not overwrite_cache:
-            logger.info(f"Loading features from cached file {cached_features_file}")
-            with open(cached_features_file, "rb") as handle:
-                self.examples = torch.load(handle)
-        else:
-            logger.info(f"Creating features from dataset file at {text_path}")
+        cached_features_file = text_path.parent / cached_features_filename
+        cached_features_lock = filelock.FileLock(
+            str(text_path.parent / f"{cached_features_filename}.lock")
+        )
+        # Ensure that 1. two process don't try to create the same cache this way, the first to get
+        # here will create it and the others wait until it's created.
+        # FIXME: this may lead to unnecessary overwrites if a worker arrives here when another
+        # worker in the same group has already overwritten the cache and released the lock.
+        try:
+            cached_features_lock.acquire()
+            if cached_features_file.exists() and not overwrite_cache:
+                cached_features_lock.release()
+                logger.info(f"Loading features from cached file {cached_features_file}")
+                with open(cached_features_file, "rb") as handle:
+                    self.examples = torch.load(handle)
+            else:
+                logger.info(f"Creating features from dataset file at {text_path}")
+                self.examples = self.load_file(text_path)
 
-            self.examples = self.load_file(text_path)
-
-            logger.info(f"Saving features into cached file {cached_features_file}")
-            with open(cached_features_file, "wb") as handle:
-                torch.save(
-                    self.examples, handle, pickle_protocol=pickle.HIGHEST_PROTOCOL,
-                )
+                logger.info(f"Saving features into cached file {cached_features_file}")
+                with open(cached_features_file, "wb") as handle:
+                    torch.save(
+                        self.examples, handle, pickle_protocol=pickle.HIGHEST_PROTOCOL,
+                    )
+                cached_features_lock.release()
+        finally:
+            if cached_features_lock.is_locked():
+                cached_features_lock.release()
 
     def load_file(
         self, text_path: pathlib.Path, read_size_hint: int = 2 ** 20
