@@ -121,32 +121,30 @@ class MLMFinetuner(pl.LightningModule):
 
         output = self.model(
             input_ids=tokens,
-            masked_lm_labels=mlm_labels,
             attention_mask=attention_mask,
+            masked_lm_labels=mlm_labels,
             token_type_ids=token_type_ids,
         )
 
         return output
 
     def training_step(self, batch: zeldarose.data.TextBatch, batch_idx: int):
-        # FIXME: this because lightning doesn't preserve namedtuples
-        tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
         with torch.no_grad():
             masked = mask_tokens(
-                inputs=tokens,
-                input_mask_index=self.mask_token_index,
-                vocabulary_size=self.vocabulary_size,
+                inputs=batch.tokens,
                 change_ratio=self.task_config.change_ratio,
+                keep_mask=batch.internal_tokens_mask,
                 mask_ratio=self.task_config.mask_ratio,
+                input_mask_index=self.mask_token_index,
                 switch_ratio=self.task_config.switch_ratio,
-                keep_mask=internal_tokens_mask,
+                vocabulary_size=self.vocabulary_size,
             )
 
         outputs = self.forward(
-            tokens=tokens,
-            attention_mask=attention_mask,
-            token_type_ids=token_type_ids,
-            mlm_labels=tokens,
+            tokens=masked.inputs,
+            attention_mask=batch.attention_mask,
+            mlm_labels=masked.labels,
+            token_type_ids=batch.token_type_ids,
         )
 
         loss = outputs[0]
