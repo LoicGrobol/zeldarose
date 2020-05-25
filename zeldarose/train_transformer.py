@@ -1,5 +1,6 @@
 import logging
 import math
+import os
 import pathlib
 import sys
 import tempfile
@@ -247,7 +248,10 @@ def max_gpu_batch_size_affine(
     "--n-gpus", type=int, help="How many GPUs to train on",
 )
 @click.option(
-    "--n-nodes", type=int, default=1, help="How many nodes to train on (for SLURM clusters)",
+    "--n-nodes",
+    type=int,
+    default=os.environ.get("SLURM_JOB_NUM_NODES", 1),
+    help="How many nodes to train on (for SLURM clusters), defaults to $SLURM_JOB_NUM_NODES",
 )
 @click.option(
     "--n-workers", type=int, default=0, help="How many data loading workers to use",
