@@ -80,7 +80,7 @@ class TextDataset(torch.utils.data.Dataset):
         """Tokenize, encode and split a raw text in blocks.
 
         **Note**: This reads files by chunks of about 1MiB which seemed to work best for the roberta
-        fast tokenizer on my setup it might benefit from fine-tuning. The tradeof is: using larger
+        fast tokenizer on my setup, it might benefit from fine-tuning. The tradeof is: using larger
         chunks will reduce the number of calls to `transformers.encode` but pass it larger texts, so
         what is most efficient depends on the implementation of this method. Of course a larger
         chunk size will also be heavier on the RAM (and significantly so for some tokenizers).
@@ -102,7 +102,7 @@ class TextDataset(torch.utils.data.Dataset):
 
             # Process by chunks instead of loading everything in RAM
             # We still read by line to ensure we don't end up in the middle of a unicode
-            # characterload_file(text_path)
+            # character
             for raw_lines in iter(
                 functools.partial(in_stream.readlines, read_size_hint), []
             ):
@@ -194,10 +194,10 @@ class TextBatch(NamedTuple):
     Attributes
     ==========
 
-    :tokens: A batch of encoded (with special tokens) and padded tokens.
-    :attention_mask: A boolean mask, `True` for content and special tokens, `False` for padding.
+    :tokens: A batch of encoded (with special tokens) and padded tokens.  
+    :attention_mask: A boolean mask, `True` for content and special tokens, `False` for padding.  
     :internal_tokens_mask: A boolean mask, `True` for content tokens, `False` for padding and
-      special tokens.
+      special tokens.  
     :token_type_ids: The `token_type_ids` tensor needed internally for hugginface transformers
       implementations.
     """
