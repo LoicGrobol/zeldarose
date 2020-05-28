@@ -222,6 +222,8 @@ class TextLoader(torch.utils.data.DataLoader):
         self._padding_value = padding_value
 
     def collate(self, batch: Sequence[torch.Tensor]) -> TextBatch:
+        # NOTE: we have to pad/batch manually instead of deferring to huggingface, since the fast
+        # tokenizers can't take pre-encoded inputs (yet?)
         padded_batch = pad_sequence(
             batch, batch_first=True, padding_value=self._padding_value
         )

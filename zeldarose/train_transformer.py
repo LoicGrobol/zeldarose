@@ -440,8 +440,14 @@ def main(
         logger.info(f"Training the model on CPU")
     trainer.fit(finetuning_model, train_dataloader=train_loader)
 
-    logger.info(f"Saving model to {out_dir}")
-    model.save_pretrained(out_dir)
+    # TODO: only on rank 0
+
+    save_dir = out_dir / model_name
+    save_dir.mkdir(exist_ok=True)
+    logger.info(f"Saving model to {save_dir}")
+    model.save_pretrained(save_dir)
+    logger.info(f"Saving tokenizer to {save_dir}")
+    tokenizer.save_pretrained(save_dir)
 
 
 if __name__ == "__main__":

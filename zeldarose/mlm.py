@@ -87,6 +87,7 @@ class MLMFinetunerConfig(pydantic.BaseModel):
     weight_decay: Optional[float] = None
 
 
+# TODO: refactor this to take advantages of hparams
 class MLMFinetuner(pl.LightningModule):
     def __init__(
         self,
