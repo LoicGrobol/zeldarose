@@ -162,33 +162,46 @@ class MLMFinetuner(pl.LightningModule):
         results = {"avg_train_loss": avg_loss, "train_perplexity": perplexity}
         return results
 
-    # def validation_step(self, batch: MLMBatch, batch_idx: int):
-    #     outputs = self.forward(
-    #         tokens=batch.tokens,
-    #         attention_mask=batch.attention_mask,
-    #         token_type_ids=batch.token_type_ids,
-    #         mlm_labels=batch.mlm_labels,
-    #     )
-    #     loss = outputs[0]
+    def validation_step(self, batch: zeldarose.data.TextBatch, batch_idx: int):
+        tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
+        with torch.no_grad():
+            masked = mask_tokens(
+                inputs=tokens,
+                change_ratio=self.task_config.change_ratio,
+                keep_mask=internal_tokens_mask,
+                mask_ratio=self.task_config.mask_ratio,
+                input_mask_index=self.mask_token_index,
+                switch_ratio=self.task_config.switch_ratio,
+                vocabulary_size=self.vocabulary_size,
+            )
 
-    #     preds = torch.argmax(outputs[1], dim=-1)
-    #     correct_preds = preds.eq(batch.mlm_labels) & batch.mlm_labels.ne(-100)
-    #     accuracy = correct_preds.mean()
+        outputs = self.forward(
+            tokens=masked.inputs,
+            attention_mask=attention_mask,
+            mlm_labels=masked.labels,
+            token_type_ids=token_type_ids,
+        )
 
-    #     return {"val_loss": loss, "val_accuracy": accuracy}
+        loss = outputs[0]
 
-    # def validation_end(self, outputs):
-    #     avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
-    #     avg_acc = torch.stack([x["val_acc"] for x in outputs]).mean()
+        preds = torch.argmax(outputs[1], dim=-1)
+        correct_preds = preds.eq(masked.labels) & masked.labels.ne(-100)
+        accuracy = correct_preds.float().mean()
 
-    #     perplexity = torch.exp(avg_loss)
+        return {"val_loss": loss, "val_acc": accuracy}
 
-    #     tensorboard_logs = {
-    #         "validation/loss": avg_loss,
-    #         "validation/accuracy": avg_acc,
-    #         "validation/perplexity": perplexity,
-    #     }
-    #     return {"avg_val_loss": avg_loss, "log": tensorboard_logs}
+    def validation_end(self, outputs):
+        avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
+        avg_acc = torch.stack([x["val_acc"] for x in outputs]).mean()
+
+        perplexity = torch.exp(avg_loss)
+
+        tensorboard_logs = {
+            "validation/loss": avg_loss,
+            "validation/accuracy": avg_acc,
+            "validation/perplexity": perplexity,
+        }
+        return {"avg_val_loss": avg_loss, "log": tensorboard_logs}
 
     def configure_optimizers(self):
         if self.config.weight_decay is not None:

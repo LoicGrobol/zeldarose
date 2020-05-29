@@ -285,6 +285,12 @@ def max_gpu_batch_size_affine(
         " (default to the pretrained transformer model if there is one)"
     ),
 )
+@click.option(
+    "--val-text",
+    "val_path",
+    type=click_pathlib.Path(resolve_path=True, exists=True, dir_okay=False),
+    help="A raw corpus for validation",
+)
 @click.option("--verbose", is_flag=True, help="More detailed logs")
 def main(
     config_path: Optional[pathlib.Path],
@@ -305,6 +311,7 @@ def main(
     profile: bool,
     raw_text: pathlib.Path,
     tokenizer_name: Optional[str],
+    val_path: Optional[pathlib.Path],
     verbose: bool,
 ):
     setup_logging(verbose, out_dir / "train.log")
@@ -355,13 +362,23 @@ def main(
         dataset_type = data.LineByLineTextDataset
     else:
         dataset_type = data.TextDataset
-    logger.info(f"Loading raw text dataset from {raw_text}")
+    logger.info(f"Loading train dataset from {raw_text}")
     train_set = dataset_type(
         tokenizer=tokenizer,
         text_path=raw_text,
         model_name=model_name,
         overwrite_cache=overwrite_cache,
     )
+    val_set: Optional[data.TextDataset]
+    if val_path is not None:
+        val_set = dataset_type(
+            tokenizer=tokenizer,
+            text_path=val_path,
+            model_name=model_name,
+            overwrite_cache=overwrite_cache,
+        )
+    else:
+        val_set = None
 
     logger.info(f"Creating MLM Finetuner")
     mask_token_index = getattr(tokenizer, "mask_token_id")
@@ -402,15 +419,22 @@ def main(
             f" of loader batch size({device_batch_size} samples per device × {n_devices} devices)"
         )
 
-    logger.info(f"Creating dataloader")
-    # In DP mode, every batch is split between the devicex
+    # In DP mode, every batch is split between the devices
     if distributed_backend == "dp":
         loader_batch_size = device_batch_size * n_devices
     else:
         loader_batch_size = device_batch_size
+    logger.info(f"Creating dataloaders")
     train_loader = data.TextLoader(
         train_set, batch_size=loader_batch_size, num_workers=n_workers, shuffle=True,
     )
+    val_loader: Optional[data.TextLoader]
+    if val_set is not None:
+        val_loader = data.TextLoader(
+            val_set, batch_size=loader_batch_size, num_workers=n_workers, shuffle=False,
+        )
+    else:
+        val_loader = None
 
     logger.info(f"Creating trainer")
     if profile:
@@ -438,10 +462,11 @@ def main(
         logger.info(f"Training the model on {n_gpus} GPUs")
     else:
         logger.info(f"Training the model on CPU")
-    trainer.fit(finetuning_model, train_dataloader=train_loader)
+
+    trainer.fit(finetuning_model, train_dataloader=train_loader, val_dataloaders=[val_loader])
 
     # TODO: only on rank 0
-
+    # TODO: this saves the model with the LM head but we might want the base model
     save_dir = out_dir / model_name
     save_dir.mkdir(exist_ok=True)
     logger.info(f"Saving model to {save_dir}")
