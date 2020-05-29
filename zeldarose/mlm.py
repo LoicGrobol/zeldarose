@@ -119,13 +119,22 @@ class MLMFinetuner(pl.LightningModule):
         token_type_ids: torch.Tensor,
         mlm_labels: torch.Tensor,
     ):
-
-        output = self.model(
-            input_ids=tokens,
-            attention_mask=attention_mask,
-            masked_lm_labels=mlm_labels,
-            token_type_ids=token_type_ids,
-        )
+        # No unified interface for lm labels in transformers yet
+        # FIXME: maybe compute them ourselves…
+        if isinstance(self.model, transformers.XLMWithLMHeadModel):
+            output = self.model(
+                input_ids=tokens,
+                attention_mask=attention_mask,
+                labels=mlm_labels,
+                token_type_ids=token_type_ids,
+            )
+        else:
+            output = self.model(
+                input_ids=tokens,
+                attention_mask=attention_mask,
+                masked_lm_labels=mlm_labels,
+                token_type_ids=token_type_ids,
+            )
 
         return output
 
