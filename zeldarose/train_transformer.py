@@ -5,7 +5,7 @@ import pathlib
 import sys
 import tempfile
 
-from typing import Optional, Type, Union
+from typing import List, Optional, Type, Union
 
 import click
 import click_pathlib
@@ -371,6 +371,7 @@ def main(
     )
     val_set: Optional[data.TextDataset]
     if val_path is not None:
+        raise NotImplementedError("Epoch validation is not implemented yet")
         val_set = dataset_type(
             tokenizer=tokenizer,
             text_path=val_path,
@@ -428,13 +429,18 @@ def main(
     train_loader = data.TextLoader(
         train_set, batch_size=loader_batch_size, num_workers=n_workers, shuffle=True,
     )
-    val_loader: Optional[data.TextLoader]
+    val_loaders: Optional[List[data.TextLoader]]
     if val_set is not None:
-        val_loader = data.TextLoader(
-            val_set, batch_size=loader_batch_size, num_workers=n_workers, shuffle=False,
-        )
+        val_loaders = [
+            data.TextLoader(
+                val_set,
+                batch_size=loader_batch_size,
+                num_workers=n_workers,
+                shuffle=False,
+            )
+        ]
     else:
-        val_loader = None
+        val_loaders = None
 
     logger.info(f"Creating trainer")
     if profile:
@@ -455,6 +461,7 @@ def main(
         max_epochs=max_epochs,
         max_steps=max_steps,
         track_grad_norm=2,
+        val_percent_check=1.0 if val_loaders is not None else 0.0,
         **profile_kwargs,
     )
 
@@ -463,7 +470,9 @@ def main(
     else:
         logger.info(f"Training the model on CPU")
 
-    trainer.fit(finetuning_model, train_dataloader=train_loader, val_dataloaders=[val_loader])
+    trainer.fit(
+        finetuning_model, train_dataloader=train_loader, val_dataloaders=val_loaders
+    )
 
     # TODO: only on rank 0
     # TODO: this saves the model with the LM head but we might want the base model
