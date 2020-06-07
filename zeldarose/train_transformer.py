@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import math
 import os
@@ -16,6 +18,7 @@ import torch.cuda
 import transformers
 
 from loguru import logger
+from pytorch_lightning.utilities import rank_zero_only
 
 from zeldarose import data
 from zeldarose import mlm
@@ -477,11 +480,21 @@ def main(
     # TODO: only on rank 0
     # TODO: this saves the model with the LM head but we might want the base model
     save_dir = out_dir / model_name
-    save_dir.mkdir(exist_ok=True)
+    save_model(model, save_dir, tokenizer)
+
+
+@rank_zero_only
+def save_model(
+    model: transformers.PreTrainedModel,
+    save_dir: pathlib.Path,
+    tokenizer: Optional[transformers.PreTrainedTokenizer] = None,
+):
+    save_dir.mkdir(parents=True, exist_ok=True)
     logger.info(f"Saving model to {save_dir}")
     model.save_pretrained(save_dir)
-    logger.info(f"Saving tokenizer to {save_dir}")
-    tokenizer.save_pretrained(save_dir)
+    if tokenizer is not None:
+        logger.info(f"Saving tokenizer to {save_dir}")
+        tokenizer.save_pretrained(save_dir)
 
 
 if __name__ == "__main__":
