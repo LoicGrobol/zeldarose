@@ -185,10 +185,31 @@ def max_gpu_batch_size_affine(
     return res
 
 
+class SavePretrainedModelCallback(pl.callbacks.Callback):
+    def __init__(
+        self,
+        save_dir: pathlib.Path,
+        tokenizer: transformers.PreTrainedTokenizer,
+        period: int = 1,
+    ):
+        self.period = period
+        self.save_dir = save_dir
+        self.tokenizer = tokenizer
+
+    @rank_zero_only
+    def on_epoch_end(self, trainer: pl.Trainer, pl_module: mlm.MLMFinetuner):
+        if not trainer.current_epoch % self.period:
+            transformer_model = pl_module.model
+            epoch_save_dir = self.save_dir / f"epoch_{trainer.current_epoch}"
+            logger.info(f"Saving intermediate model to {epoch_save_dir}")
+            save_model(transformer_model, epoch_save_dir, self.tokenizer)
+
+
 # logging.getLogger(None).setLevel(logging.ERROR)
 
 # TODO: allow reading all these from a config file (except perhaps for paths)
 # TODO: refactor the api to have a single `zeldarose` entrypoint with subcommands.
+# TODO: allow restarting from checkpoint
 @click.command()
 @click.argument(
     "raw_text", type=click_pathlib.Path(resolve_path=True, exists=True, dir_okay=False),
@@ -276,6 +297,12 @@ def max_gpu_batch_size_affine(
     help="A pretrained model to fine-tune",
     metavar="NAME_OR_PATH",
 )
+@click.option(
+    "--save-period",
+    type=int,
+    help="The number of epoch between intermediate model saving",
+    default=0,
+)
 @click.option("--profile", is_flag=True, help="Run in profiling mode")
 @click.option(
     "--tokenizer",
@@ -313,6 +340,7 @@ def main(
     pretrained_model: Optional[str],
     profile: bool,
     raw_text: pathlib.Path,
+    save_period: int,
     tokenizer_name: Optional[str],
     val_path: Optional[pathlib.Path],
     verbose: bool,
@@ -455,8 +483,18 @@ def main(
         }
     else:
         profile_kwargs = dict()
+
+    callbacks: List[pl.callbacks.Callback] = []
+    if save_period:
+        callbacks.append(
+            SavePretrainedModelCallback(
+                out_dir / "partway_models", tokenizer, save_period,
+            )
+        )
+
     trainer = pl.Trainer(
         accumulate_grad_batches=tuning_config.batch_size // loader_batch_size,
+        callbacks=callbacks,
         default_save_path=out_dir,
         distributed_backend=distributed_backend,
         gpus=n_gpus,
@@ -477,8 +515,6 @@ def main(
         finetuning_model, train_dataloader=train_loader, val_dataloaders=val_loaders
     )
 
-    # TODO: only on rank 0
-    # TODO: this saves the model with the LM head but we might want the base model
     save_dir = out_dir / model_name
     save_model(model, save_dir, tokenizer)
 
@@ -489,6 +525,7 @@ def save_model(
     save_dir: pathlib.Path,
     tokenizer: Optional[transformers.PreTrainedTokenizer] = None,
 ):
+    """Save a transformer model."""
     save_dir.mkdir(parents=True, exist_ok=True)
     logger.info(f"Saving model to {save_dir}")
     model.save_pretrained(save_dir)
