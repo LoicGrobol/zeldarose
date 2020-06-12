@@ -402,7 +402,6 @@ def main(
     )
     val_set: Optional[data.TextDataset]
     if val_path is not None:
-        raise NotImplementedError("Epoch validation is not implemented yet")
         val_set = dataset_type(
             tokenizer=tokenizer,
             text_path=val_path,
@@ -510,6 +509,11 @@ def main(
         logger.info(f"Training the model on {n_gpus} GPUs")
     else:
         logger.info(f"Training the model on CPU")
+
+    # Hotfix for https://github.com/PyTorchLightning/pytorch-lightning/issues/2100
+    if val_loaders is None:
+        finetuning_model.validation_step = pl.LightningModule.validation_step  # type: ignore
+        finetuning_model.validation_end = pl.LightningModule.validation_end  # type: ignore
 
     trainer.fit(
         finetuning_model, train_dataloader=train_loader, val_dataloaders=val_loaders
