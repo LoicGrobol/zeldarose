@@ -175,7 +175,12 @@ class LineByLineTextDataset(TextDataset):
             for raw_lines in iter(
                 functools.partial(in_stream.readlines, read_size_hint), []
             ):
-                decoded = [l.decode("utf-8") for l in raw_lines]
+                decoded = [
+                    d
+                    for l in raw_lines
+                    for d in (l.decode("utf-8"),)
+                    if not d.isspace()
+                ]
                 encoded = self.tokenizer.batch_encode_plus(
                     decoded,
                     add_special_tokens=True,
