@@ -2,6 +2,7 @@ from typing import NamedTuple, Optional, Tuple
 
 import pydantic
 import pytorch_lightning as pl
+import pytorch_lightning.metrics as pl_metrics
 import torch
 import torch.jit
 import torch.utils.data
@@ -68,6 +69,11 @@ def mask_tokens(
     return MaskedTokens(inputs, labels)
 
 
+class MaskedAccuracy(pl_metrics.TensorMetric):
+    def forward(self, preds: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
+        return preds.eq(labels).logical_and(labels.ne(-100))
+
+
 # TODO: add validation
 class MLMTaskConfig(pydantic.BaseModel):
     change_ratio: float = 0.15
@@ -107,8 +113,9 @@ class MLMFinetuner(pl.LightningModule):
             self.task_config = MLMTaskConfig()
         logger.info(f"MLM trainer config: {self.config}")
         logger.info(f"MLM task config: {self.task_config}")
-        self.model = model
+        self.accuracy = MaskedAccuracy("masked_accuracy")
         self.mask_token_index = mask_token_index
+        self.model = model
         self.vocabulary_size = vocabulary_size
 
     def forward(
@@ -193,7 +200,7 @@ class MLMFinetuner(pl.LightningModule):
         loss = outputs[0]
 
         preds = torch.argmax(outputs[1], dim=-1)
-        correct_preds = preds.eq(masked.labels).logical_and(masked.labels.ne(-100))
+        correct_preds = self.accuracy(preds, masked.labels)
         accuracy = correct_preds.float().mean()
 
         return {"val_loss": loss, "val_acc": accuracy}
