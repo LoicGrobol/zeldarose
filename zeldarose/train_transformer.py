@@ -76,7 +76,7 @@ def max_gpu_batch_size(
             torch.cuda.reset_peak_memory_stats(device)
             loader = data.TextLoader(dataset, batch_size=batch_size)
             trainer = pl.Trainer(
-                default_save_path=temp_dir,
+                default_root_dir=temp_dir,
                 overfit_pct=n_samples / len(loader),
                 gpus=[device.index],
                 max_epochs=2,
@@ -146,7 +146,7 @@ def max_gpu_batch_size_affine(
             torch.cuda.reset_peak_memory_stats(device)
             loader = data.TextLoader(dataset, batch_size=batch_size,)
             trainer = pl.Trainer(
-                default_save_path=temp_dir,
+                default_root_dir=temp_dir,
                 overfit_pct=n_samples / len(loader),
                 gpus=[device.index],
                 max_epochs=2,
@@ -494,7 +494,7 @@ def main(
     trainer = pl.Trainer(
         accumulate_grad_batches=tuning_config.batch_size // loader_batch_size,
         callbacks=callbacks,
-        default_save_path=out_dir,
+        default_root_dir=out_dir,
         distributed_backend=distributed_backend,
         gpus=n_gpus,
         num_nodes=n_nodes,
