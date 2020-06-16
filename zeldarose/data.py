@@ -53,6 +53,7 @@ class TextDataset(torch.utils.data.Dataset):
         # here will create it and the others wait until it's created.
         # FIXME: this may lead to unnecessary overwrites if a worker arrives here when another
         # worker in the same group has already overwritten the cache and released the lock.
+        # TODO: do this only on rank zero?
         try:
             cached_features_lock.acquire()
             if cached_features_file.exists() and not overwrite_cache:
