@@ -14,6 +14,7 @@ import click_pathlib
 import pytorch_lightning as pl
 import toml
 import torch
+import torch.nn
 import torch.cuda
 import transformers
 
@@ -387,9 +388,13 @@ def main(
                 for l in [getattr(model, transformer_name, None)]
                 if l is not None
             )
-            transformer_model.embeddings = type(transformer_model.embeddings)(
-                transformer_model.config
-            )
+            if isinstance(transformer_model.embeddings, torch.nn.Embedding):
+                transformer_model.embeddings.reset_parameters()
+            # Assume a custom huggingface embedding class
+            else:
+                transformer_model.embeddings = type(transformer_model.embeddings)(
+                    transformer_model.config
+                )
     elif model_config_path is not None:
         logger.info(f"Loading pretrained config {model_config_path!r}")
         model_config = transformers.AutoConfig.from_pretrained(model_config_path)
