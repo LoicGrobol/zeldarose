@@ -77,7 +77,7 @@ def max_gpu_batch_size(
             loader = data.TextLoader(dataset, batch_size=batch_size)
             trainer = pl.Trainer(
                 default_root_dir=temp_dir,
-                overfit_pct=n_samples / len(loader),
+                overfit_batches=n_samples,
                 gpus=[device.index],
                 max_epochs=2,
             )
@@ -147,7 +147,7 @@ def max_gpu_batch_size_affine(
             loader = data.TextLoader(dataset, batch_size=batch_size,)
             trainer = pl.Trainer(
                 default_root_dir=temp_dir,
-                overfit_pct=n_samples / len(loader),
+                overfit_batches=n_samples,
                 gpus=[device.index],
                 max_epochs=2,
             )
@@ -298,6 +298,11 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     metavar="NAME_OR_PATH",
 )
 @click.option(
+    "--reset-embeddings",
+    is_flag=True,
+    help="Re-init the pretrained model embeddings layer (to train on new data)",
+)
+@click.option(
     "--save-period",
     type=int,
     help="The number of epoch between intermediate model saving",
@@ -340,6 +345,7 @@ def main(
     pretrained_model: Optional[str],
     profile: bool,
     raw_text: pathlib.Path,
+    reset_embeddings: bool,
     save_period: int,
     tokenizer_name: Optional[str],
     val_path: Optional[pathlib.Path],
@@ -371,6 +377,19 @@ def main(
     if pretrained_model is not None:
         logger.info(f"Loading pretrained model {pretrained_model!r}")
         model = transformers.AutoModelWithLMHead.from_pretrained(pretrained_model)
+        if reset_embeddings:
+            logger.info(f"Reinitializing model embeddings")
+            # There is no consensus in hf transformers as to how the underlying transformer of a MLM
+            # model is called
+            transformer_model = next(
+                l
+                for transformer_name in ("bert", "roberta", "transformer")
+                for l in [getattr(model, transformer_name, None)]
+                if l is not None
+            )
+            transformer_model.embeddings = type(transformer_model.embeddings)(
+                transformer_model.config
+            )
     elif model_config_path is not None:
         logger.info(f"Loading pretrained config {model_config_path!r}")
         model_config = transformers.AutoConfig.from_pretrained(model_config_path)
@@ -478,7 +497,7 @@ def main(
         profiler = pl.profiler.AdvancedProfiler(output_filename=out_dir / "profile.txt")
         profile_kwargs = {
             "profiler": profiler,
-            "overfit_pct": 1024 / len(train_loader),
+            "overfit_batches": 1024,
         }
     else:
         profile_kwargs = dict()
