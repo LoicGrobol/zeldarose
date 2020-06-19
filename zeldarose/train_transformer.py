@@ -299,9 +299,9 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     metavar="NAME_OR_PATH",
 )
 @click.option(
-    "--reset-embeddings",
+    "--reset-vocab",
     is_flag=True,
-    help="Re-init the pretrained model embeddings layer (to train on new data)",
+    help="Re-init the pretrained model embeddings and LM head layers (to train using a different tokenizer)",
 )
 @click.option(
     "--save-period",
@@ -346,7 +346,7 @@ def main(
     pretrained_model: Optional[str],
     profile: bool,
     raw_text: pathlib.Path,
-    reset_embeddings: bool,
+    reset_vocab: bool,
     save_period: int,
     tokenizer_name: Optional[str],
     val_path: Optional[pathlib.Path],
@@ -378,8 +378,8 @@ def main(
     if pretrained_model is not None:
         logger.info(f"Loading pretrained model {pretrained_model!r}")
         model = transformers.AutoModelWithLMHead.from_pretrained(pretrained_model)
-        if reset_embeddings:
-            logger.info(f"Reinitializing model embeddings")
+        if reset_vocab:
+            logger.info("Reinitializing model embeddings")
             # There is no consensus in hf transformers as to how the underlying transformer of a MLM
             # model is called
             transformer_model = next(
@@ -395,6 +395,15 @@ def main(
                 transformer_model.embeddings = type(transformer_model.embeddings)(
                     transformer_model.config
                 )
+            logger.info("Reinitializing LM head")
+            # There is no consensus in hf transformers as to how the LM head of a MLM model is
+            # called so we have to do an ugly song and dance here
+            lm_head_name = next(
+                l
+                for l in ("lm_head", "cls", "pred_layer")
+                if hasattr(model, l)
+            )
+            setattr(model, lm_head_name, type(getattr(model, lm_head_name))(model.config))
     elif model_config_path is not None:
         logger.info(f"Loading pretrained config {model_config_path!r}")
         model_config = transformers.AutoConfig.from_pretrained(model_config_path)
