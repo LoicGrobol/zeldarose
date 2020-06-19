@@ -416,7 +416,7 @@ def main(
     train_set = dataset_type(
         tokenizer=tokenizer,
         text_path=raw_text,
-        model_name=model_name,
+        model_name=tokenizer_name.replace("/", "_"),
         overwrite_cache=overwrite_cache,
     )
     val_set: Optional[data.TextDataset]
