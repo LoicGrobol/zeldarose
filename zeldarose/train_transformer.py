@@ -438,7 +438,7 @@ def main(
         val_set = dataset_type(
             tokenizer=tokenizer,
             text_path=val_path,
-            model_name=model_name,
+            model_name=tokenizer_name.replace("/", "_"),
             overwrite_cache=overwrite_cache,
         )
     else:
