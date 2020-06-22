@@ -1,3 +1,5 @@
+import os
+
 from typing import NamedTuple, Optional, Tuple
 
 import pydantic
@@ -70,9 +72,6 @@ def mask_tokens(
 
 
 class MaskedAccuracy(pl_metrics.TensorMetric):
-    def __init__(self, name, reduce_group=None, reduce_op=torch.mean):
-        super().__init__(name=name, reduce_group=reduce_group, reduce_op=reduce_op)
-
     def forward(self, preds: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
         return preds.eq(labels).logical_and(labels.ne(-100)).float().mean()
 
@@ -210,6 +209,10 @@ class MLMFinetuner(pl.LightningModule):
     def validation_end(self, outputs):
         avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
         avg_acc = torch.stack([x["val_acc"] for x in outputs]).mean()
+
+        world_size = os.environ.get("WORLD_SIZE")
+        if world_size is not None:
+            avg_acc = avg_acc / int(world_size)
 
         perplexity = torch.exp(avg_loss)
 
