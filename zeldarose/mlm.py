@@ -1,5 +1,3 @@
-import os
-
 from typing import NamedTuple, Optional, Tuple
 
 import pydantic
@@ -76,14 +74,12 @@ class MaskedAccuracy(pl_metrics.TensorMetric):
         return preds.eq(labels).logical_and(labels.ne(-100)).float().mean()
 
 
-# TODO: add validation
 class MLMTaskConfig(pydantic.BaseModel):
     change_ratio: float = 0.15
     mask_ratio: float = 0.8
     switch_ratio: float = 0.1
 
 
-# TODO: add validation
 class MLMFinetunerConfig(pydantic.BaseModel):
     batch_size: int = 64
     betas: Tuple[float, float] = (0.9, 0.98)
@@ -208,11 +204,10 @@ class MLMFinetuner(pl.LightningModule):
 
     def validation_end(self, outputs):
         avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
-        avg_acc = torch.stack([x["val_acc"] for x in outputs]).mean()
-
-        world_size = os.environ.get("WORLD_SIZE")
-        if world_size is not None:
-            avg_acc = avg_acc / int(world_size)
+        avg_acc = (
+            torch.stack([x["val_acc"] for x in outputs]).mean()
+            / self.trainer.world_size
+        )
 
         perplexity = torch.exp(avg_loss)
 
