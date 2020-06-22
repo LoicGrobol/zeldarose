@@ -445,7 +445,7 @@ def main(
         val_set = None
 
     logger.info(f"Creating MLM Finetuner")
-    mask_token_index = getattr(tokenizer, "mask_token_id")
+    mask_token_index = getattr(tokenizer, "mask_token_id", None)
     if mask_token_index is None:
         mask_token_index = tokenizer.convert_tokens_to_ids(tokenizer.mask_token)
     logger.debug(f"Mask token index: {mask_token_index}")

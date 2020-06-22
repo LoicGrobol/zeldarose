@@ -70,8 +70,11 @@ def mask_tokens(
 
 
 class MaskedAccuracy(pl_metrics.TensorMetric):
+    def __init__(self, name, reduce_group=None, reduce_op=torch.mean):
+        super().__init__(name=name, reduce_group=reduce_group, reduce_op=reduce_op)
+
     def forward(self, preds: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
-        return preds.eq(labels).logical_and(labels.ne(-100))
+        return preds.eq(labels).logical_and(labels.ne(-100)).float().mean()
 
 
 # TODO: add validation
@@ -200,8 +203,7 @@ class MLMFinetuner(pl.LightningModule):
         loss = outputs[0]
 
         preds = torch.argmax(outputs[1], dim=-1)
-        correct_preds = self.accuracy(preds, masked.labels)
-        accuracy = correct_preds.float().mean()
+        accuracy = self.accuracy(preds, masked.labels)
 
         return {"val_loss": loss, "val_acc": accuracy}
 
