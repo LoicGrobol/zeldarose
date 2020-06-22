@@ -270,7 +270,9 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     help="A name to give to the model",
 )
 @click.option(
-    "--n-gpus", type=int, help="How many GPUs to train on",
+    "--n-gpus",
+    type=int,
+    help="How many GPUs to train on. In cpu_ddp mode, this is the number of processes",
 )
 @click.option(
     "--n-nodes",
@@ -379,6 +381,7 @@ def main(
         logger.info(f"Loading pretrained model {pretrained_model!r}")
         model = transformers.AutoModelWithLMHead.from_pretrained(pretrained_model)
         if reset_vocab:
+            # TODO: make this a separate function
             logger.info("Reinitializing model embeddings")
             # There is no consensus in hf transformers as to how the underlying transformer of a MLM
             # model is called
@@ -399,11 +402,11 @@ def main(
             # There is no consensus in hf transformers as to how the LM head of a MLM model is
             # called so we have to do an ugly song and dance here
             lm_head_name = next(
-                l
-                for l in ("lm_head", "cls", "pred_layer")
-                if hasattr(model, l)
+                l for l in ("lm_head", "cls", "pred_layer") if hasattr(model, l)
             )
-            setattr(model, lm_head_name, type(getattr(model, lm_head_name))(model.config))
+            setattr(
+                model, lm_head_name, type(getattr(model, lm_head_name))(model.config)
+            )
     elif model_config_path is not None:
         logger.info(f"Loading pretrained config {model_config_path!r}")
         model_config = transformers.AutoConfig.from_pretrained(model_config_path)
@@ -506,15 +509,18 @@ def main(
         val_loaders = None
 
     logger.info(f"Creating trainer")
+    additional_kwargs = dict()
     if profile:
         logger.info("Running in profile mode")
         profiler = pl.profiler.AdvancedProfiler(output_filename=out_dir / "profile.txt")
-        profile_kwargs = {
-            "profiler": profiler,
-            "overfit_batches": 1024,
-        }
-    else:
-        profile_kwargs = dict()
+        additional_kwargs.update(
+            {"profiler": profiler, "overfit_batches": 1024,}
+        )
+
+    if distributed_backend == "cpu_ddp":
+        # FIXME: works but seems like bad practice
+        additional_kwargs["num_processes"] = n_gpus
+        n_gpus = 0
 
     callbacks: List[pl.callbacks.Callback] = []
     if save_period:
@@ -535,10 +541,10 @@ def main(
         max_steps=max_steps,
         track_grad_norm=2,
         val_percent_check=1.0 if val_loaders is not None else 0.0,
-        **profile_kwargs,
+        **additional_kwargs,
     )
 
-    if n_gpus:
+    if n_gpus and distributed_backend != "cpu_ddp":
         logger.info(f"Training the model on {n_gpus} GPUs")
     else:
         logger.info(f"Training the model on CPU")
