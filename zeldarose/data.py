@@ -252,7 +252,7 @@ class TextLoader(torch.utils.data.DataLoader):
             batch_first=True,
             padding_value=0,
         )
-        internal_tokens_mask = special_tokens_mask | padding_mask
+        internal_tokens_mask = special_tokens_mask.logical_or(padding_mask)
         return TextBatch(
             tokens=padded_batch,
             attention_mask=attention_mask,

@@ -514,7 +514,7 @@ def main(
         logger.info("Running in profile mode")
         profiler = pl.profiler.AdvancedProfiler(output_filename=out_dir / "profile.txt")
         additional_kwargs.update(
-            {"profiler": profiler, "overfit_batches": 1024,}
+            {"profiler": profiler, "overfit_batches": 1024}
         )
 
     if distributed_backend == "cpu_ddp":

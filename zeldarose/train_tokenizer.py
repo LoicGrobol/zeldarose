@@ -23,7 +23,9 @@ from loguru import logger
 @click.option(
     "--vocab-size", type=int, default=50_000, help="Size of the trained vocabulary"
 )
-@click.option("--model-name", type=str, default=None, help="A name to give to the model")
+@click.option(
+    "--model-name", type=str, default=None, help="A name to give to the model"
+)
 def main(
     raw_texts: ty.Collection[pathlib.Path],
     out_path: pathlib.Path,

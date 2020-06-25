@@ -47,6 +47,7 @@ def mask_tokens(
     what_to_do = torch.rand_like(
         labels, layout=torch.strided, dtype=torch.float, device=labels.device
     )
+    # This ensures that the internal tokens and the padding is not changed and not used in the loss
     if keep_mask is not None:
         what_to_do.masked_fill_(keep_mask, 1.0)
     preserved_tokens = what_to_do.gt(change_ratio)
@@ -111,10 +112,13 @@ class MLMFinetuner(pl.LightningModule):
             self.task_config = MLMTaskConfig()
         logger.info(f"MLM trainer config: {self.config}")
         logger.info(f"MLM task config: {self.task_config}")
-        self.accuracy = MaskedAccuracy("masked_accuracy")
         self.mask_token_index = mask_token_index
-        self.model = model
         self.vocabulary_size = vocabulary_size
+        # Save the hyperparameters before we define the heavy attributes
+        self.save_hyperparameters()
+
+        self.accuracy = MaskedAccuracy("masked_accuracy")
+        self.model = model
 
     def forward(
         self,
