@@ -271,8 +271,9 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 )
 @click.option(
     "--n-gpus",
+    default=0,
     type=int,
-    help="How many GPUs to train on. In cpu_ddp mode, this is the number of processes",
+    help="How many GPUs to train on. In ddp_cpu mode, this is the number of processes",
 )
 @click.option(
     "--n-nodes",
@@ -340,7 +341,7 @@ def main(
     max_steps: Optional[int],
     model_config_path: Optional[str],
     model_name: str,
-    n_gpus: Optional[int],
+    n_gpus: int,
     n_nodes: int,
     n_workers: int,
     out_dir: pathlib.Path,
@@ -365,21 +366,11 @@ def main(
 
     # Every tuning batch is split in k loading batches, which are themselves split among the n_gpus
     # device batches so
-    if n_gpus is not None:
-        if tuning_config.batch_size % n_gpus:
-            logging.warning(
-                f"Batch size ({tuning_config.batch_size})"
-                f" is not a multiple of the number of devices ({n_gpus})"
-                " which might cause issues later on,"
-                " see https://github.com/PyTorchLightning/pytorch-lightning/issues/1218"
-            )
-        n_devices = n_gpus
-    else:
-        n_devices = 1
+    n_devices = max(1, n_gpus)
 
     if pretrained_model is not None:
         logger.info(f"Loading pretrained model {pretrained_model!r}")
-        model = transformers.AutoModelWithLMHead.from_pretrained(pretrained_model)
+        model = transformers.AutoModelForMaskedLM.from_pretrained(pretrained_model)
         if reset_vocab:
             # TODO: make this a separate function
             logger.info("Reinitializing model embeddings")
@@ -411,7 +402,7 @@ def main(
         logger.info(f"Loading pretrained config {model_config_path!r}")
         model_config = transformers.AutoConfig.from_pretrained(model_config_path)
         logger.info(f"Generating model from config")
-        model = transformers.AutoModelWithLMHead.from_config(model_config)
+        model = transformers.AutoModelForMaskedLM.from_config(model_config)
     model.train()
 
     if tokenizer_name is None:
@@ -513,11 +504,9 @@ def main(
     if profile:
         logger.info("Running in profile mode")
         profiler = pl.profiler.AdvancedProfiler(output_filename=out_dir / "profile.txt")
-        additional_kwargs.update(
-            {"profiler": profiler, "overfit_batches": 1024}
-        )
+        additional_kwargs.update({"profiler": profiler, "overfit_batches": 1024})
 
-    if distributed_backend == "cpu_ddp":
+    if distributed_backend == "ddp_cpu":
         # FIXME: works but seems like bad practice
         additional_kwargs["num_processes"] = n_gpus
         n_gpus = 0
@@ -544,8 +533,12 @@ def main(
         **additional_kwargs,
     )
 
-    if n_gpus and distributed_backend != "cpu_ddp":
+    if n_gpus:
         logger.info(f"Training the model on {n_gpus} GPUs")
+    elif distributed_backend == "ddp_cpu":
+        logger.info(
+            f"Training the model on CPU in {additional_kwargs['num_processes']} processes"
+        )
     else:
         logger.info(f"Training the model on CPU")
 

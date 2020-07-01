@@ -182,10 +182,12 @@ class LineByLineTextDataset(TextDataset):
                     for d in (l.decode("utf-8"),)
                     if not d.isspace()
                 ]
-                encoded = self.tokenizer.batch_encode_plus(
+                encoded = self.tokenizer(
                     decoded,
                     add_special_tokens=True,
                     max_length=self.tokenizer.max_len_single_sentence,
+                    padding=False,
+                    truncation=True,
                 )["input_ids"]
                 examples.extend(encoded)
                 pbar.n = in_stream.tell()
