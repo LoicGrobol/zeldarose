@@ -519,6 +519,8 @@ def main(
             )
         )
 
+    # FIXME; un multiprocess (ddp) the batch accumulation is done by-device ie if you accumulate
+    # every 2 batchs over 8 devices, you effectively accumulate every 16 batchs
     trainer = pl.Trainer(
         accumulate_grad_batches=tuning_config.batch_size // loader_batch_size,
         callbacks=callbacks,
