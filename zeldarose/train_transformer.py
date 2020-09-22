@@ -53,137 +53,32 @@ def setup_logging(verbose: bool, logfile: Optional[pathlib.Path] = None):
         )
 
 
-# FUTURE: remove this as soon as https://github.com/PyTorchLightning/pytorch-lightning/pull/1638 is
-# merged
-def max_gpu_batch_size(
-    dataset: data.TextDataset,
-    finetuner: pl.LightningModule,
-    n_samples: int = 128,
-    device: Union[torch.device, int] = 0,
-) -> int:
-    """
-    Tries to find a maximal batch size for a device, assuming only that the memory usage of the
-    model and the total available memory are both stable.
-
-    Should be reliable, but slow, you probably only want to run it once.
-    """
-    device = torch.device(device)  # type: ignore
-    device_max_mem = torch.cuda.get_device_properties(device.index).total_memory
-
-    def test_run(batch_size):
-        logger.debug(f"Trying a run with batch size {batch_size}")
-        with tempfile.TemporaryDirectory(prefix="zeldarose-profile") as temp_dir:
-            torch.cuda.empty_cache()
-            torch.cuda.reset_peak_memory_stats(device)
-            loader = data.TextLoader(dataset, batch_size=batch_size)
-            trainer = pl.Trainer(
-                default_root_dir=temp_dir,
-                overfit_batches=n_samples,
-                gpus=[device.index],
-                max_epochs=2,
-            )
-            try:
-                trainer.fit(finetuner, train_dataloader=loader)
-            except RuntimeError as e:
-                if "CUDA out of memory" in str(e):
-                    logger.debug("Exceeded memory capacity")
-                    return None
-                else:
-                    raise e
-        usage = torch.cuda.max_memory_allocated(device)
-        logger.debug(f"Registered usage: {usage} / {device_max_mem} B")
-        return usage
-
-    # Find a majoration of max batch size as a power of two
-    usage_with_min_size = 0
-    for exponent in range(math.floor(math.log2(n_samples)) + 1):
-        max_size = 2 ** exponent
-        usage_with_max_size = test_run(max_size)
-        if usage_with_max_size is None:
-            break
-        # This will only change as long as we don't break out, at which point it will
-        # equal the usage for the previous test run
-        usage_with_min_size = usage_with_max_size
-    if usage_with_max_size is not None:
-        logger.warning(
-            f"Ran out of examples without finding a match batch size (max tried: {max_size})"
-            ", you probably want to try with more examples"
+def reset_transformer_vocab(model: transformers.PreTrainedModel):
+    logger.info("Reinitializing model embeddings")
+    # There is no consensus in hf transformers as to how the underlying transformer of a MLM
+    # model is called
+    transformer_model = next(
+        l
+        for transformer_name in ("bert", "roberta", "transformer")
+        for l in [getattr(model, transformer_name, None)]
+        if l is not None
+    )
+    if isinstance(transformer_model.embeddings, torch.nn.Embedding):
+        transformer_model.embeddings.reset_parameters()
+    # Assume a custom huggingface embedding class
+    else:
+        transformer_model.embeddings = type(transformer_model.embeddings)(
+            transformer_model.config
         )
-
-    # Bissect to find the max batch size
-    min_size = max_size // 2
-    while max_size - min_size > 1:
-        try_size = (max_size + min_size) // 2
-        usage_with_try_size = test_run(try_size)
-        if usage_with_try_size is None:
-            max_size = try_size
-        else:
-            min_size = try_size
-            usage_with_min_size = usage_with_try_size
-    logger.debug(
-        f"Mem usage with inferred batch size: {usage_with_min_size} / {device_max_mem} B"
+    logger.info("Reinitializing LM head")
+    # There is no consensus in hf transformers as to how the LM head of a MLM model is
+    # called so we have to do an ugly song and dance here
+    lm_head_name = next(
+        l for l in ("lm_head", "cls", "pred_layer") if hasattr(model, l)
     )
-    return min_size
-
-
-def max_gpu_batch_size_affine(
-    dataset: data.TextDataset,
-    finetuner: pl.LightningModule,
-    guess_batch_size: int = 4,
-    n_samples: int = 128,
-    device: Union[torch.device, int] = 0,
-) -> int:
-    """Tries to find a maximal batch size for a device, assumes that it can fit at least a batch
-    size of 2 and that memory usage is an affine function of batch size.
-
-    The estimate is rather conservative, so hopefully with this batch size, no crash should occur.
-    """
-    device = torch.device(device)  # type: ignore
-    assert 2 <= guess_batch_size
-
-    def test_run(batch_size):
-        with tempfile.TemporaryDirectory(prefix="zeldarose-profile") as temp_dir:
-            torch.cuda.empty_cache()
-            torch.cuda.reset_peak_memory_stats(device)
-            loader = data.TextLoader(dataset, batch_size=batch_size,)
-            trainer = pl.Trainer(
-                default_root_dir=temp_dir,
-                overfit_batches=n_samples,
-                gpus=[device.index],
-                max_epochs=2,
-            )
-            trainer.fit(finetuner, train_dataloader=loader)
-        return torch.cuda.max_memory_allocated(device)
-
-    usage_with_guess = test_run(guess_batch_size)
-    logger.debug(
-        f"Memory usage with batch size {guess_batch_size}: {usage_with_guess} B"
+    setattr(
+        model, lm_head_name, type(getattr(model, lm_head_name))(model.config)
     )
-    usage_with_half_guess = test_run(guess_batch_size // 2)
-    logger.debug(
-        f"Memory usage with batch size {guess_batch_size // 2}: {usage_with_half_guess} B"
-    )
-    mem_per_sample = math.ceil(
-        2 * (usage_with_guess - usage_with_half_guess) / guess_batch_size
-    )
-    logger.debug(f"Inferred memory usage per sample: {mem_per_sample} B")
-    fixed_mem = math.ceil(usage_with_guess - guess_batch_size * mem_per_sample)
-    logger.debug(f"Inferred fixed memory usage: {fixed_mem} B")
-    device_max_mem = torch.cuda.get_device_properties(device.index).total_memory
-    logger.debug(f"Device total memory: {device_max_mem} B")
-    res = math.floor((device_max_mem - fixed_mem) / mem_per_sample)
-    assert guess_batch_size <= res
-    logger.debug(f"Inferred max batch size: {res}, making a test run")
-    try:
-        usage_with_max_size = test_run(res)
-    except RuntimeError as e:
-        if "CUDA out of memory" in str(e):
-            logger.warning(f"Non-affine or unstable memory usage: assuming linear")
-            return math.floor(guess_batch_size * device_max_mem / usage_with_guess)
-        else:
-            raise e
-    logger.debug(f"Mem usage with inferred batch size: {usage_with_max_size} B")
-    return res
 
 
 class SavePretrainedModelCallback(pl.callbacks.Callback):
@@ -372,32 +267,7 @@ def main(
         logger.info(f"Loading pretrained model {pretrained_model!r}")
         model = transformers.AutoModelForMaskedLM.from_pretrained(pretrained_model)
         if reset_vocab:
-            # TODO: make this a separate function
-            logger.info("Reinitializing model embeddings")
-            # There is no consensus in hf transformers as to how the underlying transformer of a MLM
-            # model is called
-            transformer_model = next(
-                l
-                for transformer_name in ("bert", "roberta", "transformer")
-                for l in [getattr(model, transformer_name, None)]
-                if l is not None
-            )
-            if isinstance(transformer_model.embeddings, torch.nn.Embedding):
-                transformer_model.embeddings.reset_parameters()
-            # Assume a custom huggingface embedding class
-            else:
-                transformer_model.embeddings = type(transformer_model.embeddings)(
-                    transformer_model.config
-                )
-            logger.info("Reinitializing LM head")
-            # There is no consensus in hf transformers as to how the LM head of a MLM model is
-            # called so we have to do an ugly song and dance here
-            lm_head_name = next(
-                l for l in ("lm_head", "cls", "pred_layer") if hasattr(model, l)
-            )
-            setattr(
-                model, lm_head_name, type(getattr(model, lm_head_name))(model.config)
-            )
+            reset_transformer_vocab(model)
     elif model_config_path is not None:
         logger.info(f"Loading pretrained config {model_config_path!r}")
         model_config = transformers.AutoConfig.from_pretrained(model_config_path)
@@ -452,25 +322,7 @@ def main(
     )
 
     if device_batch_size is None:
-        if guess_batch_size:
-            logger.info(
-                "Running a quick profile to find out the best device batch size"
-            )
-            max_device_batch_size = max_gpu_batch_size(
-                dataset=train_set, finetuner=finetuning_model
-            )
-            logger.info(f"Inferred max device batch size: {device_batch_size}")
-            device_batch_size = (
-                math.gcd(max_device_batch_size * n_devices, tuning_config.batch_size)
-                // n_devices
-            )
-            logger.info(
-                f"Coercing device batch size to {device_batch_size}"
-                f" such that a tuning batch ({tuning_config.batch_size} samples) is"
-                f" a whole number of loader batches ({n_devices*device_batch_size} samples)"
-            )
-        else:
-            device_batch_size = tuning_config.batch_size
+        device_batch_size = tuning_config.batch_size
     elif tuning_config.batch_size % device_batch_size * n_devices:
         logger.warning(
             f"Batch size ({tuning_config.batch_size}) is not a muliple"
@@ -505,6 +357,10 @@ def main(
         logger.info("Running in profile mode")
         profiler = pl.profiler.AdvancedProfiler(output_filename=out_dir / "profile.txt")
         additional_kwargs.update({"profiler": profiler, "overfit_batches": 1024})
+    
+    if guess_batch_size:
+        logger.info("Running in profile mode")
+        additional_kwargs.update({"auto_scale_batch_size": "binsearch"})
 
     if distributed_backend == "ddp_cpu":
         # FIXME: works but seems like bad practice
