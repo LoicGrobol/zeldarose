@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import logging
-import math
 import os
 import pathlib
 import sys
-import tempfile
+import warnings
 
-from typing import List, Optional, Type, Union
+from typing import List, Optional, Type
 
 import click
 import click_pathlib
@@ -25,7 +24,9 @@ from zeldarose import data
 from zeldarose import mlm
 
 
-def setup_logging(verbose: bool, logfile: Optional[pathlib.Path] = None):
+def setup_logging(
+    verbose: bool, logfile: Optional[pathlib.Path] = None, replace_warnings: bool = True
+):
     logger.remove(0)  # Remove the default logger
     if verbose:
         log_level = "DEBUG"
@@ -35,7 +36,7 @@ def setup_logging(verbose: bool, logfile: Optional[pathlib.Path] = None):
             "<level>{message}</level>"
         )
     else:
-        logging.getLogger("None").setLevel(logging.CRITICAL)
+        logging.getLogger(None).setLevel(logging.CRITICAL)
         log_level = "INFO"
         log_fmt = (
             "[zeldarose] "
@@ -51,6 +52,27 @@ def setup_logging(verbose: bool, logfile: Optional[pathlib.Path] = None):
         logger.add(
             logfile, level="DEBUG", colorize=False,
         )
+
+    # Deal with stdlib.logging
+
+    class InterceptHandler(logging.Handler):
+        def emit(self, record):
+            # Retrieve context where the logging call occurred, this happens to be in the 6th frame upward
+            logger_opt = logger.opt(depth=6, exception=record.exc_info)
+            logger_opt.log(record.levelno, record.getMessage())
+
+    transformers_logger = logging.getLogger("transformers")
+    # FIXME: ugly, but is there a better way?
+    transformers_logger.handlers.pop()
+    transformers_logger.addHandler(InterceptHandler())
+
+    # Deal with stdlib.warnings
+
+    def showwarning(message, *args, **kwargs):
+        logger.warning(message)
+
+    if replace_warnings:
+        warnings.showwarning = showwarning
 
 
 def reset_transformer_vocab(model: transformers.PreTrainedModel):
@@ -76,9 +98,7 @@ def reset_transformer_vocab(model: transformers.PreTrainedModel):
     lm_head_name = next(
         l for l in ("lm_head", "cls", "pred_layer") if hasattr(model, l)
     )
-    setattr(
-        model, lm_head_name, type(getattr(model, lm_head_name))(model.config)
-    )
+    setattr(model, lm_head_name, type(getattr(model, lm_head_name))(model.config))
 
 
 class SavePretrainedModelCallback(pl.callbacks.Callback):
@@ -273,6 +293,8 @@ def main(
         model_config = transformers.AutoConfig.from_pretrained(model_config_path)
         logger.info(f"Generating model from config")
         model = transformers.AutoModelForMaskedLM.from_config(model_config)
+    else:
+        raise ValueError("You must provide either a pretrained model or a model config")
     model.train()
 
     if tokenizer_name is None:
@@ -357,7 +379,7 @@ def main(
         logger.info("Running in profile mode")
         profiler = pl.profiler.AdvancedProfiler(output_filename=out_dir / "profile.txt")
         additional_kwargs.update({"profiler": profiler, "overfit_batches": 1024})
-    
+
     if guess_batch_size:
         logger.info("Running in profile mode")
         additional_kwargs.update({"auto_scale_batch_size": "binsearch"})
