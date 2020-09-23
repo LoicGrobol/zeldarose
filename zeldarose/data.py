@@ -237,8 +237,8 @@ class TextLoader(torch.utils.data.DataLoader):
         )
         padding_mask = padded_batch.eq(self._padding_value)
         # FIXME: Is the next line general enough?
-        # We only deal with single sequences here
         token_type_ids = torch.zeros_like(padded_batch)
+        # We only deal with single sequences here
         attention_mask = padding_mask.logical_not()
 
         special_tokens_mask = pad_sequence(

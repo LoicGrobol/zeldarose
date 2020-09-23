@@ -194,7 +194,7 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     "--n-nodes",
     type=int,
     default=os.environ.get("SLURM_JOB_NUM_NODES", 1),
-    help="How many nodes to train on (for SLURM clusters), defaults to $SLURM_JOB_NUM_NODES",
+    help="How many nodes to train on (for clusters), defaults to $SLURM_JOB_NUM_NODES if on SLURM and 1 otherwise",
 )
 @click.option(
     "--n-workers", type=int, default=0, help="How many data loading workers to use",
@@ -279,9 +279,17 @@ def main(
         task_config = mlm.MLMTaskConfig()
         tuning_config = mlm.MLMFinetunerConfig()
 
-    # Every tuning batch is split in k loading batches, which are themselves split among the n_gpus
-    # device batches so
-    n_devices = max(1, n_gpus)
+    # NOTE: this is likely duplicated somewhere in pl codebase but we need it now unless pl rolls
+    # out something like `optim_batch_size` that takes into account the number of tasks and the
+    # number of samples per gpu
+    num_slurm_tasks = os.environ.get("SLURM_NTASKS")
+    if num_slurm_tasks is not None:
+        n_devices = int(num_slurm_tasks)
+    elif n_gpus:
+        n_devices = n_nodes * n_gpus
+    else:
+        n_devices = 1
+    logger.info(f"Training on {n_devices} devices.")
 
     if pretrained_model is not None:
         logger.info(f"Loading pretrained model {pretrained_model!r}")
@@ -346,16 +354,24 @@ def main(
     if device_batch_size is None:
         device_batch_size = tuning_config.batch_size
     elif tuning_config.batch_size % device_batch_size * n_devices:
+        remainder = tuning_config.batch_size % device_batch_size * n_devices
         logger.warning(
             f"Batch size ({tuning_config.batch_size}) is not a muliple"
             f" of loader batch size({device_batch_size} samples per device × {n_devices} devices)"
+            f" the actual tuning batch size used will be {tuning_config.batch_size-remainder}."
         )
+
+    # A pl Trainer batch is in fact one batch per device, so if we use multiple devices
+    accumulate_grad_batches = tuning_config.batch_size // (
+        device_batch_size * n_devices
+    )
 
     # In DP mode, every batch is split between the devices
     if distributed_backend == "dp":
         loader_batch_size = device_batch_size * n_devices
     else:
         loader_batch_size = device_batch_size
+
     logger.info(f"Creating dataloaders")
     train_loader = data.TextLoader(
         train_set, batch_size=loader_batch_size, num_workers=n_workers, shuffle=True,
@@ -397,10 +413,8 @@ def main(
             )
         )
 
-    # FIXME; un multiprocess (ddp) the batch accumulation is done by-device ie if you accumulate
-    # every 2 batchs over 8 devices, you effectively accumulate every 16 batchs
     trainer = pl.Trainer(
-        accumulate_grad_batches=tuning_config.batch_size // loader_batch_size,
+        accumulate_grad_batches=accumulate_grad_batches,
         callbacks=callbacks,
         default_root_dir=out_dir,
         distributed_backend=distributed_backend,
