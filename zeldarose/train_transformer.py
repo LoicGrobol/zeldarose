@@ -299,7 +299,7 @@ def main(
     elif model_config_path is not None:
         logger.info(f"Loading pretrained config {model_config_path!r}")
         model_config = transformers.AutoConfig.from_pretrained(model_config_path)
-        logger.info(f"Generating model from config")
+        logger.info("Generating model from config")
         model = transformers.AutoModelForMaskedLM.from_config(model_config)
     else:
         raise ValueError("You must provide either a pretrained model or a model config")
@@ -338,7 +338,7 @@ def main(
     else:
         val_set = None
 
-    logger.info(f"Creating MLM Finetuner")
+    logger.info("Creating MLM Finetuner")
     mask_token_index = getattr(tokenizer, "mask_token_id", None)
     if mask_token_index is None:
         mask_token_index = tokenizer.convert_tokens_to_ids(tokenizer.mask_token)
@@ -372,7 +372,7 @@ def main(
     else:
         loader_batch_size = device_batch_size
 
-    logger.info(f"Creating dataloaders")
+    logger.info("Creating dataloaders")
     train_loader = data.TextLoader(
         train_set, batch_size=loader_batch_size, num_workers=n_workers, shuffle=True,
     )
@@ -413,6 +413,16 @@ def main(
             )
         )
 
+    if n_gpus:
+        logger.info(f"Training the model on {n_gpus} GPUs")
+        callbacks.append(pl.callbacks.GpuUsageLogger())
+    elif distributed_backend == "ddp_cpu":
+        logger.info(
+            f"Training the model on CPU in {additional_kwargs['num_processes']} processes"
+        )
+    else:
+        logger.info(f"Training the model on CPU")
+
     trainer = pl.Trainer(
         accumulate_grad_batches=accumulate_grad_batches,
         callbacks=callbacks,
@@ -427,14 +437,6 @@ def main(
         **additional_kwargs,
     )
 
-    if n_gpus:
-        logger.info(f"Training the model on {n_gpus} GPUs")
-    elif distributed_backend == "ddp_cpu":
-        logger.info(
-            f"Training the model on CPU in {additional_kwargs['num_processes']} processes"
-        )
-    else:
-        logger.info(f"Training the model on CPU")
 
     # Hotfix for https://github.com/PyTorchLightning/pytorch-lightning/issues/2100
     if val_loaders is None:
