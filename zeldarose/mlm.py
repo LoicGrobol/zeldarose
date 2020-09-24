@@ -159,15 +159,23 @@ class MLMFinetuner(pl.LightningModule):
         loss = outputs[0]
         perplexity = torch.exp(loss)
 
-        tensorboard_logs = {"train/train_loss": loss, "train/perplexity": perplexity}
-        return {"loss": loss, "log": tensorboard_logs}
+        result = pl.TrainResult(minimize=loss)
 
-    def training_epoch_end(self, outputs):
-        avg_loss = torch.stack([x["loss"] for x in outputs]).mean()
-        perplexity = torch.exp(avg_loss)
-
-        results = {"avg_train_loss": avg_loss, "train_perplexity": perplexity}
-        return results
+        result.log(
+            "train/loss",
+            loss,
+            reduce_fx=torch.mean,
+            on_epoch=True,
+            sync_dist=True,
+        )
+        result.log(
+            "train/perplexity",
+            perplexity,
+            reduce_fx=torch.mean,
+            on_epoch=True,
+            sync_dist=True,
+        )
+        return result
 
     def validation_step(self, batch: zeldarose.data.TextBatch, batch_idx: int):
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
@@ -193,24 +201,21 @@ class MLMFinetuner(pl.LightningModule):
 
         preds = torch.argmax(outputs[1], dim=-1)
         accuracy = self.accuracy(preds, masked.labels)
+        perplexity = torch.exp(loss)
 
-        return {"val_loss": loss, "val_acc": accuracy}
+        result = pl.EvalResult(checkpoint_on=perplexity)
+        result.loss = loss
+        result.accuracy = accuracy
 
-    def validation_end(self, outputs):
-        avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
-        avg_acc = (
-            torch.stack([x["val_acc"] for x in outputs]).mean()
-            / self.trainer.world_size
+        result.log("validation/loss", loss, reduce_fx=torch.mean, sync_dist=True)
+        result.log(
+            "validation/accuracy", accuracy, reduce_fx=torch.mean, sync_dist=True
+        )
+        result.log(
+            "validation/perplexity", perplexity, reduce_fx=torch.mean, sync_dist=True
         )
 
-        perplexity = torch.exp(avg_loss)
-
-        tensorboard_logs = {
-            "validation/loss": avg_loss,
-            "validation/accuracy": avg_acc,
-            "validation/perplexity": perplexity,
-        }
-        return {"val_loss": avg_loss, "log": tensorboard_logs}
+        return result
 
     def configure_optimizers(self):
         if self.config.weight_decay is not None:

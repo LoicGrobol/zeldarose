@@ -45,12 +45,17 @@ def setup_logging(
         )
 
     logger.add(
-        sys.stderr, level=log_level, format=log_fmt, colorize=True,
+        sys.stderr,
+        level=log_level,
+        format=log_fmt,
+        colorize=True,
     )
 
     if logfile:
         logger.add(
-            logfile, level="DEBUG", colorize=False,
+            logfile,
+            level="DEBUG",
+            colorize=False,
         )
 
     # Deal with stdlib.logging
@@ -80,10 +85,10 @@ def reset_transformer_vocab(model: transformers.PreTrainedModel):
     # There is no consensus in hf transformers as to how the underlying transformer of a MLM
     # model is called
     transformer_model = next(
-        l
+        tr_model
         for transformer_name in ("bert", "roberta", "transformer")
-        for l in [getattr(model, transformer_name, None)]
-        if l is not None
+        for tr_model in [getattr(model, transformer_name, None)]
+        if tr_model is not None
     )
     if isinstance(transformer_model.embeddings, torch.nn.Embedding):
         transformer_model.embeddings.reset_parameters()
@@ -96,7 +101,9 @@ def reset_transformer_vocab(model: transformers.PreTrainedModel):
     # There is no consensus in hf transformers as to how the LM head of a MLM model is
     # called so we have to do an ugly song and dance here
     lm_head_name = next(
-        l for l in ("lm_head", "cls", "pred_layer") if hasattr(model, l)
+        layer_name
+        for layer_name in ("lm_head", "cls", "pred_layer")
+        if hasattr(model, layer_name)
     )
     setattr(model, lm_head_name, type(getattr(model, lm_head_name))(model.config))
 
@@ -128,7 +135,8 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 # TODO: allow restarting from checkpoint
 @click.command()
 @click.argument(
-    "raw_text", type=click_pathlib.Path(resolve_path=True, exists=True, dir_okay=False),
+    "raw_text",
+    type=click_pathlib.Path(resolve_path=True, exists=True, dir_okay=False),
 )
 @click.option(
     "--config",
@@ -163,10 +171,15 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     help="Assume that the dataset is pre-segmented in sentences",
 )
 @click.option(
-    "--max-epochs", type=int, default=2, help="How many steps to train for",
+    "--max-epochs",
+    type=int,
+    default=2,
+    help="How many steps to train for",
 )
 @click.option(
-    "--max-steps", type=int, help="How many steps to train for",
+    "--max-steps",
+    type=int,
+    help="How many steps to train for",
 )
 @click.option(
     "--model-config",
@@ -197,7 +210,10 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     help="How many nodes to train on (for clusters), defaults to $SLURM_JOB_NUM_NODES if on SLURM and 1 otherwise",
 )
 @click.option(
-    "--n-workers", type=int, default=0, help="How many data loading workers to use",
+    "--n-workers",
+    type=int,
+    default=0,
+    help="How many data loading workers to use",
 )
 @click.option(
     "--out-dir",
@@ -374,7 +390,10 @@ def main(
 
     logger.info("Creating dataloaders")
     train_loader = data.TextLoader(
-        train_set, batch_size=loader_batch_size, num_workers=n_workers, shuffle=True,
+        train_set,
+        batch_size=loader_batch_size,
+        num_workers=n_workers,
+        shuffle=True,
     )
     val_loaders: Optional[List[data.TextLoader]]
     if val_set is not None:
@@ -389,7 +408,7 @@ def main(
     else:
         val_loaders = None
 
-    logger.info(f"Creating trainer")
+    logger.info("Creating trainer")
     additional_kwargs = dict()
     if profile:
         logger.info("Running in profile mode")
@@ -409,7 +428,9 @@ def main(
     if save_period:
         callbacks.append(
             SavePretrainedModelCallback(
-                out_dir / "partway_models", tokenizer, save_period,
+                out_dir / "partway_models",
+                tokenizer,
+                save_period,
             )
         )
 
@@ -421,7 +442,7 @@ def main(
             f"Training the model on CPU in {additional_kwargs['num_processes']} processes"
         )
     else:
-        logger.info(f"Training the model on CPU")
+        logger.info("Training the model on CPU")
 
     trainer = pl.Trainer(
         accumulate_grad_batches=accumulate_grad_batches,
@@ -436,7 +457,6 @@ def main(
         val_percent_check=1.0 if val_loaders is not None else 0.0,
         **additional_kwargs,
     )
-
 
     # Hotfix for https://github.com/PyTorchLightning/pytorch-lightning/issues/2100
     if val_loaders is None:
