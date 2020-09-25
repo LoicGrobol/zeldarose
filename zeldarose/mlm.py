@@ -161,7 +161,7 @@ class MLMFinetuner(pl.LightningModule):
         loss = outputs.loss
 
         result = pl.TrainResult(minimize=loss)
-        result.cross_entropy = outputs.loss
+        result.cross_entropy = outputs.loss.detach()
         result.batch_size = masked.labels.ne(-100).sum()
 
         result.log(
@@ -172,17 +172,22 @@ class MLMFinetuner(pl.LightningModule):
             sync_dist=True,
         )
         return result
-    
+
     def training_epoch_end(self, outputs: pl.TrainResult) -> pl.TrainResult:
         perplexity = torch.exp(
-            (outputs.cross_entropy * outputs.batch_size) / sum(outputs.batch_size)
+            outputs.cross_entropy.dot(outputs.batch_size.float()).true_divide(
+                outputs.batch_size.sum()
+            )
         )
-        outputs.log(
+        result = pl.TrainResult()
+        result.log(
             "train/perplexity", perplexity, reduce_fx=torch.mean, sync_dist=True
         )
-        return outputs
+        return result
 
-    def validation_step(self, batch: zeldarose.data.TextBatch, batch_idx: int) -> pl.EvalResult:
+    def validation_step(
+        self, batch: zeldarose.data.TextBatch, batch_idx: int
+    ) -> pl.EvalResult:
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
         masked = mask_tokens(
             inputs=tokens,
@@ -220,12 +225,15 @@ class MLMFinetuner(pl.LightningModule):
 
     def validation_epoch_end(self, outputs: pl.EvalResult) -> pl.EvalResult:
         perplexity = torch.exp(
-            (outputs.cross_entropy * outputs.batch_size) / sum(outputs.batch_size)
+            outputs.cross_entropy.dot(outputs.batch_size.float()).true_divide(
+                outputs.batch_size.sum()
+            )
         )
-        outputs.log(
+        result = pl.EvalResult()
+        result.log(
             "validation/perplexity", perplexity, reduce_fx=torch.mean, sync_dist=True
         )
-        return outputs
+        return result
 
     def configure_optimizers(self):
         if self.config.weight_decay is not None:
