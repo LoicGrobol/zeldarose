@@ -70,16 +70,17 @@ def mask_tokens(
     return MaskedTokens(inputs, labels)
 
 
+@torch.jit.script
+def masked_accuracy(preds: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
+    mask = labels.ne(-100)
+    if not mask.any():
+        return torch.tensor(1., device=preds.device)
+    return preds.eq(labels).logical_and(mask).float().sum().true_divide(mask.sum())
+
+
 class MaskedAccuracy(pl_metrics.TensorMetric):
     def forward(self, preds: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
-        mask = labels.ne(-100)
-        return (
-            preds.eq(labels)
-            .logical_and(mask)
-            .float()
-            .sum()
-            .true_divide(mask.sum())
-        )
+        return masked_accuracy(preds, labels)
 
 
 class MLMTaskConfig(pydantic.BaseModel):
@@ -212,8 +213,6 @@ class MLMFinetuner(pl.LightningModule):
         perplexity = torch.exp(loss)
 
         result = pl.EvalResult(checkpoint_on=loss)
-        result.loss = loss
-        result.accuracy = accuracy
 
         result.log("validation/loss", loss, reduce_fx=torch.mean, sync_dist=True)
         result.log(
