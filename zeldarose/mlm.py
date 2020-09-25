@@ -72,7 +72,14 @@ def mask_tokens(
 
 class MaskedAccuracy(pl_metrics.TensorMetric):
     def forward(self, preds: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
-        return preds.eq(labels).logical_and(labels.ne(-100)).float().mean()
+        mask = labels.ne(-100)
+        return (
+            preds.eq(labels)
+            .logical_and(mask)
+            .float()
+            .sum()
+            .true_divide(mask.sum())
+        )
 
 
 class MLMTaskConfig(pydantic.BaseModel):

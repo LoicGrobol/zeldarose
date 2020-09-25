@@ -395,6 +395,7 @@ def main(
         num_workers=n_workers,
         shuffle=True,
     )
+
     val_loaders: Optional[List[data.TextLoader]]
     if val_set is not None:
         val_loaders = [
