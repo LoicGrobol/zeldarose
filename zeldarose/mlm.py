@@ -73,13 +73,7 @@ def mask_tokens(
 class MaskedAccuracy(pl_metrics.TensorMetric):
     def forward(self, preds: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
         mask = labels.ne(-100)
-        return (
-            preds.eq(labels)
-            .logical_and(mask)
-            .float()
-            .sum()
-            .true_divide(mask.sum())
-        )
+        return preds.eq(labels).logical_and(mask).float().sum().true_divide(mask.sum())
 
 
 class MLMTaskConfig(pydantic.BaseModel):
@@ -165,9 +159,10 @@ class MLMFinetuner(pl.LightningModule):
         )
 
         loss = outputs.loss
-        perplexity = torch.exp(loss)
 
         result = pl.TrainResult(minimize=loss)
+        result.cross_entropy = outputs.loss
+        result.batch_size = masked.labels.ne(-100).sum()
 
         result.log(
             "train/loss",
@@ -176,27 +171,28 @@ class MLMFinetuner(pl.LightningModule):
             on_epoch=True,
             sync_dist=True,
         )
-        result.log(
-            "train/perplexity",
-            perplexity,
-            reduce_fx=torch.mean,
-            on_epoch=True,
-            sync_dist=True,
-        )
         return result
+    
+    def training_epoch_end(self, outputs: pl.TrainResult) -> pl.TrainResult:
+        perplexity = torch.exp(
+            (outputs.cross_entropy * outputs.batch_size) / sum(outputs.batch_size)
+        )
+        outputs.log(
+            "train/perplexity", perplexity, reduce_fx=torch.mean, sync_dist=True
+        )
+        return outputs
 
-    def validation_step(self, batch: zeldarose.data.TextBatch, batch_idx: int):
+    def validation_step(self, batch: zeldarose.data.TextBatch, batch_idx: int) -> pl.EvalResult:
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
-        with torch.no_grad():
-            masked = mask_tokens(
-                inputs=tokens,
-                change_ratio=self.task_config.change_ratio,
-                keep_mask=internal_tokens_mask,
-                mask_ratio=self.task_config.mask_ratio,
-                input_mask_index=self.mask_token_index,
-                switch_ratio=self.task_config.switch_ratio,
-                vocabulary_size=self.vocabulary_size,
-            )
+        masked = mask_tokens(
+            inputs=tokens,
+            change_ratio=self.task_config.change_ratio,
+            keep_mask=internal_tokens_mask,
+            mask_ratio=self.task_config.mask_ratio,
+            input_mask_index=self.mask_token_index,
+            switch_ratio=self.task_config.switch_ratio,
+            vocabulary_size=self.vocabulary_size,
+        )
 
         outputs = self(
             tokens=masked.inputs,
@@ -209,21 +205,27 @@ class MLMFinetuner(pl.LightningModule):
 
         preds = torch.argmax(outputs.logits, dim=-1)
         accuracy = self.accuracy(preds, masked.labels)
-        perplexity = torch.exp(loss)
 
         result = pl.EvalResult(checkpoint_on=loss)
-        result.loss = loss
-        result.accuracy = accuracy
+        result.cross_entropy = outputs.loss
+        result.batch_size = masked.labels.ne(-100).sum()
 
         result.log("validation/loss", loss, reduce_fx=torch.mean, sync_dist=True)
+
         result.log(
             "validation/accuracy", accuracy, reduce_fx=torch.mean, sync_dist=True
         )
-        result.log(
-            "validation/perplexity", perplexity, reduce_fx=torch.mean, sync_dist=True
-        )
 
         return result
+
+    def validation_epoch_end(self, outputs: pl.EvalResult) -> pl.EvalResult:
+        perplexity = torch.exp(
+            (outputs.cross_entropy * outputs.batch_size) / sum(outputs.batch_size)
+        )
+        outputs.log(
+            "validation/perplexity", perplexity, reduce_fx=torch.mean, sync_dist=True
+        )
+        return outputs
 
     def configure_optimizers(self):
         if self.config.weight_decay is not None:
