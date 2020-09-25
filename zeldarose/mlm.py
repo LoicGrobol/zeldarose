@@ -211,7 +211,7 @@ class MLMFinetuner(pl.LightningModule):
         accuracy = self.accuracy(preds, masked.labels)
         perplexity = torch.exp(loss)
 
-        result = pl.EvalResult(checkpoint_on=perplexity)
+        result = pl.EvalResult(checkpoint_on=loss)
         result.loss = loss
         result.accuracy = accuracy
 
