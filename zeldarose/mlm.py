@@ -126,12 +126,13 @@ class MLMFinetuner(pl.LightningModule):
         attention_mask: torch.Tensor,
         token_type_ids: torch.Tensor,
         mlm_labels: torch.Tensor,
-    ):
+    ) -> transformers.modeling_outputs.MaskedLMOutput:
         output = self.model(
             input_ids=tokens,
             attention_mask=attention_mask,
             labels=mlm_labels,
             token_type_ids=token_type_ids,
+            return_dict=True,
         )
 
         return output
@@ -156,7 +157,7 @@ class MLMFinetuner(pl.LightningModule):
             token_type_ids=token_type_ids,
         )
 
-        loss = outputs[0]
+        loss = outputs.loss
         perplexity = torch.exp(loss)
 
         result = pl.TrainResult(minimize=loss)
@@ -197,9 +198,9 @@ class MLMFinetuner(pl.LightningModule):
             token_type_ids=token_type_ids,
         )
 
-        loss = outputs[0]
+        loss = outputs.loss
 
-        preds = torch.argmax(outputs[1], dim=-1)
+        preds = torch.argmax(outputs.logits, dim=-1)
         accuracy = self.accuracy(preds, masked.labels)
         perplexity = torch.exp(loss)
 
