@@ -210,6 +210,7 @@ class MLMFinetuner(pl.LightningModule):
 
         preds = torch.argmax(outputs.logits, dim=-1)
         accuracy = self.accuracy(preds, masked.labels)
+        assert 0.0 <= accuracy <= 1.0
         perplexity = torch.exp(loss)
 
         result = pl.EvalResult(checkpoint_on=loss)
