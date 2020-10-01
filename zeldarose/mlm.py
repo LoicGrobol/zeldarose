@@ -167,6 +167,11 @@ class MLMFinetuner(pl.LightningModule):
 
         loss = outputs.loss
         perplexity = torch.exp(loss)
+        preds = torch.argmax(outputs.logits, dim=-1)
+        accuracy = self.accuracy(preds, masked.labels)
+        if not 0.0 <= accuracy <= 1.0:
+            logger.critical(f"With predictions\n{preds}\nand labels\n{masked.labels}")
+            raise ValueError(f"Wrong accuracy: {accuracy}")
 
         result = pl.TrainResult(minimize=loss)
 
@@ -210,7 +215,9 @@ class MLMFinetuner(pl.LightningModule):
 
         preds = torch.argmax(outputs.logits, dim=-1)
         accuracy = self.accuracy(preds, masked.labels)
-        assert 0.0 <= accuracy <= 1.0
+        if not 0.0 <= accuracy <= 1.0:
+            logger.critical(f"With predictions\n{preds}\nand labels\n{masked.labels}")
+            raise ValueError(f"Wrong accuracy: {accuracy}")
         perplexity = torch.exp(loss)
 
         result = pl.EvalResult(checkpoint_on=loss)
