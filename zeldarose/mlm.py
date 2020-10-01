@@ -84,6 +84,7 @@ class MaskedAccuracy(pl_metrics.TensorMetric):
         logger.info(f"Masked accuracy for\n{preds}\n vs.\n{labels}\nresult={acc}")
         return acc
 
+
 class MLMTaskConfig(pydantic.BaseModel):
     change_ratio: float = 0.15
     mask_ratio: float = 0.8
@@ -126,7 +127,7 @@ class MLMFinetuner(pl.LightningModule):
         # Save the hyperparameters before we define the heavy attributes
         self.save_hyperparameters()
 
-        self.accuracy = MaskedAccuracy("masked_accuracy")
+        self.accuracy = MaskedAccuracy("masked_accuracy", reduce_op="mean")
         self.model = model
 
     def forward(
