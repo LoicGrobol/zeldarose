@@ -80,8 +80,9 @@ def masked_accuracy(preds: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
 
 class MaskedAccuracy(pl_metrics.TensorMetric):
     def forward(self, preds: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
-        return masked_accuracy(preds, labels)
-
+        acc = masked_accuracy(preds, labels)
+        logger.info(f"Masked accuracy for\n{preds}\n vs.\n{labels}\nresult={acc}")
+        return acc
 
 class MLMTaskConfig(pydantic.BaseModel):
     change_ratio: float = 0.15
