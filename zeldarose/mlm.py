@@ -70,7 +70,7 @@ def mask_tokens(
     return MaskedTokens(inputs, labels)
 
 
-@torch.jit.script
+# @torch.jit.script
 def masked_accuracy(preds: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
     mask = labels.ne(-100)
     if not mask.any():
@@ -86,8 +86,9 @@ class MaskedAccuracy(pl_metrics.TensorMetric):
             slow_acc = (
                 preds.eq(labels).logical_and(mask).float().sum().true_divide(mask.sum())
             )
+            re_acc = masked_accuracy(preds, labels)
             logger.info(
-                f"Masked accuracy for\n{preds}\n vs.\n{labels}\nresult={acc}\nslow_result={slow_acc}"
+                f"Masked accuracy for\n{preds}\n vs.\n{labels}\nresult={acc}\nslow_result={slow_acc}\nfast agin={re_acc}"
             )
         return acc
 
