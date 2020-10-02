@@ -74,14 +74,21 @@ def mask_tokens(
 def masked_accuracy(preds: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
     mask = labels.ne(-100)
     if not mask.any():
-        return torch.tensor(1., device=preds.device)
+        return torch.tensor(1.0, device=preds.device)
     return preds.eq(labels).logical_and(mask).float().sum().true_divide(mask.sum())
 
 
 class MaskedAccuracy(pl_metrics.TensorMetric):
     def forward(self, preds: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
         acc = masked_accuracy(preds, labels)
-        logger.info(f"Masked accuracy for\n{preds}\n vs.\n{labels}\nresult={acc}")
+        if not 0.0 <= acc <= 1.0:
+            mask = labels.ne(-100)
+            slow_acc = (
+                preds.eq(labels).logical_and(mask).float().sum().true_divide(mask.sum())
+            )
+            logger.info(
+                f"Masked accuracy for\n{preds}\n vs.\n{labels}\nresult={acc}\nslow_result={slow_acc}"
+            )
         return acc
 
 
@@ -172,8 +179,10 @@ class MLMFinetuner(pl.LightningModule):
         preds = torch.argmax(outputs.logits, dim=-1)
         accuracy = self.accuracy(preds, masked.labels)
         if not 0.0 <= accuracy <= 1.0:
-            logger.critical(f"Wrong accuracy: {accuracy}")
-            logger.critical(f"With inputs\n{tokens}\n and predictions\n{preds}\nand labels\n{masked.labels}")
+            logger.critical(
+                f"Wrong accuracy: {accuracy}\n"
+                f"With inputs\n{tokens}\n and predictions\n{preds}\nand labels\n{masked.labels}"
+            )
             raise ValueError(f"Wrong accuracy: {accuracy}")
 
         result = pl.TrainResult(minimize=loss)
@@ -220,7 +229,9 @@ class MLMFinetuner(pl.LightningModule):
         accuracy = self.accuracy(preds, masked.labels)
         if not 0.0 <= accuracy <= 1.0:
             logger.critical(f"Wrong accuracy: {accuracy}")
-            logger.critical(f"With inputs\n{tokens}\n and predictions\n{preds}\nand labels\n{masked.labels}")
+            logger.critical(
+                f"With inputs\n{tokens}\n and predictions\n{preds}\nand labels\n{masked.labels}"
+            )
             raise ValueError(f"Wrong accuracy: {accuracy}")
         perplexity = torch.exp(loss)
 
