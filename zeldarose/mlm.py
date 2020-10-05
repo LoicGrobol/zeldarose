@@ -70,7 +70,14 @@ def mask_tokens(
     return MaskedTokens(inputs, labels)
 
 
-# @torch.jit.script
+@torch.jit.script
+def scripted_masked_accuracy(preds: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
+    mask = labels.ne(-100)
+    if not mask.any():
+        return torch.tensor(1.0, device=preds.device)
+    return preds.eq(labels).logical_and(mask).float().sum().true_divide(mask.sum())
+
+
 def masked_accuracy(preds: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
     mask = labels.ne(-100)
     if not mask.any():
@@ -80,15 +87,15 @@ def masked_accuracy(preds: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
 
 class MaskedAccuracy(pl_metrics.TensorMetric):
     def forward(self, preds: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
-        acc = masked_accuracy(preds, labels)
+        acc = scripted_masked_accuracy(preds, labels)
         if not 0.0 <= acc <= 1.0:
             mask = labels.ne(-100)
-            slow_acc = (
+            noedge_acc = (
                 preds.eq(labels).logical_and(mask).float().sum().true_divide(mask.sum())
             )
-            re_acc = masked_accuracy(preds, labels)
+            slow_acc = masked_accuracy(preds, labels)
             logger.info(
-                f"Masked accuracy for\n{preds}\n vs.\n{labels}\nresult={acc}\nslow_result={slow_acc}\nfast agin={re_acc}"
+                f"Masked accuracy for\n{preds}\n vs.\n{labels}\nresult={acc}\nslow_result={slow_acc}\nno_edge={noedge_acc}"
             )
         return acc
 
