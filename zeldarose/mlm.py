@@ -1,4 +1,4 @@
-from typing import NamedTuple, Optional, Tuple
+from typing import Any, NamedTuple, Optional, Tuple
 
 import pydantic
 import pytorch_lightning as pl
@@ -32,8 +32,13 @@ def mask_tokens(
 ) -> MaskedTokens:
     """Prepare masked tokens inputs/labels for masked language modeling
 
-    This modifies `inputs` in place, which is not very pure but avoids a (useless in practice) copy
-    operation.
+    Notes
+    -----
+    
+    - This modifies `inputs` in place, which is not very pure but avoids a (useless in practice)
+      copy operation.
+    - hf transformers use `-100` for label mask because it's the default ignore index of
+      `torch.nn.CrossEntropy`
     """
 
     labels = inputs.clone()
@@ -70,34 +75,32 @@ def mask_tokens(
     return MaskedTokens(inputs, labels)
 
 
-@torch.jit.script
-def scripted_masked_accuracy(preds: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
-    mask = labels.ne(-100)
-    if not mask.any():
-        return torch.tensor(1.0, device=preds.device)
-    return preds.eq(labels).logical_and(mask).float().sum().true_divide(mask.sum())
-
-
-def masked_accuracy(preds: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
-    mask = labels.ne(-100)
+# FIXME: jitting this sometimes results in aberrations such as `masked_accuracy(tensor([[0, 28031,
+# 16]]), tensor([[-100, -100, -100]]))=32.54999923706055` while the non-jitted accuracy gives a
+# correct (or at least consistent with the code) `1.0`. I haven't been able to find the cause (or
+# indeed to reproduce it outside of using a MLMFineTuner in SLURM ddp) so we don't jit this for now.
+def masked_accuracy(
+    preds: torch.Tensor, labels: torch.Tensor, ignore_index: int = -100
+) -> torch.Tensor:
+    mask = labels.ne(ignore_index)
     if not mask.any():
         return torch.tensor(1.0, device=preds.device)
     return preds.eq(labels).logical_and(mask).float().sum().true_divide(mask.sum())
 
 
 class MaskedAccuracy(pl_metrics.TensorMetric):
+    def __init__(
+        self,
+        name: str,
+        reduce_group: Optional[Any] = None,
+        reduce_op: Optional[Any] = None,
+        ignore_index: int = -100,
+    ):
+        super().__init__(name, reduce_group=reduce_group, reduce_op=reduce_op)
+        self.ignore_index = ignore_index
+
     def forward(self, preds: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
-        acc = scripted_masked_accuracy(preds, labels)
-        if not 0.0 <= acc <= 1.0:
-            mask = labels.ne(-100)
-            noedge_acc = (
-                preds.eq(labels).logical_and(mask).float().sum().true_divide(mask.sum())
-            )
-            slow_acc = masked_accuracy(preds, labels)
-            logger.info(
-                f"Masked accuracy for\n{preds}\n vs.\n{labels}\nresult={acc}\nslow_result={slow_acc}\nno_edge={noedge_acc}"
-            )
-        return acc
+        return masked_accuracy(preds, labels, self.ignore_index)
 
 
 class MLMTaskConfig(pydantic.BaseModel):
@@ -184,14 +187,6 @@ class MLMFinetuner(pl.LightningModule):
 
         loss = outputs.loss
         perplexity = torch.exp(loss)
-        preds = torch.argmax(outputs.logits, dim=-1)
-        accuracy = self.accuracy(preds, masked.labels)
-        if not 0.0 <= accuracy <= 1.0:
-            logger.critical(
-                f"Wrong accuracy: {accuracy}\n"
-                f"With inputs\n{tokens}\n and predictions\n{preds}\nand labels\n{masked.labels}"
-            )
-            raise ValueError(f"Wrong accuracy: {accuracy}")
 
         result = pl.TrainResult(minimize=loss)
 
@@ -235,12 +230,6 @@ class MLMFinetuner(pl.LightningModule):
 
         preds = torch.argmax(outputs.logits, dim=-1)
         accuracy = self.accuracy(preds, masked.labels)
-        if not 0.0 <= accuracy <= 1.0:
-            logger.critical(f"Wrong accuracy: {accuracy}")
-            logger.critical(
-                f"With inputs\n{tokens}\n and predictions\n{preds}\nand labels\n{masked.labels}"
-            )
-            raise ValueError(f"Wrong accuracy: {accuracy}")
         perplexity = torch.exp(loss)
 
         result = pl.EvalResult(checkpoint_on=loss)
