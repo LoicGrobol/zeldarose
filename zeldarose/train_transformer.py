@@ -456,7 +456,6 @@ def main(
         num_nodes=n_nodes,
         max_epochs=max_epochs,
         max_steps=max_steps,
-        track_grad_norm=2,
         limit_val_batches=1.0 if val_loaders is not None else 0,
         **additional_kwargs,
     )
