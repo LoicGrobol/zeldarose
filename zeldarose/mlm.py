@@ -88,19 +88,24 @@ def masked_accuracy(
     return preds.eq(labels).logical_and(mask).float().sum().true_divide(mask.sum())
 
 
-class MaskedAccuracy(pl_metrics.TensorMetric):
-    def __init__(
-        self,
-        name: str,
-        reduce_group: Optional[Any] = None,
-        reduce_op: Optional[Any] = None,
-        ignore_index: int = -100,
-    ):
-        super().__init__(name, reduce_group=reduce_group, reduce_op=reduce_op)
-        self.ignore_index = ignore_index
+class MaskedAccuracy(pl_metrics.Metric):
+    def __init__(self, ignore_index: int = -100):
+        super().__init__()
 
-    def forward(self, preds: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
-        return masked_accuracy(preds, labels, self.ignore_index)
+        self.ignore_index = ignore_index
+        self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
+        self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
+
+    def update(self, preds: torch.Tensor, target: torch.Tensor):
+        assert preds.shape == target.shape
+        mask = target.ne(self.ignore_index)
+        if not mask.any():
+            return
+        self.correct += preds.eq(target).logical_and(mask).int().sum()
+        self.total += mask.sum()
+
+    def compute(self):
+        return self.correct.float() / self.total
 
 
 class MLMTaskConfig(pydantic.BaseModel):
@@ -142,11 +147,11 @@ class MLMFinetuner(pl.LightningModule):
         logger.info(f"MLM task config: {self.task_config}")
         self.mask_token_index = mask_token_index
         self.vocabulary_size = vocabulary_size
-        # Save the hyperparameters before we define the heavy attributes
-        self.save_hyperparameters()
 
-        self.accuracy = MaskedAccuracy("masked_accuracy", reduce_op="mean")
+        self.accuracy = MaskedAccuracy()
         self.model = model
+
+        self.save_hyperparameters("config", "task_config")
 
     def forward(
         self,
@@ -188,23 +193,21 @@ class MLMFinetuner(pl.LightningModule):
         loss = outputs.loss
         perplexity = torch.exp(loss)
 
-        result = pl.TrainResult(minimize=loss)
-
-        result.log(
+        self.log(
             "train/loss",
             loss,
             reduce_fx=torch.mean,
             on_epoch=True,
             sync_dist=True,
         )
-        result.log(
+        self.log(
             "train/perplexity",
             perplexity,
             reduce_fx=torch.mean,
             on_epoch=True,
             sync_dist=True,
         )
-        return result
+        return loss
 
     def validation_step(self, batch: zeldarose.data.TextBatch, batch_idx: int):
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
@@ -232,17 +235,13 @@ class MLMFinetuner(pl.LightningModule):
         accuracy = self.accuracy(preds, masked.labels)
         perplexity = torch.exp(loss)
 
-        result = pl.EvalResult(checkpoint_on=loss)
-
-        result.log("validation/loss", loss, reduce_fx=torch.mean, sync_dist=True)
-        result.log(
+        self.log("validation/loss", loss, reduce_fx=torch.mean, sync_dist=True)
+        self.log(
             "validation/accuracy", accuracy, reduce_fx=torch.mean, sync_dist=True
         )
-        result.log(
+        self.log(
             "validation/perplexity", perplexity, reduce_fx=torch.mean, sync_dist=True
         )
-
-        return result
 
     def configure_optimizers(self):
         if self.config.weight_decay is not None:

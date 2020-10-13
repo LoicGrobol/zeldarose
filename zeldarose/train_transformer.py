@@ -417,7 +417,7 @@ def main(
         additional_kwargs.update({"profiler": profiler, "overfit_batches": 1024})
 
     if guess_batch_size:
-        logger.info("Running in profile mode")
+        logger.info("Automatic batch size selection")
         additional_kwargs.update({"auto_scale_batch_size": "binsearch"})
 
     if distributed_backend == "ddp_cpu":
@@ -425,7 +425,9 @@ def main(
         additional_kwargs["num_processes"] = n_gpus
         n_gpus = 0
 
-    callbacks: List[pl.callbacks.Callback] = []
+    callbacks: List[pl.callbacks.Callback] = [
+        pl.callbacks.ProgressBar(),
+    ]
     if save_period:
         callbacks.append(
             SavePretrainedModelCallback(
@@ -437,7 +439,7 @@ def main(
 
     if n_gpus:
         logger.info(f"Training the model on {n_gpus} GPUs")
-        callbacks.append(pl.callbacks.GpuUsageLogger())
+        callbacks.append(pl.callbacks.GPUStatsMonitor())
     elif distributed_backend == "ddp_cpu":
         logger.info(
             f"Training the model on CPU in {additional_kwargs['num_processes']} processes"
@@ -455,7 +457,7 @@ def main(
         max_epochs=max_epochs,
         max_steps=max_steps,
         track_grad_norm=2,
-        val_percent_check=1.0 if val_loaders is not None else 0.0,
+        limit_val_batches=1.0 if val_loaders is not None else 0,
         **additional_kwargs,
     )
 
