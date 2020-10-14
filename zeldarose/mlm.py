@@ -34,7 +34,7 @@ def mask_tokens(
 
     Notes
     -----
-    
+
     - This modifies `inputs` in place, which is not very pure but avoids a (useless in practice)
       copy operation.
     - hf transformers use `-100` for label mask because it's the default ignore index of
@@ -99,13 +99,12 @@ class MaskedAccuracy(pl_metrics.Metric):
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         assert preds.shape == target.shape
         mask = target.ne(self.ignore_index)
-        if not mask.any():
-            return
-        self.correct += preds.eq(target).logical_and(mask).int().sum()
-        self.total += mask.sum()
+        if mask.any():
+            self.correct += preds.eq(target).logical_and(mask).int().sum()
+            self.total += mask.sum()
 
     def compute(self):
-        return self.correct.float() / self.total
+        return self.correct.true_divide(self.total)
 
 
 class MLMTaskConfig(pydantic.BaseModel):
@@ -203,9 +202,9 @@ class MLMFinetuner(pl.LightningModule):
         self.log(
             "train/perplexity",
             perplexity,
-            reduce_fx=torch.mean,
             on_epoch=True,
             sync_dist=True,
+            sync_dist_op=torch.mean,
         )
         return loss
 
@@ -235,12 +234,19 @@ class MLMFinetuner(pl.LightningModule):
         accuracy = self.accuracy(preds, masked.labels)
         perplexity = torch.exp(loss)
 
-        self.log("validation/loss", loss, reduce_fx=torch.mean, sync_dist=True)
+        self.log("validation/loss", loss, sync_dist=True, sync_dist_op=torch.mean)
         self.log(
-            "validation/accuracy", accuracy, reduce_fx=torch.mean, sync_dist=True
+            "validation/accuracy",
+            accuracy,
+            on_step=False,
+            on_epoch=True,
         )
         self.log(
-            "validation/perplexity", perplexity, reduce_fx=torch.mean, sync_dist=True
+            "validation/perplexity",
+            perplexity,
+            on_epoch=True,
+            sync_dist=True,
+            sync_dist_op=torch.mean,
         )
 
     def configure_optimizers(self):
