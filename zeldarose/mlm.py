@@ -204,7 +204,6 @@ class MLMFinetuner(pl.LightningModule):
             perplexity,
             on_epoch=True,
             sync_dist=True,
-            sync_dist_op=torch.mean,
         )
         return loss
 
@@ -234,7 +233,7 @@ class MLMFinetuner(pl.LightningModule):
         accuracy = self.accuracy(preds, masked.labels)
         perplexity = torch.exp(loss)
 
-        self.log("validation/loss", loss, sync_dist=True, sync_dist_op=torch.mean)
+        self.log("validation/loss", loss, sync_dist=True)
         self.log(
             "validation/accuracy",
             accuracy,
@@ -246,7 +245,6 @@ class MLMFinetuner(pl.LightningModule):
             perplexity,
             on_epoch=True,
             sync_dist=True,
-            sync_dist_op=torch.mean,
         )
 
     def configure_optimizers(self):
