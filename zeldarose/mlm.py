@@ -1,4 +1,4 @@
-from typing import NamedTuple, Optional, Tuple
+from typing import Any, NamedTuple, Optional, Tuple
 
 import pydantic
 import pytorch_lightning as pl
@@ -32,8 +32,13 @@ def mask_tokens(
 ) -> MaskedTokens:
     """Prepare masked tokens inputs/labels for masked language modeling
 
-    This modifies `inputs` in place, which is not very pure but avoids a (useless in practice) copy
-    operation.
+    Notes
+    -----
+
+    - This modifies `inputs` in place, which is not very pure but avoids a (useless in practice)
+      copy operation.
+    - hf transformers use `-100` for label mask because it's the default ignore index of
+      `torch.nn.CrossEntropy`
     """
 
     labels = inputs.clone()
@@ -70,9 +75,36 @@ def mask_tokens(
     return MaskedTokens(inputs, labels)
 
 
-class MaskedAccuracy(pl_metrics.TensorMetric):
-    def forward(self, preds: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
-        return preds.eq(labels).logical_and(labels.ne(-100)).float().mean()
+# FIXME: jitting this sometimes results in aberrations such as `masked_accuracy(tensor([[0, 28031,
+# 16]]), tensor([[-100, -100, -100]]))=32.54999923706055` while the non-jitted accuracy gives a
+# correct (or at least consistent with the code) `1.0`. I haven't been able to find the cause (or
+# indeed to reproduce it outside of using a MLMFineTuner in SLURM ddp) so we don't jit this for now.
+def masked_accuracy(
+    preds: torch.Tensor, labels: torch.Tensor, ignore_index: int = -100
+) -> torch.Tensor:
+    mask = labels.ne(ignore_index)
+    if not mask.any():
+        return torch.tensor(1.0, device=preds.device)
+    return preds.eq(labels).logical_and(mask).float().sum().true_divide(mask.sum())
+
+
+class MaskedAccuracy(pl_metrics.Metric):
+    def __init__(self, ignore_index: int = -100):
+        super().__init__()
+
+        self.ignore_index = ignore_index
+        self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
+        self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
+
+    def update(self, preds: torch.Tensor, target: torch.Tensor):
+        assert preds.shape == target.shape
+        mask = target.ne(self.ignore_index)
+        if mask.any():
+            self.correct += preds.eq(target).logical_and(mask).int().sum()
+            self.total += mask.sum()
+
+    def compute(self):
+        return self.correct.true_divide(self.total)
 
 
 class MLMTaskConfig(pydantic.BaseModel):
@@ -114,11 +146,11 @@ class MLMFinetuner(pl.LightningModule):
         logger.info(f"MLM task config: {self.task_config}")
         self.mask_token_index = mask_token_index
         self.vocabulary_size = vocabulary_size
-        # Save the hyperparameters before we define the heavy attributes
-        self.save_hyperparameters()
 
-        self.accuracy = MaskedAccuracy("masked_accuracy")
+        self.accuracy = MaskedAccuracy()
         self.model = model
+
+        self.save_hyperparameters("config", "task_config")
 
     def forward(
         self,
@@ -126,12 +158,13 @@ class MLMFinetuner(pl.LightningModule):
         attention_mask: torch.Tensor,
         token_type_ids: torch.Tensor,
         mlm_labels: torch.Tensor,
-    ):
+    ) -> transformers.modeling_outputs.MaskedLMOutput:
         output = self.model(
             input_ids=tokens,
             attention_mask=attention_mask,
             labels=mlm_labels,
             token_type_ids=token_type_ids,
+            return_dict=True,
         )
 
         return output
@@ -156,18 +189,23 @@ class MLMFinetuner(pl.LightningModule):
             token_type_ids=token_type_ids,
         )
 
-        loss = outputs[0]
+        loss = outputs.loss
         perplexity = torch.exp(loss)
 
-        tensorboard_logs = {"train/train_loss": loss, "train/perplexity": perplexity}
-        return {"loss": loss, "log": tensorboard_logs}
-
-    def training_epoch_end(self, outputs):
-        avg_loss = torch.stack([x["loss"] for x in outputs]).mean()
-        perplexity = torch.exp(avg_loss)
-
-        results = {"avg_train_loss": avg_loss, "train_perplexity": perplexity}
-        return results
+        self.log(
+            "train/loss",
+            loss,
+            reduce_fx=torch.mean,
+            on_epoch=True,
+            sync_dist=True,
+        )
+        self.log(
+            "train/perplexity",
+            perplexity,
+            on_epoch=True,
+            sync_dist=True,
+        )
+        return loss
 
     def validation_step(self, batch: zeldarose.data.TextBatch, batch_idx: int):
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
@@ -189,28 +227,25 @@ class MLMFinetuner(pl.LightningModule):
             token_type_ids=token_type_ids,
         )
 
-        loss = outputs[0]
+        loss = outputs.loss
 
-        preds = torch.argmax(outputs[1], dim=-1)
+        preds = torch.argmax(outputs.logits, dim=-1)
         accuracy = self.accuracy(preds, masked.labels)
+        perplexity = torch.exp(loss)
 
-        return {"val_loss": loss, "val_acc": accuracy}
-
-    def validation_end(self, outputs):
-        avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
-        avg_acc = (
-            torch.stack([x["val_acc"] for x in outputs]).mean()
-            / self.trainer.world_size
+        self.log("validation/loss", loss, sync_dist=True)
+        self.log(
+            "validation/accuracy",
+            accuracy,
+            on_step=False,
+            on_epoch=True,
         )
-
-        perplexity = torch.exp(avg_loss)
-
-        tensorboard_logs = {
-            "validation/loss": avg_loss,
-            "validation/accuracy": avg_acc,
-            "validation/perplexity": perplexity,
-        }
-        return {"val_loss": avg_loss, "log": tensorboard_logs}
+        self.log(
+            "validation/perplexity",
+            perplexity,
+            on_epoch=True,
+            sync_dist=True,
+        )
 
     def configure_optimizers(self):
         if self.config.weight_decay is not None:
