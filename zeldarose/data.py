@@ -2,7 +2,7 @@ import functools
 import pathlib
 import pickle  # nosec
 
-from typing import List, NamedTuple, Sequence
+from typing import List, NamedTuple, Optional, Sequence, Union
 
 import filelock
 import torch
@@ -27,9 +27,14 @@ class TextDataset(torch.utils.data.Dataset):
         block_size: int = 512,
         model_name: str = "lm",
         overwrite_cache: bool = False,
+        cache_path: Optional[pathlib.Path] = None,
     ):
         if not text_path.is_file():
-            raise ValueError(f"{text_path} is not a valid text file.")
+            raise ValueError(f"Text path {text_path} is not a valid text file.")
+        if cache_path is None:
+            cache_path = text_path.parent
+        elif cache_path.is_file():
+            raise ValueError(f"Cache path {cache_path} is not a directory.")
         self.tokenizer = tokenizer
 
         try:
@@ -45,7 +50,7 @@ class TextDataset(torch.utils.data.Dataset):
         cached_features_filename = (
             f"{model_name}_{block_size}_{text_path.stem}_cache.pt"
         )
-        cached_features_file = text_path.parent / cached_features_filename
+        cached_features_file = cache_path / cached_features_filename
         cached_features_lock = filelock.FileLock(
             str(text_path.parent / f"{cached_features_filename}.lock")
         )
