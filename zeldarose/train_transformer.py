@@ -153,9 +153,9 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     ),
 )
 @click.option(
-    "--distributed-backend",
+    "--accelerator",
     type=str,
-    help="The lightning distributed backend to use (see lightning doc)",
+    help="The lightning accelerator to use (see lightning doc)",
 )
 @click.option(
     "--guess-batch-size",
@@ -265,7 +265,7 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 def main(
     config_path: Optional[pathlib.Path],
     device_batch_size: Optional[int],
-    distributed_backend: Optional[str],
+    accelerator: Optional[str],
     guess_batch_size: bool,
     line_by_line: bool,
     max_epochs: int,
@@ -383,7 +383,7 @@ def main(
     )
 
     # In DP mode, every batch is split between the devices
-    if distributed_backend == "dp":
+    if accelerator == "dp":
         loader_batch_size = device_batch_size * n_devices
     else:
         loader_batch_size = device_batch_size
@@ -420,7 +420,7 @@ def main(
         logger.info("Automatic batch size selection")
         additional_kwargs.update({"auto_scale_batch_size": "binsearch"})
 
-    if distributed_backend == "ddp_cpu":
+    if accelerator == "ddp_cpu":
         # FIXME: works but seems like bad practice
         additional_kwargs["num_processes"] = n_gpus
         n_gpus = 0
@@ -440,7 +440,7 @@ def main(
     if n_gpus:
         logger.info(f"Training the model on {n_gpus} GPUs")
         callbacks.append(pl.callbacks.GPUStatsMonitor())
-    elif distributed_backend == "ddp_cpu":
+    elif accelerator == "ddp_cpu":
         logger.info(
             f"Training the model on CPU in {additional_kwargs['num_processes']} processes"
         )
@@ -451,7 +451,7 @@ def main(
         accumulate_grad_batches=accumulate_grad_batches,
         callbacks=callbacks,
         default_root_dir=out_dir,
-        distributed_backend=distributed_backend,
+        accelerator=accelerator,
         gpus=n_gpus,
         num_nodes=n_nodes,
         max_epochs=max_epochs,
