@@ -439,7 +439,6 @@ def main(
 
     if n_gpus:
         logger.info(f"Training the model on {n_gpus} GPUs")
-        callbacks.append(pl.callbacks.GPUStatsMonitor())
     elif accelerator == "ddp_cpu":
         logger.info(
             f"Training the model on CPU in {additional_kwargs['num_processes']} processes"
