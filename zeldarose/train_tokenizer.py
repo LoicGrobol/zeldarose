@@ -57,6 +57,15 @@ def main(
         str(model_path), max_len=512
     )
     tranformers_tokenizer.save_pretrained(str(model_path))
+    # Useless in principle since we don't specify a model here but needed in practice for
+    # compatibility with `AutoTokenizer`, see
+    # <https://github.com/huggingface/transformers/issues/6368>
+    config = transformers.RobertaConfig(
+        vocab_size=vocab_size,
+        max_position_embeddings=512,
+        type_vocab_size=1,
+    )
+    config.to_json_file(str(model_path / "config.json"))
     logger.info(f"Saved tokenizer in {model_path}")
 
 
