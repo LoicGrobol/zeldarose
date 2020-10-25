@@ -4,6 +4,7 @@ import typing as ty
 import click
 import click_pathlib
 import tokenizers
+import transformers
 
 from loguru import logger
 
@@ -32,10 +33,31 @@ def main(
     vocab_size: int,
     model_name: str,
 ):
-    tokenizer = tokenizers.SentencePieceBPETokenizer()
-    tokenizer.train([str(t) for t in raw_texts], vocab_size=vocab_size)
-    out = tokenizer.save(str(out_path), model_name)
-    logger.info(f"Saved files: {', '.join(out)}")
+    tokenizer = tokenizers.implementations.ByteLevelBPETokenizer()
+    tokenizer.train(
+        [str(t) for t in raw_texts],
+        vocab_size=vocab_size,
+        special_tokens=[
+            "<s>",
+            "<pad>",
+            "</s>",
+            "<unk>",
+            "<mask>",
+        ],
+    )
+    tokenizer._tokenizer.post_processor = tokenizers.processors.BertProcessing(
+        ("</s>", tokenizer.token_to_id("</s>")),
+        ("<s>", tokenizer.token_to_id("<s>")),
+    )
+    tokenizer.enable_truncation(max_length=512)
+    model_path = out_path / model_name
+    model_path.mkdir(exist_ok=True, parents=True)
+    tokenizer.save_model(str(model_path))
+    tranformers_tokenizer = transformers.RobertaTokenizerFast.from_pretrained(
+        str(model_path), max_len=512
+    )
+    tranformers_tokenizer.save_pretrained(str(model_path))
+    logger.info(f"Saved tokenizer in {model_path}")
 
 
 if __name__ == "__main__":
