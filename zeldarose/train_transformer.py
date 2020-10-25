@@ -307,20 +307,6 @@ def main(
         n_devices = 1
     logger.info(f"Training on {n_devices} devices.")
 
-    if pretrained_model is not None:
-        logger.info(f"Loading pretrained model {pretrained_model!r}")
-        model = transformers.AutoModelForMaskedLM.from_pretrained(pretrained_model)
-        if reset_vocab:
-            reset_transformer_vocab(model)
-    elif model_config_path is not None:
-        logger.info(f"Loading pretrained config {model_config_path!r}")
-        model_config = transformers.AutoConfig.from_pretrained(model_config_path)
-        logger.info("Generating model from config")
-        model = transformers.AutoModelForMaskedLM.from_config(model_config)
-    else:
-        raise ValueError("You must provide either a pretrained model or a model config")
-    model.train()
-
     if tokenizer_name is None:
         if pretrained_model is not None:
             tokenizer_name = pretrained_model
@@ -330,6 +316,27 @@ def main(
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         tokenizer_name, use_fast=True
     )
+
+    if pretrained_model is not None:
+        logger.info(f"Loading pretrained model {pretrained_model!r}")
+        model = transformers.AutoModelForMaskedLM.from_pretrained(pretrained_model)
+        if reset_vocab:
+            reset_transformer_vocab(model)
+    elif model_config_path is not None:
+        logger.info(f"Loading pretrained config {model_config_path!r}")
+        model_config = transformers.AutoConfig.from_pretrained(model_config_path)
+        logger.info("Generating model from config")
+        # TODO: check the other parameters?
+        if model_config.vocab_size != tokenizer.vocab_size:
+            logger.warning(
+                f"Vocabulary size mismatch between model ({model_config.vocab_size})"
+                f" and tokenizer ({tokenizer.vocab_size}), using {tokenizer.vocab_size}."
+            )
+            model_config.vocab_size = tokenizer.vocab_size
+        model = transformers.AutoModelForMaskedLM.from_config(model_config)
+    else:
+        raise ValueError("You must provide either a pretrained model or a model config")
+    model.train()
 
     dataset_type: Type[data.TextDataset]
     if line_by_line:
