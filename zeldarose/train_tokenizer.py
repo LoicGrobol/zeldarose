@@ -34,6 +34,9 @@ def main(
     model_name: str,
 ):
     tokenizer = tokenizers.implementations.ByteLevelBPETokenizer()
+    # Special tokens hardcoded from RoBERTa's default, see `__init__` in
+    # <https://huggingface.co/transformers/_modules/transformers/tokenization_roberta_fast.html#RobertaTokenizerFast>
+    # and do not forget to adapt this if we allow other tokenizer configs here
     tokenizer.train(
         [str(t) for t in raw_texts],
         vocab_size=vocab_size,
@@ -54,12 +57,15 @@ def main(
     model_path.mkdir(exist_ok=True, parents=True)
     tokenizer.save_model(str(model_path))
     tranformers_tokenizer = transformers.RobertaTokenizerFast.from_pretrained(
-        str(model_path), max_len=512
+        str(model_path),
+        max_len=512,
     )
     tranformers_tokenizer.save_pretrained(str(model_path))
     # Useless in principle since we don't specify a model here but needed in practice for
     # compatibility with `AutoTokenizer`, see
-    # <https://github.com/huggingface/transformers/issues/6368>
+    # <https://github.com/huggingface/transformers/issues/6368> See also
+    # <https://github.com/huggingface/transformers/blob/38f6739cd6c1725ecd75a40d5371483f738097c2/src/transformers/tokenization_utils_base.py#L1670>
+    # for some hope that this will be improved some day
     config = transformers.RobertaConfig(
         vocab_size=vocab_size,
         max_position_embeddings=512,
