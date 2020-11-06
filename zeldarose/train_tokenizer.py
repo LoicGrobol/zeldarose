@@ -22,7 +22,7 @@ from loguru import logger
     help="Where to save the trained model",
 )
 @click.option(
-    "--vocab-size", type=int, default=50_000, help="Size of the trained vocabulary"
+    "--vocab-size", type=int, default=4096, help="Size of the trained vocabulary"
 )
 @click.option(
     "--model-name", type=str, default=None, help="A name to give to the model"
