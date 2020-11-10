@@ -376,7 +376,13 @@ def main(
 
     if device_batch_size is None:
         device_batch_size = tuning_config.batch_size
-    elif tuning_config.batch_size % device_batch_size * n_devices:
+    elif tuning_config.batch_size < device_batch_size * n_devices:
+        raise ValueError(
+            f"Batch size ({tuning_config.batch_size}) is smaller than"
+            f" loader batch size({device_batch_size} samples per device × {n_devices} devices)"
+            " try using fewer devices"
+        )
+    elif tuning_config.batch_size % (device_batch_size * n_devices):
         remainder = tuning_config.batch_size % device_batch_size * n_devices
         logger.warning(
             f"Batch size ({tuning_config.batch_size}) is not a muliple"
@@ -388,6 +394,8 @@ def main(
     accumulate_grad_batches = tuning_config.batch_size // (
         device_batch_size * n_devices
     )
+
+    
 
     # In DP mode, every batch is split between the devices
     if accelerator == "dp":
