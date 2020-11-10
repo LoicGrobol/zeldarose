@@ -118,7 +118,7 @@ class MLMFinetunerConfig(pydantic.BaseModel):
     betas: Tuple[float, float] = (0.9, 0.98)
     epsilon: float = 1e-8
     learning_rate: float = 1e-4
-    lr_decay_steps: Optional[int] = None
+    linear_lr_decay: bool = False
     warmup_steps: int = 0
     weight_decay: Optional[float] = None
 
@@ -282,13 +282,19 @@ class MLMFinetuner(pl.LightningModule):
             lr=self.config.learning_rate,
             eps=self.config.epsilon,
         )
-        if self.config.lr_decay_steps:
+        if self.config.linear_lr_decay:
             schedule = transformers.get_linear_schedule_with_warmup(
                 optimizer,
                 num_warmup_steps=self.config.warmup_steps,
-                num_training_steps=self.config.num_steps,
+                num_training_steps=self.trainer.max_steps,
             )
-
+            schedulers = [{"scheduler": schedule, "interval": "step"}]
+        elif self.config.warmup_steps > 0:
+            schedule = transformers.get_constant_schedule_with_warmup(
+                optimizer,
+                num_warmup_steps=self.config.warmup_steps,
+                num_training_steps=self.trainer.max_steps,
+            )
             schedulers = [{"scheduler": schedule, "interval": "step"}]
         else:
             schedulers = []
