@@ -1,4 +1,4 @@
-from typing import Any, NamedTuple, Optional, Tuple
+from typing import NamedTuple, Optional, Tuple
 
 import pydantic
 import pytorch_lightning as pl
@@ -284,10 +284,10 @@ class MLMFinetuner(pl.LightningModule):
             weight_decay=self.config.weight_decay,
         )
         if self.config.lr_decay_steps:
-            if self.config.lr_decay_decay_steps == -1:
+            if self.config.lr_decay_steps == -1:
                 num_training_steps = self.trainer.max_steps
             else:
-                num_training_steps = self.config.lr_decay_decay_steps
+                num_training_steps = self.config.lr_decay_steps
 
             schedule = transformers.get_linear_schedule_with_warmup(
                 optimizer,
