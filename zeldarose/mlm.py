@@ -283,7 +283,7 @@ class MLMFinetuner(pl.LightningModule):
             eps=self.config.epsilon,
             weight_decay=self.config.weight_decay,
         )
-        if self.config.lr_decay_decay_steps:
+        if self.config.lr_decay_steps:
             if self.config.lr_decay_decay_steps == -1:
                 num_training_steps = self.trainer.max_steps
             else:
