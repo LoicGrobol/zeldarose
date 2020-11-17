@@ -395,8 +395,6 @@ def main(
         device_batch_size * n_devices
     )
 
-    
-
     # In DP mode, every batch is split between the devices
     if accelerator == "dp":
         loader_batch_size = device_batch_size * n_devices
@@ -454,10 +452,12 @@ def main(
 
     if n_gpus:
         logger.info(f"Training the model on {n_gpus} GPUs")
+        additional_kwargs["precision"] = 16
     elif accelerator == "ddp_cpu":
         logger.info(
             f"Training the model on CPU in {additional_kwargs['num_processes']} processes"
         )
+        additional_kwargs["precision"] = 16
     else:
         logger.info("Training the model on CPU")
 
@@ -467,10 +467,10 @@ def main(
         default_root_dir=out_dir,
         accelerator=accelerator,
         gpus=n_gpus,
-        num_nodes=n_nodes,
+        limit_val_batches=1.0 if val_loaders is not None else 0,
         max_epochs=max_epochs,
         max_steps=max_steps,
-        limit_val_batches=1.0 if val_loaders is not None else 0,
+        num_nodes=n_nodes,
         **additional_kwargs,
     )
 
