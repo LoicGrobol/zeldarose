@@ -457,7 +457,6 @@ def main(
         logger.info(
             f"Training the model on CPU in {additional_kwargs['num_processes']} processes"
         )
-        additional_kwargs["precision"] = 16
     else:
         logger.info("Training the model on CPU")
 
