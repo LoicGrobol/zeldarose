@@ -250,6 +250,7 @@ class MLMFinetuner(pl.LightningModule):
     def configure_optimizers(self):
         if self.config.weight_decay is not None:
             no_decay = ["bias", "LayerNorm.weight"]
+            decay_rate = self.config.weight_decay
             optimizer_grouped_parameters = [
                 {
                     "params": [
@@ -257,7 +258,7 @@ class MLMFinetuner(pl.LightningModule):
                         for n, p in self.model.named_parameters()
                         if not any(nd in n for nd in no_decay)
                     ],
-                    "weight_decay": self.config.weight_decay,
+                    "weight_decay": decay_rate,
                 },
                 {
                     "params": [
@@ -269,6 +270,7 @@ class MLMFinetuner(pl.LightningModule):
                 },
             ]
         else:
+            decay_rate = 0.0
             optimizer_grouped_parameters = [
                 {
                     "params": [p for n, p in self.model.named_parameters()],
@@ -281,7 +283,7 @@ class MLMFinetuner(pl.LightningModule):
             betas=self.config.betas,
             lr=self.config.learning_rate,
             eps=self.config.epsilon,
-            weight_decay=self.config.weight_decay,
+            weight_decay=decay_rate,
         )
         if self.config.lr_decay_steps:
             if self.config.lr_decay_steps == -1:
