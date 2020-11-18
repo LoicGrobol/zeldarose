@@ -190,6 +190,9 @@ class MLMFinetuner(pl.LightningModule):
         )
 
         loss = outputs.loss
+
+        preds = torch.argmax(outputs.logits, dim=-1)
+        accuracy = self.accuracy(preds, masked.labels)
         perplexity = torch.exp(loss)
 
         self.log(
@@ -204,6 +207,12 @@ class MLMFinetuner(pl.LightningModule):
             perplexity,
             on_epoch=True,
             sync_dist=True,
+        )
+        self.log(
+            "train/accuracy",
+            accuracy,
+            on_step=False,
+            on_epoch=True,
         )
         return loss
 
