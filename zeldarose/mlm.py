@@ -248,6 +248,7 @@ class MLMFinetuner(pl.LightningModule):
             accuracy,
             on_step=False,
             on_epoch=True,
+            sync_dist=True,
         )
         self.log(
             "validation/perplexity",
