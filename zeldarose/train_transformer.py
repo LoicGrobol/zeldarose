@@ -174,7 +174,7 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     "--max-epochs",
     type=int,
     default=2,
-    help="How many steps to train for",
+    help="How many epochs to train for",
 )
 @click.option(
     "--max-steps",
@@ -199,7 +199,7 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 )
 @click.option(
     "--n-gpus",
-    default=0,
+    default=os.environ.get("SLURM_GPUS_PER_NODE", 0),
     type=int,
     help="How many GPUs to train on. In ddp_cpu mode, this is the number of processes",
 )
