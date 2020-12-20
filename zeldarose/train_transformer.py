@@ -473,11 +473,6 @@ def main(
         **additional_kwargs,
     )
 
-    # Hotfix for https://github.com/PyTorchLightning/pytorch-lightning/issues/2100
-    if val_loaders is None:
-        finetuning_model.validation_step = pl.LightningModule.validation_step  # type: ignore
-        finetuning_model.validation_end = pl.LightningModule.validation_end  # type: ignore
-
     trainer.fit(
         finetuning_model, train_dataloader=train_loader, val_dataloaders=val_loaders
     )
