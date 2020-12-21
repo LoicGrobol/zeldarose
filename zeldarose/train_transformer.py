@@ -452,7 +452,7 @@ def main(
 
     if accelerator == "ddp":
         logger.info("Using sharded DDP")
-        cast(List[str], additional_kwargs.setdefault("plugin", [])).append(
+        cast(List[str], additional_kwargs.setdefault("plugins", [])).append(
             "ddp_sharded"
         )
     if n_gpus:
