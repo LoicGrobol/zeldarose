@@ -6,7 +6,7 @@ import pathlib
 import sys
 import warnings
 
-from typing import List, Optional, Type
+from typing import List, Optional, Type, cast
 
 import click
 import click_pathlib
@@ -450,6 +450,11 @@ def main(
             )
         )
 
+    if accelerator == "ddp":
+        logger.info("Using sharded DDP")
+        cast(List[str], additional_kwargs.setdefault("plugin", [])).append(
+            "ddp_sharded"
+        )
     if n_gpus:
         logger.info(f"Training the model on {n_gpus} GPUs")
         additional_kwargs["precision"] = 16
