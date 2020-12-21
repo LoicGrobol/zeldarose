@@ -59,6 +59,11 @@ def setup_logging(
         logger.add(
             logfile,
             level="DEBUG",
+            format=(
+                f"[{appname}] "
+                "<green>{time:YYYY-MM-DD}T{time:HH:mm:ss}</green> {level}: "
+                "<level>{message}</level>"
+            ),
             colorize=False,
         )
 
