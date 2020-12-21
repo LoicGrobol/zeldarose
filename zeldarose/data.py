@@ -2,7 +2,7 @@ import functools
 import pathlib
 import pickle  # nosec
 
-from typing import List, NamedTuple, Optional, Sequence, Union
+from typing import List, NamedTuple, Optional, Sequence
 
 import filelock
 import torch

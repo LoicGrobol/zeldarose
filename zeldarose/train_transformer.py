@@ -28,10 +28,14 @@ def setup_logging(
     verbose: bool, logfile: Optional[pathlib.Path] = None, replace_warnings: bool = True
 ):
     logger.remove(0)  # Remove the default logger
+    if os.environ.get("SLURM_NODENAME", ""):
+        appname = f"zeldarose ({os.environ.get('SLURM_PROCID', 'somerank')}@{os.environ['SLURM_NODENAME']})"
+    else:
+        appname = "zeldarose"
     if verbose:
         log_level = "DEBUG"
         log_fmt = (
-            "[zeldarose] "
+            "[{appname}] "
             "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> |"
             "<level>{message}</level>"
         )
