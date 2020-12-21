@@ -243,6 +243,11 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     help="The number of epoch between intermediate model saving",
     default=0,
 )
+@click.option(
+    "--sharded-ddp",
+    is_flag=True,
+    help="Activate to use the sharded DDP mode (requires fairscale)",
+)
 @click.option("--profile", is_flag=True, help="Run in profiling mode")
 @click.option(
     "--tokenizer",
@@ -282,6 +287,7 @@ def main(
     raw_text: pathlib.Path,
     reset_vocab: bool,
     save_period: int,
+    sharded_ddp: bool,
     tokenizer_name: Optional[str],
     val_path: Optional[pathlib.Path],
     verbose: bool,
@@ -450,11 +456,16 @@ def main(
             )
         )
 
-    if accelerator == "ddp":
-        logger.info("Using sharded DDP")
-        cast(List[str], additional_kwargs.setdefault("plugins", [])).append(
-            "ddp_sharded"
-        )
+    if sharded_ddp:
+        if accelerator == "ddp":
+            logger.info("Using sharded DDP")
+            cast(List[str], additional_kwargs.setdefault("plugins", [])).append(
+                "ddp_sharded"
+            )
+        else:
+            logger.warning(
+                "--sharded-ddp only makes sense when using --accelerator=ddp. Ignoring the flag."
+            )
     if n_gpus:
         logger.info(f"Training the model on {n_gpus} GPUs")
         additional_kwargs["precision"] = 16
