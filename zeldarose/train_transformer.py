@@ -35,7 +35,7 @@ def setup_logging(
     if verbose:
         log_level = "DEBUG"
         log_fmt = (
-            "[{appname}] "
+            f"[{appname}] "
             "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> |"
             "<level>{message}</level>"
         )
@@ -43,7 +43,7 @@ def setup_logging(
         logging.getLogger(None).setLevel(logging.CRITICAL)
         log_level = "INFO"
         log_fmt = (
-            "[zeldarose] "
+            f"[{appname}] "
             "<green>{time:YYYY-MM-DD}T{time:HH:mm:ss}</green> {level}: "
             "<level>{message}</level>"
         )
