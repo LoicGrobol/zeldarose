@@ -32,6 +32,7 @@ def setup_logging(
         appname = f"zeldarose ({os.environ.get('SLURM_PROCID', 'somerank')}({os.environ.get('SLURM_LOCALID', 'someproc')})@{os.environ.get('SLURM_NODENAME', 'somenode')})"
     else:
         appname = "zeldarose"
+
     if verbose:
         log_level = "DEBUG"
         log_fmt = (
@@ -208,7 +209,7 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 )
 @click.option(
     "--n-gpus",
-    default=os.environ.get("SLURM_GPUS_PER_NODE", 0),
+    default=0,
     type=int,
     help="How many GPUs to train on. In ddp_cpu mode, this is the number of processes",
 )
@@ -302,6 +303,7 @@ def main(
     verbose: bool,
 ):
     setup_logging(verbose, out_dir / "train.log")
+    logger.debug(f"Current environment: {os.environ}")
     if config_path is not None:
         config = toml.loads(config_path.read_text())
         task_config = mlm.MLMTaskConfig.parse_obj(config.get("task", dict()))
