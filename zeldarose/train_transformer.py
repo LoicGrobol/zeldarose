@@ -29,7 +29,7 @@ def setup_logging(
 ):
     logger.remove(0)  # Remove the default logger
     if "SLURM_JOB_ID" in os.environ:
-        appname = f"zeldarose ({os.environ.get('SLURM_PROCID', 'somerank')}({os.environ.get('SLURM_LOCALID', 'someproc')})@{os.environ.get('SLURM_NODENAME', 'somenode')})"
+        appname = f"zeldarose ({os.environ.get('SLURM_PROCID', 'somerank')} [{os.environ.get('SLURM_LOCALID', 'someproc')}@{os.environ.get('SLURM_NODEID', 'somenode')}])"
     else:
         appname = "zeldarose"
 
