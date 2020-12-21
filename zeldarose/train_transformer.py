@@ -489,6 +489,8 @@ def main(
         **additional_kwargs,
     )
 
+    logger.info("Start training")
+
     trainer.fit(
         finetuning_model, train_dataloader=train_loader, val_dataloaders=val_loaders
     )
