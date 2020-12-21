@@ -81,6 +81,11 @@ def setup_logging(
     transformers_logger.handlers.pop()
     transformers_logger.addHandler(InterceptHandler())
 
+    pl_logger = logging.getLogger("lightning")
+    # FIXME: ugly, but is there a better way?
+    pl_logger.handlers.pop()
+    pl_logger.addHandler(InterceptHandler())
+
     # Deal with stdlib.warnings
 
     def showwarning(message, *args, **kwargs):
