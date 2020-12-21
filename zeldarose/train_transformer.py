@@ -28,8 +28,8 @@ def setup_logging(
     verbose: bool, logfile: Optional[pathlib.Path] = None, replace_warnings: bool = True
 ):
     logger.remove(0)  # Remove the default logger
-    if os.environ.get("SLURM_NODENAME", ""):
-        appname = f"zeldarose ({os.environ.get('SLURM_PROCID', 'somerank')}@{os.environ['SLURM_NODENAME']})"
+    if "SLURM_JOB_ID" in os.environ:
+        appname = f"zeldarose ({os.environ.get('SLURM_PROCID', 'somerank')}({os.environ.get('SLURM_LOCALID', 'someproc')})@{os.environ.get('SLURM_NODENAME', 'somenode')})"
     else:
         appname = "zeldarose"
     if verbose:
@@ -61,7 +61,7 @@ def setup_logging(
             level="DEBUG",
             format=(
                 f"[{appname}] "
-                "<green>{time:YYYY-MM-DD}T{time:HH:mm:ss}</green> {level}: "
+                "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> |"
                 "<level>{message}</level>"
             ),
             colorize=False,
