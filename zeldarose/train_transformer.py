@@ -463,6 +463,7 @@ def main(
 
     callbacks: List[pl.callbacks.Callback] = [
         pl.callbacks.ProgressBar(),
+        pl.callbacks.LearningRateMonitor(),
     ]
     if save_period:
         callbacks.append(
