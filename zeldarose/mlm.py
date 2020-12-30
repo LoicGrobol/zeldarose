@@ -211,7 +211,6 @@ class MLMFinetuner(pl.LightningModule):
         self.log(
             "train/accuracy",
             accuracy,
-            on_step=False,
             on_epoch=True,
         )
         return loss
