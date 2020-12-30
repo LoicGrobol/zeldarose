@@ -143,8 +143,6 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
             save_model(transformer_model, epoch_save_dir, self.tokenizer)
 
 
-# logging.getLogger(None).setLevel(logging.ERROR)
-
 # TODO: allow reading all these from a config file (except perhaps for paths)
 # TODO: refactor the api to have a single `zeldarose` entrypoint with subcommands.
 # TODO: allow restarting from checkpoint
@@ -310,7 +308,7 @@ def main(
     if (slurm_procid := os.environ.get("SLURM_PROCID")) is not None:
         log_file = out_dir / "logs" / f"train{slurm_procid}.log"
     else:
-        log_file = out_dir / f"train.log"
+        log_file = out_dir / "train.log"
     setup_logging(verbose, log_file)
     logger.debug(f"Current environment: {os.environ}")
     if config_path is not None:
@@ -324,8 +322,7 @@ def main(
     # NOTE: this is likely duplicated somewhere in pl codebase but we need it now unless pl rolls
     # out something like `optim_batch_size` that takes into account the number of tasks and the
     # number of samples per gpu
-    num_slurm_tasks = os.environ.get("SLURM_NTASKS")
-    if num_slurm_tasks is not None:
+    if (num_slurm_tasks := os.environ.get("SLURM_NTASKS")) is not None:
         n_devices = int(num_slurm_tasks)
     elif n_gpus:
         n_devices = n_nodes * n_gpus
@@ -388,8 +385,8 @@ def main(
         val_set = None
 
     logger.info("Creating MLM Finetuner")
-    mask_token_index = getattr(tokenizer, "mask_token_id", None)
-    if mask_token_index is None:
+
+    if (mask_token_index := getattr(tokenizer, "mask_token_id", None)) is None:
         mask_token_index = tokenizer.convert_tokens_to_ids(tokenizer.mask_token)
     logger.debug(f"Mask token index: {mask_token_index}")
     finetuning_model = mlm.MLMFinetuner(
