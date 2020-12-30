@@ -307,7 +307,11 @@ def main(
     val_path: Optional[pathlib.Path],
     verbose: bool,
 ):
-    setup_logging(verbose, out_dir / f"train{os.environ.get('SLURM_PROCID', '')}.log")
+    if (slurm_procid := os.environ.get("SLURM_PROCID")) is not None:
+        log_file = out_dir / "logs" / f"train{slurm_procid}.log"
+    else:
+        log_file = out_dir / f"train.log"
+    setup_logging(verbose, log_file)
     logger.debug(f"Current environment: {os.environ}")
     if config_path is not None:
         config = toml.loads(config_path.read_text())
