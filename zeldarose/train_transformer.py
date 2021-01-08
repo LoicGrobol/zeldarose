@@ -6,7 +6,7 @@ import pathlib
 import sys
 import warnings
 
-from typing import List, Optional, Type, cast
+from typing import Any, Dict, List, Optional, Type, cast
 
 import click
 import click_pathlib
@@ -446,7 +446,7 @@ def main(
         val_loaders = None
 
     logger.info("Creating trainer")
-    additional_kwargs = dict()
+    additional_kwargs: Dict[str, Any] = dict()
     if profile:
         logger.info("Running in profile mode")
         profiler = pl.profiler.AdvancedProfiler(output_filename=out_dir / "profile.txt")
@@ -465,6 +465,7 @@ def main(
         pl.callbacks.ProgressBar(),
     ]
     if save_period:
+        save_model(model, out_dir / "partway_models" / "initial", tokenizer)
         callbacks.append(
             SavePretrainedModelCallback(
                 out_dir / "partway_models",
