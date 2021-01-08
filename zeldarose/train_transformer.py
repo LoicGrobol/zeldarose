@@ -152,6 +152,11 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     type=click_pathlib.Path(resolve_path=True, exists=True, dir_okay=False),
 )
 @click.option(
+    "--accelerator",
+    type=str,
+    help="The lightning accelerator to use (see lightning doc)",
+)
+@click.option(
     "--config",
     "config_path",
     type=click_pathlib.Path(resolve_path=True, dir_okay=False, exists=True),
@@ -164,11 +169,6 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
         "Number of samples in a processing batch"
         " (must be a divisor of training bath size, defaults to training batch size)"
     ),
-)
-@click.option(
-    "--accelerator",
-    type=str,
-    help="The lightning accelerator to use (see lightning doc)",
 )
 @click.option(
     "--guess-batch-size",
@@ -463,7 +463,6 @@ def main(
 
     callbacks: List[pl.callbacks.Callback] = [
         pl.callbacks.ProgressBar(),
-        pl.callbacks.LearningRateMonitor(),
     ]
     if save_period:
         callbacks.append(
