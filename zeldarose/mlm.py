@@ -7,6 +7,7 @@ import torch
 import torch.jit
 import torch.utils.data
 import transformers
+import transformers.modeling_outputs
 
 from loguru import logger
 
