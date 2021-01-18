@@ -1,4 +1,4 @@
-from typing import NamedTuple, Optional, Tuple
+0from typing import NamedTuple, Optional, Tuple
 
 import pydantic
 import pytorch_lightning as pl
@@ -7,7 +7,6 @@ import torch
 import torch.jit
 import torch.utils.data
 import transformers
-import transformers.modeling_outputs
 
 from loguru import logger
 
@@ -159,7 +158,7 @@ class MLMFinetuner(pl.LightningModule):
         attention_mask: torch.Tensor,
         token_type_ids: torch.Tensor,
         mlm_labels: torch.Tensor,
-    ) -> transformers.modeling_outputs.MaskedLMOutput:
+    ) -> "transformers.modeling_outputs.MaskedLMOutput":
         output = self.model(
             input_ids=tokens,
             attention_mask=attention_mask,
