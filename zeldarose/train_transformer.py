@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+from os import path
 import pathlib
 import sys
 import warnings
@@ -81,7 +82,7 @@ def setup_logging(
     transformers_logger.handlers.pop()
     transformers_logger.addHandler(InterceptHandler())
 
-    pl_logger = logging.getLogger("pytorch_lightning")
+    pl_logger = logging.getLogger("lightning")
     # FIXME: ugly, but is there a better way?
     pl_logger.handlers.pop()
     pl_logger.addHandler(InterceptHandler())
@@ -155,6 +156,11 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     "--accelerator",
     type=str,
     help="The lightning accelerator to use (see lightning doc)",
+)
+@click.option(
+    "--cache-dir",
+    type=click_pathlib.Path(resolve_path=True, file_okay=False),
+    help="Where to cache the input data",
 )
 @click.option(
     "--config",
@@ -282,6 +288,7 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 @click.option("--verbose", is_flag=True, help="More detailed logs")
 def main(
     accelerator: Optional[str],
+    cache_dir: Optional[pathlib.Path],
     config_path: Optional[pathlib.Path],
     device_batch_size: Optional[int],
     guess_batch_size: bool,
@@ -368,18 +375,20 @@ def main(
         dataset_type = data.TextDataset
     logger.info(f"Loading train dataset from {raw_text}")
     train_set = dataset_type(
-        tokenizer=tokenizer,
-        text_path=raw_text,
+        cache_path=cache_dir,
         model_name=tokenizer_name.replace("/", "_"),
         overwrite_cache=overwrite_cache,
+        text_path=raw_text,
+        tokenizer=tokenizer,
     )
     val_set: Optional[data.TextDataset]
     if val_path is not None:
         val_set = dataset_type(
-            tokenizer=tokenizer,
-            text_path=val_path,
+            cache_path=cache_dir,
             model_name=tokenizer_name.replace("/", "_"),
             overwrite_cache=overwrite_cache,
+            text_path=val_path,
+            tokenizer=tokenizer,
         )
     else:
         val_set = None
