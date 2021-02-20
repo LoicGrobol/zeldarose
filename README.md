@@ -15,7 +15,8 @@ pip install git+https://github.com/LoicGrobol/zeldarose.git
 Here is a short example:
 
 ```console
-zeldarose-transformer --tokenizer roberta-base --pretrained-model roberta-large --out-dir my/experiment/dir my_raw_corpus.txt
+zeldarose-tokenizer --vocab-size 4096 --out-path local/tokenizer  --model-name "my-muppet" tests/fixtures/raw.txt
+zeldarose-transformer --tokenizer local/tokenizer --pretrained-model flaubert/flaubert_small_cased --out-dir local/muppet --val-text tests/fixtures/raw.txt tests/fixtures/raw.txt
 ```
 
 There are other parameters (see `zeldarose-transformer --help` for a comprehensive list), the one you are probably mostly interested in is `--config` (for which there is an example target in [`examples/`](examples)).
