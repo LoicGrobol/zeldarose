@@ -231,7 +231,7 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 @click.option(
     "--out-dir",
     default=".",
-    type=click_pathlib.Path(resolve_path=True, file_okay=False, allow_dash=True),
+    type=click_pathlib.Path(resolve_path=True, file_okay=False),
     help="Where to save the trained model",
 )
 @click.option(
