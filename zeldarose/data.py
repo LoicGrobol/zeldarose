@@ -35,6 +35,7 @@ class TextDataset(torch.utils.data.Dataset):
             cache_path = text_path.parent
         elif cache_path.is_file():
             raise ValueError(f"Cache path {cache_path} is not a directory.")
+        cache_path.mkdir(exist_ok=True, parents=True)
         self.tokenizer = tokenizer
 
         try:
@@ -52,7 +53,7 @@ class TextDataset(torch.utils.data.Dataset):
         )
         cached_features_file = cache_path / cached_features_filename
         cached_features_lock = filelock.FileLock(
-            str(text_path.parent / f"{cached_features_filename}.lock")
+            str(cache_path / f"{cached_features_filename}.lock")
         )
         # Ensure that 1. two process don't try to create the same cache this way, the first to get
         # here will create it and the others wait until it's created.
