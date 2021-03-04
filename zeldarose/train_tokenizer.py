@@ -56,7 +56,7 @@ def main(
         [str(t) for t in raw_texts],
         trainer=trainer,
     )
-    tokenizer.post_processor = tokenizers.processors.BertProcessing(
+    tokenizer.post_processor = tokenizers.processors.RobertaProcessing(
         ("</s>", tokenizer.token_to_id("</s>")),
         ("<s>", tokenizer.token_to_id("<s>")),
     )
@@ -65,6 +65,8 @@ def main(
     model_path.mkdir(exist_ok=True, parents=True)
     model_file = model_path / "tokenizer.json"
     tokenizer.save(str(model_file))
+    # TODO: set special tokens instead of hardcoding the default values of RoBERTa (see
+    # <https://huggingface.co/transformers/_modules/transformers/tokenization_utils_base.html#SpecialTokensMixin>)
     tranformers_tokenizer = transformers.RobertaTokenizerFast.from_pretrained(
         str(model_path),
         max_len=512,
