@@ -20,6 +20,15 @@ from loguru import logger
     type=click_pathlib.Path(resolve_path=True, exists=True, dir_okay=False),
 )
 @click.option(
+    "--max-len",
+    type=int,
+    default=512,
+    help="The maximum number of tokens in a sequence",
+)
+@click.option(
+    "--model-name", type=str, default=None, help="A name to give to the model"
+)
+@click.option(
     "--out-path",
     default=".",
     type=click_pathlib.Path(resolve_path=True, file_okay=False, allow_dash=True),
@@ -28,14 +37,12 @@ from loguru import logger
 @click.option(
     "--vocab-size", type=int, default=4096, help="Size of the trained vocabulary"
 )
-@click.option(
-    "--model-name", type=str, default=None, help="A name to give to the model"
-)
 def main(
     raw_texts: ty.Collection[pathlib.Path],
+    max_len: int,
+    model_name: str,
     out_path: pathlib.Path,
     vocab_size: int,
-    model_name: str,
 ):
     tokenizer = tokenizers.Tokenizer(tokenizers.models.BPE(unk_token="<unk>"))
     tokenizer.pre_tokenizer = tokenizers.pre_tokenizers.Whitespace()
@@ -60,7 +67,7 @@ def main(
         ("</s>", tokenizer.token_to_id("</s>")),
         ("<s>", tokenizer.token_to_id("<s>")),
     )
-    tokenizer.enable_truncation(max_length=512)
+    tokenizer.enable_truncation(max_length=max_len)
     model_path = out_path / model_name
     model_path.mkdir(exist_ok=True, parents=True)
     model_file = model_path / "tokenizer.json"
@@ -69,7 +76,7 @@ def main(
     # <https://huggingface.co/transformers/_modules/transformers/tokenization_utils_base.html#SpecialTokensMixin>)
     tranformers_tokenizer = transformers.RobertaTokenizerFast.from_pretrained(
         str(model_path),
-        max_len=512,
+        max_len=max_len,
     )
     tranformers_tokenizer.save_pretrained(str(model_path))
     # Useless in principle since we don't specify a model here but needed in practice for
@@ -79,7 +86,7 @@ def main(
     # for some hope that this will be improved some day
     config = transformers.RobertaConfig(
         vocab_size=vocab_size,
-        max_position_embeddings=512,
+        max_position_embeddings=max_len,
         type_vocab_size=1,
     )
     config.to_json_file(str(model_path / "config.json"))
