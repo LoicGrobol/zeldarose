@@ -1,2 +1,9 @@
+[project]
+requires-python = ">=3.8"
+
+[build-system]
+requires = ["setuptools>=54", "wheel"]
+build-backend = "setuptools.build_meta" 
+
 [tool.black]
 line-length = 88
