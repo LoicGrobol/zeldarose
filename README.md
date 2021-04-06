@@ -33,11 +33,11 @@ The parameters `--pretrained-models`, `--tokenizer` and `--model-config` are all
 
 This is somewhat tricky, you have several options
 
-- If you are running in a SLURM cluster use `--distributed-backend ddp` and invoke via `srun`
+- If you are running in a SLURM cluster use `--accelerator ddp` and invoke via `srun`
 - Otherwise you have two options
 
-  - Run with `--distributed-backend ddp_spawn`, which uses `multiprocessing.spawn` to start the process swarm (tested, but possibly slower and more limited, see `pytorch-lightning` doc)
-  - Run with `--distributed-backend ddp` and start with `torch.distributed.launch` with `--use_env` and `--no_python` (untested)
+  - Run with `--accelerator ddp_spawn`, which uses `multiprocessing.spawn` to start the process swarm (tested, but possibly slower and more limited, see `pytorch-lightning` doc)
+  - Run with `--accelerator ddp` and start with `torch.distributed.launch` with `--use_env` and `--no_python` (untested)
 
 Whatever you do, for now it's safer to run once without distributed training in order to preprocess
 the raw texts in a predictable environment.
