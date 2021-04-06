@@ -4,6 +4,7 @@ import pickle  # nosec
 
 from typing import List, NamedTuple, Optional, Sequence
 
+import datasets
 import filelock
 import torch
 import torch.utils.data
@@ -74,7 +75,9 @@ class TextDataset(torch.utils.data.Dataset):
                 logger.info(f"Saving features into cached file {cached_features_file}")
                 with open(cached_features_file, "wb") as handle:
                     torch.save(
-                        self.examples, handle, pickle_protocol=pickle.HIGHEST_PROTOCOL,
+                        self.examples,
+                        handle,
+                        pickle_protocol=pickle.HIGHEST_PROTOCOL,
                     )
                 cached_features_lock.release()
         finally:
@@ -202,16 +205,32 @@ class LineByLineTextDataset(TextDataset):
             return examples
 
 
+def load_dataset(
+    cache_path: pathlib.Path,
+    model_name: str,
+    overwrite_cache: bool,
+    text_path: pathlib.Path,
+    tokenizer: transformers.PreTrainedTokenizer,
+) -> LineByLineTextDataset:
+    return LineByLineTextDataset(
+        cache_path=cache_path,
+        model_name=model_name,
+        overwrite_cache=overwrite_cache,
+        text_path=text_path,
+        tokenizer=tokenizer,
+    )
+
+
 class TextBatch(NamedTuple):
     """A batch of text for self-supervised tasks.
 
     Attributes
     ==========
 
-    :tokens: A batch of encoded (with special tokens) and padded tokens.  
-    :attention_mask: A boolean mask, `True` for content and special tokens, `False` for padding.  
+    :tokens: A batch of encoded (with special tokens) and padded tokens.
+    :attention_mask: A boolean mask, `True` for content and special tokens, `False` for padding.
     :internal_tokens_mask: A boolean mask, `True` for content tokens, `False` for padding and
-      special tokens.  
+      special tokens.
     :token_type_ids: The `token_type_ids` tensor needed internally for hugginface transformers
       implementations.
     """

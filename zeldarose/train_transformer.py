@@ -185,11 +185,6 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     ),
 )
 @click.option(
-    "--line-by-line",
-    is_flag=True,
-    help="Assume that the dataset is pre-segmented in sentences",
-)
-@click.option(
     "--max-epochs",
     type=int,
     default=2,
@@ -292,7 +287,6 @@ def main(
     config_path: Optional[pathlib.Path],
     device_batch_size: Optional[int],
     guess_batch_size: bool,
-    line_by_line: bool,
     max_epochs: int,
     max_steps: Optional[int],
     model_config_path: Optional[str],
@@ -368,13 +362,7 @@ def main(
         raise ValueError("You must provide either a pretrained model or a model config")
     model.train()
 
-    dataset_type: Type[data.TextDataset]
-    if line_by_line:
-        dataset_type = data.LineByLineTextDataset
-    else:
-        dataset_type = data.TextDataset
-    logger.info(f"Loading train dataset from {raw_text}")
-    train_set = dataset_type(
+    train_set = data.load_dataset(
         cache_path=cache_dir,
         model_name=tokenizer_name.replace("/", "_"),
         overwrite_cache=overwrite_cache,
@@ -383,13 +371,13 @@ def main(
     )
     val_set: Optional[data.TextDataset]
     if val_path is not None:
-        val_set = dataset_type(
-            cache_path=cache_dir,
-            model_name=tokenizer_name.replace("/", "_"),
-            overwrite_cache=overwrite_cache,
-            text_path=val_path,
-            tokenizer=tokenizer,
-        )
+        val_set = data.load_dataset(
+        cache_path=cache_dir,
+        model_name=tokenizer_name.replace("/", "_"),
+        overwrite_cache=overwrite_cache,
+        text_path=raw_text,
+        tokenizer=tokenizer,
+    )
     else:
         val_set = None
 
