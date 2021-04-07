@@ -1,224 +1,41 @@
-import functools
 import pathlib
-import pickle  # nosec
 
-from typing import List, NamedTuple, Optional, Sequence
+from typing import List, NamedTuple, Optional, Sequence, TypedDict
 
 import datasets
-import filelock
+import pytorch_lightning as pl
 import torch
 import torch.utils.data
-import tqdm
 import transformers
 
 from loguru import logger
 from torch.nn.utils.rnn import pad_sequence
 
 
-# TODO: this is in-memory, if need be we can change it for a memmap (possibly lmdb) backed dataset
-class TextDataset(torch.utils.data.Dataset):
-    """A `torch.utils.data.Dataset` that stores a tokenized and encoded raw text as examples of
-    `block_size` tokens.
-    """
-
-    def __init__(
-        self,
-        tokenizer: transformers.PreTrainedTokenizer,
-        text_path: pathlib.Path,
-        block_size: int = 512,
-        model_name: str = "lm",
-        overwrite_cache: bool = False,
-        cache_path: Optional[pathlib.Path] = None,
-    ):
-        if not text_path.is_file():
-            raise ValueError(f"Text path {text_path} is not a valid text file.")
-        if cache_path is None:
-            cache_path = text_path.parent
-        elif cache_path.is_file():
-            raise ValueError(f"Cache path {cache_path} is not a directory.")
-        cache_path.mkdir(exist_ok=True, parents=True)
-        self.tokenizer = tokenizer
-
-        try:
-            self.block_size = block_size - tokenizer.num_special_tokens_to_add(
-                pair=False
-            )
-        except AttributeError:
-            # Non-fast tokenizers
-            self.block_size = block_size - (
-                tokenizer.max_len - tokenizer.max_len_single_sentence
-            )
-
-        cached_features_filename = (
-            f"{model_name}_{block_size}_{text_path.stem}_cache.pt"
-        )
-        cached_features_file = cache_path / cached_features_filename
-        cached_features_lock = filelock.FileLock(
-            str(cache_path / f"{cached_features_filename}.lock")
-        )
-        # Ensure that 1. two process don't try to create the same cache this way, the first to get
-        # here will create it and the others wait until it's created.
-        # FIXME: this may lead to unnecessary overwrites if a worker arrives here when another
-        # worker in the same group has already overwritten the cache and released the lock.
-        # TODO: do this only on rank zero?
-        try:
-            cached_features_lock.acquire()
-            if cached_features_file.exists() and not overwrite_cache:
-                cached_features_lock.release()
-                logger.info(f"Loading features from cached file {cached_features_file}")
-                with open(cached_features_file, "rb") as handle:
-                    self.examples = torch.load(handle)
-            else:
-                logger.info(f"Creating features from dataset file at {text_path}")
-                self.examples = self.load_file(text_path)
-
-                logger.info(f"Saving features into cached file {cached_features_file}")
-                with open(cached_features_file, "wb") as handle:
-                    torch.save(
-                        self.examples,
-                        handle,
-                        pickle_protocol=pickle.HIGHEST_PROTOCOL,
-                    )
-                cached_features_lock.release()
-        finally:
-            if cached_features_lock.is_locked:
-                cached_features_lock.release()
-
-    def load_file(
-        self, text_path: pathlib.Path, read_size_hint: int = 2 ** 20
-    ) -> List[torch.Tensor]:
-        """Tokenize, encode and split a raw text in blocks.
-
-        **Note**: This reads files by chunks of about 1MiB which seemed to work best for the roberta
-        fast tokenizer on my setup, it might benefit from fine-tuning. The tradeof is: using larger
-        chunks will reduce the number of calls to `transformers.encode` but pass it larger texts, so
-        what is most efficient depends on the implementation of this method. Of course a larger
-        chunk size will also be heavier on the RAM (and significantly so for some tokenizers).
-        """
-        examples: List[torch.Tensor] = []
-        #  Try to avoid list resize
-        buffer = [0] * self.block_size
-        offset = 0
-        with open(text_path, "rb") as in_stream:
-            pbar = tqdm.tqdm(
-                desc="Loading input data",
-                unit="iB",
-                total=text_path.stat().st_size,
-                leave=False,
-                unit_divisor=1024,
-                unit_scale=True,
-                mininterval=1,
-            )
-
-            # Process by chunks instead of loading everything in RAM
-            # We still read by line to ensure we don't end up in the middle of a unicode
-            # character
-            for raw_lines in iter(
-                functools.partial(in_stream.readlines, read_size_hint), []
-            ):
-                chunk = b"".join(raw_lines)
-                decoded = chunk.decode(encoding="utf-8")
-                # This is the best choice for fast tokenizers
-                encoded = self.tokenizer.encode(decoded, add_special_tokens=False)
-                new_offset = len(encoded) + offset
-
-                # Top up
-                if new_offset >= self.block_size:
-                    n_top_up = self.block_size - offset
-                    buffer[offset:] = encoded[:n_top_up]
-                    examples.append(
-                        torch.tensor(
-                            self.tokenizer.build_inputs_with_special_tokens(buffer),
-                            dtype=torch.long,
-                        ),
-                    )
-                    # Flush whole blocks
-                    remaining = len(encoded) - n_top_up
-                    while remaining >= self.block_size:
-                        next_remaining = remaining - self.block_size
-                        # We write it this way because of the stupid `next_remaning==0` case
-                        block = encoded[
-                            len(encoded) - remaining : len(encoded) - next_remaining
-                        ]
-                        examples.append(
-                            self.tokenizer.build_inputs_with_special_tokens(block),
-                        )
-                        remaining = next_remaining
-                    buffer[:remaining] = encoded[len(encoded) - remaining :]
-                    offset = remaining
-                else:
-                    buffer[offset:new_offset] = encoded
-                    offset = new_offset
-                pbar.n = in_stream.tell()
-                pbar.update(0)
-            pbar.close()
-        return examples
-
-    def __len__(self):
-        return len(self.examples)
-
-    def __getitem__(self, item):
-        return torch.tensor(self.examples[item])
-
-
-class LineByLineTextDataset(TextDataset):
-    """A `TextDataset` that store text blocks given line-by-line instead of a single blob.
-
-    Lines that are too long are simply truncated, so it is *your* responsibility to ensure that
-    there not many of these or use a `TextDataset` instead)
-    """
-
-    def load_file(
-        self, text_path: pathlib.Path, read_size_hint: int = 2 ** 20
-    ) -> List[torch.Tensor]:
-        examples: List[torch.Tensor] = []
-        with open(text_path, "rb") as in_stream:
-            pbar = tqdm.tqdm(
-                desc="Loading input data",
-                unit="iB",
-                total=text_path.stat().st_size,
-                leave=False,
-                unit_divisor=1024,
-                unit_scale=True,
-                mininterval=1,
-            )
-            for raw_lines in iter(
-                functools.partial(in_stream.readlines, read_size_hint), []
-            ):
-                decoded = [
-                    d
-                    for l in raw_lines
-                    for d in (l.decode("utf-8"),)
-                    if not d.isspace()
-                ]
-                encoded = self.tokenizer(
-                    decoded,
-                    add_special_tokens=True,
-                    max_length=self.tokenizer.max_len_single_sentence,
-                    padding=False,
-                    truncation=True,
-                )["input_ids"]
-                examples.extend(encoded)
-                pbar.n = in_stream.tell()
-                pbar.update(0)
-            pbar.close()
-            return examples
-
-
-def load_dataset(
-    cache_path: pathlib.Path,
-    model_name: str,
-    overwrite_cache: bool,
+# NOTE: this also caches the raw and encoded dataset in HF_DATASETS_CACHE, which is different from OUR cache
+# end users can still manually set HF_DATASETS_CACHE if e.g. their home has a small quota
+def encode_dataset(
+    save_path: pathlib.Path,
     text_path: pathlib.Path,
     tokenizer: transformers.PreTrainedTokenizer,
-) -> LineByLineTextDataset:
-    return LineByLineTextDataset(
-        cache_path=cache_path,
-        model_name=model_name,
-        overwrite_cache=overwrite_cache,
-        text_path=text_path,
-        tokenizer=tokenizer,
+    tokenizer_name: str,
+):
+    logger.info(f"Loading data from {text_path}")
+    raw_dataset = datasets.load_dataset(
+        "text", data_files=str(text_path), split="train"
     )
+    logger.info("Tokenizing")
+    encoded_dataset = raw_dataset.map(
+        lambda examples: tokenizer(
+            examples["text"],
+            add_special_tokens=True,
+            return_special_tokens_mask=True,
+        ),
+        batched=True,
+        new_fingerprint=f"{raw_dataset._fingerprint}-{tokenizer_name}",
+    )
+    logger.info(f"Saving dataset to {save_path}")
+    encoded_dataset.save_to_disk(save_path)
 
 
 class TextBatch(NamedTuple):
@@ -241,24 +58,37 @@ class TextBatch(NamedTuple):
     token_type_ids: torch.Tensor
 
 
+class EncodedSample(TypedDict):
+    attention_mask: List[int]
+    input_ids: List[int]
+    special_tokens_mask: List[int]
+    text: str
+
+
 class TextLoader(torch.utils.data.DataLoader):
-    def __init__(self, dataset: TextDataset, *args, **kwargs):
-        self.dataset: TextDataset
+    def __init__(
+        self,
+        dataset: datasets.Dataset,
+        tokenizer: transformers.PreTrainedTokenizer,
+        *args,
+        **kwargs,
+    ):
+        self.dataset: datasets.Dataset
         if "collate_fn" not in kwargs:
             kwargs["collate_fn"] = self.collate
         super().__init__(dataset, *args, **kwargs)
-        padding_value = getattr(self.dataset.tokenizer, "pad_token_id")
+        padding_value = getattr(tokenizer, "pad_token_id")
         if padding_value is None:
-            padding_value = self.dataset.tokenizer.convert_tokens_to_ids(
-                self.dataset.tokenizer.padding_value
-            )
+            padding_value = tokenizer.convert_tokens_to_ids(tokenizer.padding_value)
         self._padding_value = padding_value
 
-    def collate(self, batch: Sequence[torch.Tensor]) -> TextBatch:
+    def collate(self, batch: Sequence[EncodedSample]) -> TextBatch:
         # NOTE: we have to pad/batch manually instead of deferring to huggingface, since the fast
         # tokenizers can't take pre-encoded inputs (yet?)
         padded_batch = pad_sequence(
-            batch, batch_first=True, padding_value=self._padding_value
+            [torch.tensor(sample["input_ids"], dtype=torch.long) for sample in batch],
+            batch_first=True,
+            padding_value=self._padding_value,
         )
         padding_mask = padded_batch.eq(self._padding_value)
         # FIXME: Is the next line general enough?
@@ -268,16 +98,11 @@ class TextLoader(torch.utils.data.DataLoader):
 
         special_tokens_mask = pad_sequence(
             [
-                torch.tensor(
-                    self.dataset.tokenizer.get_special_tokens_mask(
-                        val, already_has_special_tokens=True
-                    ),
-                    dtype=torch.bool,
-                )
-                for val in batch
+                torch.tensor(sample["special_tokens_mask"], dtype=torch.bool)
+                for sample in batch
             ],
             batch_first=True,
-            padding_value=0,
+            padding_value=False,
         )
         internal_tokens_mask = special_tokens_mask.logical_or(padding_mask)
         return TextBatch(
@@ -285,4 +110,80 @@ class TextLoader(torch.utils.data.DataLoader):
             attention_mask=attention_mask,
             internal_tokens_mask=internal_tokens_mask,
             token_type_ids=token_type_ids,
+        )
+
+
+class TextDataModule(pl.LightningDataModule):
+    def __init__(
+        self,
+        loader_batch_size: int,
+        num_workers: int,
+        tokenizer: transformers.PreTrainedTokenizer,
+        tokenizer_name: str,
+        train_text: pathlib.Path,
+        data_dir: Optional[pathlib.Path] = None,
+        val_text: Optional[pathlib.Path] = None,
+    ):
+        super().__init__()
+        self.loader_batch_size = loader_batch_size
+        self.num_workers = num_workers
+        self.tokenizer = tokenizer
+        self.tokenizer_name = tokenizer_name
+        self.train_text = train_text
+        self.val_text = val_text
+
+        if data_dir is None:
+            self.data_dir = self.train_text.parent
+        else:
+            self.data_dir = data_dir
+
+        self.train_dataset_path = self.data_dir / "train_set"
+
+        self.val_dataset_path: Optional[pathlib.Path]
+        if self.val_text is not None:
+            self.val_dataset_path = self.data_dir / "val_set"
+        else:
+            self.val_dataset_path = None
+
+        self.train_dataset = None
+        self.val_dataset = None
+
+    def prepare_data(self):
+        encode_dataset(
+            save_path=self.train_dataset_path,
+            text_path=self.train_text,
+            tokenizer=self.tokenizer,
+            tokenizer_name=self.tokenizer_name,
+        )
+        if self.val_dataset_path is not None:
+            encode_dataset(
+                save_path=self.val_dataset_path,
+                text_path=self.val_text,
+                tokenizer=self.tokenizer,
+                tokenizer_name=self.tokenizer_name,
+            )
+
+    def setup(self, stage=None):
+        self.train_dataset = datasets.load_from_disk(self.train_dataset_path)
+        if self.val_dataset_path is not None:
+            self.val_dataset = datasets.load_from_disk(self.val_dataset_path)
+
+    def train_dataloader(self):
+        return TextLoader(
+            self.train_dataset,
+            batch_size=self.loader_batch_size,
+            num_workers=self.num_workers,
+            shuffle=True,
+            tokenizer=self.tokenizer,
+        )
+
+    def val_dataloader(self):
+        if self.val_dataset is None:
+            return None
+        return TextLoader(
+            self.val_dataset,
+            batch_size=self.loader_batch_size,
+            num_workers=self.num_workers,
+            shuffle=False,
+            tokenizer=self.tokenizer,
         )

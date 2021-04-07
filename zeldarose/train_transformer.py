@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import logging
 import os
-from os import path
 import pathlib
 import sys
 import warnings
 
-from typing import Any, Dict, List, Optional, Type, cast
+from typing import Any, Dict, List, Optional, cast
 
 import click
 import click_pathlib
@@ -362,25 +361,6 @@ def main(
         raise ValueError("You must provide either a pretrained model or a model config")
     model.train()
 
-    train_set = data.load_dataset(
-        cache_path=cache_dir,
-        model_name=tokenizer_name.replace("/", "_"),
-        overwrite_cache=overwrite_cache,
-        text_path=raw_text,
-        tokenizer=tokenizer,
-    )
-    val_set: Optional[data.TextDataset]
-    if val_path is not None:
-        val_set = data.load_dataset(
-        cache_path=cache_dir,
-        model_name=tokenizer_name.replace("/", "_"),
-        overwrite_cache=overwrite_cache,
-        text_path=raw_text,
-        tokenizer=tokenizer,
-    )
-    else:
-        val_set = None
-
     logger.info("Creating MLM Finetuner")
 
     if (mask_token_index := getattr(tokenizer, "mask_token_id", None)) is None:
@@ -421,32 +401,22 @@ def main(
     else:
         loader_batch_size = device_batch_size
 
-    logger.info("Creating dataloaders")
-    train_loader = data.TextLoader(
-        train_set,
-        batch_size=loader_batch_size,
+    logger.info("Creating data modules")
+    datamodule = data.TextDataModule(
+        loader_batch_size=loader_batch_size,
         num_workers=n_workers,
-        shuffle=True,
+        tokenizer=tokenizer,
+        tokenizer_name=tokenizer_name.replace("/", "_"),
+        train_text=raw_text,
+        val_text=val_path,
+        data_dir=cache_dir,
     )
-
-    val_loaders: Optional[List[data.TextLoader]]
-    if val_set is not None:
-        val_loaders = [
-            data.TextLoader(
-                val_set,
-                batch_size=loader_batch_size,
-                num_workers=n_workers,
-                shuffle=False,
-            )
-        ]
-    else:
-        val_loaders = None
 
     logger.info("Creating trainer")
     additional_kwargs: Dict[str, Any] = dict()
     if profile:
         logger.info("Running in profile mode")
-        profiler = pl.profiler.AdvancedProfiler(output_filename=out_dir / "profile.txt")
+        profiler = pl.profiler.AdvancedProfiler(output_filename=str(out_dir / "profile.txt"))
         additional_kwargs.update({"profiler": profiler, "overfit_batches": 1024})
 
     if guess_batch_size:
@@ -497,7 +467,7 @@ def main(
         default_root_dir=out_dir,
         accelerator=accelerator,
         gpus=n_gpus,
-        limit_val_batches=1.0 if val_loaders is not None else 0,
+        limit_val_batches=1.0 if val_path is not None else 0,
         max_epochs=max_epochs,
         max_steps=max_steps,
         num_nodes=n_nodes,
@@ -506,9 +476,7 @@ def main(
 
     logger.info("Start training")
 
-    trainer.fit(
-        finetuning_model, train_dataloader=train_loader, val_dataloaders=val_loaders
-    )
+    trainer.fit(finetuning_model, datamodule=datamodule)
 
     save_dir = out_dir / model_name
     save_model(model, save_dir, tokenizer)
