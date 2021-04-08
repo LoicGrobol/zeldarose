@@ -471,6 +471,7 @@ def main(
         max_epochs=max_epochs,
         max_steps=max_steps,
         num_nodes=n_nodes,
+        prepare_data_per_node=False,
         **additional_kwargs,
     )
 
