@@ -77,9 +77,12 @@ class TextLoader(torch.utils.data.DataLoader):
         if "collate_fn" not in kwargs:
             kwargs["collate_fn"] = self.collate
         super().__init__(dataset, *args, **kwargs)
-        padding_value = getattr(tokenizer, "pad_token_id")
+        self.tokenizer = tokenizer
+        padding_value = getattr(self.tokenizer, "pad_token_id")
         if padding_value is None:
-            padding_value = tokenizer.convert_tokens_to_ids(tokenizer.padding_value)
+            padding_value = self.tokenizer.convert_tokens_to_ids(
+                self.tokenizer.padding_value
+            )
         self._padding_value = padding_value
 
     def collate(self, batch: Sequence[EncodedSample]) -> TextBatch:
