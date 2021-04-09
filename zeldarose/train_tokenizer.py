@@ -18,6 +18,7 @@ from loguru import logger
     "raw_texts",
     nargs=-1,
     type=click_pathlib.Path(resolve_path=True, exists=True, dir_okay=False),
+    required=True,
 )
 @click.option(
     "--max-len",
