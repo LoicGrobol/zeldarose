@@ -441,15 +441,21 @@ def main(
             )
         )
 
+    # TODO: find a way to set find_unused_parameters=False
     if sharded_ddp:
         if accelerator == "ddp":
             logger.info("Using sharded DDP")
             cast(List[str], additional_kwargs.setdefault("plugins", [])).append(
                 "ddp_sharded"
             )
+        elif accelerator == "ddp_spawn":
+            logger.info("Using sharded spawn DDP")
+            cast(List[str], additional_kwargs.setdefault("plugins", [])).append(
+                "ddp_sharded_spawned"
+            )
         else:
             logger.warning(
-                "--sharded-ddp only makes sense when using --accelerator=ddp. Ignoring the flag."
+                "--sharded-ddp only makes sense when using ddp accelerators. Ignoring the flag."
             )
     if n_gpus:
         logger.info(f"Training the model on {n_gpus} GPUs")
