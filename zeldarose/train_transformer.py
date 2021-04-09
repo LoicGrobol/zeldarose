@@ -61,9 +61,9 @@ def setup_logging(
             logfile,
             level="DEBUG",
             format=(
-                f"[{appname}] "
-                "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> |"
-                "<level>{message}</level>"
+                f"[{appname}]"
+                " {time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} |"
+                " {message}"
             ),
             colorize=False,
         )
@@ -72,9 +72,21 @@ def setup_logging(
 
     class InterceptHandler(logging.Handler):
         def emit(self, record):
-            # Retrieve context where the logging call occurred, this happens to be in the 6th frame upward
-            logger_opt = logger.opt(depth=6, exception=record.exc_info)
-            logger_opt.log(record.levelno, record.getMessage())
+            # Get corresponding Loguru level if it exists
+            try:
+                level = logger.level(record.levelname).name
+            except ValueError:
+                level = record.levelno
+
+            # Find caller from where originated the logged message
+            frame, depth = logging.currentframe(), 2
+            while frame.f_code.co_filename == logging.__file__:
+                frame = frame.f_back
+                depth += 1
+
+            logger.opt(depth=depth, exception=record.exc_info).log(
+                level, record.getMessage()
+            )
 
     transformers_logger = logging.getLogger("transformers")
     # FIXME: ugly, but is there a better way?
@@ -88,8 +100,10 @@ def setup_logging(
 
     # Deal with stdlib.warnings
 
-    def showwarning(message, *args, **kwargs):
-        logger.warning(message)
+    def showwarning(message, category, filename, lineno, file=None, line=None):
+        logger.warning(
+            warnings.formatwarning(message, category, filename, lineno, None).strip()
+        )
 
     if replace_warnings:
         warnings.showwarning = showwarning
@@ -416,7 +430,9 @@ def main(
     additional_kwargs: Dict[str, Any] = dict()
     if profile:
         logger.info("Running in profile mode")
-        profiler = pl.profiler.AdvancedProfiler(output_filename=str(out_dir / "profile.txt"))
+        profiler = pl.profiler.AdvancedProfiler(
+            output_filename=str(out_dir / "profile.txt")
+        )
         additional_kwargs.update({"profiler": profiler, "overfit_batches": 1024})
 
     if guess_batch_size:
@@ -454,7 +470,7 @@ def main(
         )
     else:
         logger.info("Training the model on CPU")
-    
+
     callbacks: List[pl.callbacks.Callback] = [
         pl.callbacks.ProgressBar(),
     ]
