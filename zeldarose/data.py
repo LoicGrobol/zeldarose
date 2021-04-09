@@ -30,6 +30,7 @@ def encode_dataset(
             examples["text"],
             add_special_tokens=True,
             return_special_tokens_mask=True,
+            truncation=True,
         ),
         batched=True,
         new_fingerprint=f"{raw_dataset._fingerprint}-{tokenizer_name}",
