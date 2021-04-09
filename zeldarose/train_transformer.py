@@ -423,11 +423,38 @@ def main(
         logger.info("Automatic batch size selection")
         additional_kwargs.update({"auto_scale_batch_size": "binsearch"})
 
+    # TODO: find a way to set find_unused_parameters=False
     if accelerator == "ddp_cpu":
         # FIXME: works but seems like bad practice
         additional_kwargs["num_processes"] = n_gpus
         n_gpus = 0
 
+    if sharded_ddp:
+        if accelerator == "ddp":
+            logger.info("Using sharded DDP")
+            cast(List[str], additional_kwargs.setdefault("plugins", [])).append(
+                "ddp_sharded"
+            )
+        elif accelerator == "ddp_spawn":
+            logger.info("Using sharded spawn DDP")
+            cast(List[str], additional_kwargs.setdefault("plugins", [])).append(
+                "ddp_sharded_spawn"
+            )
+        else:
+            logger.warning(
+                "--sharded-ddp only makes sense when using ddp accelerators. Ignoring the flag."
+            )
+
+    if n_gpus:
+        logger.info(f"Training the model on {n_gpus} GPUs with half precision")
+        additional_kwargs["precision"] = 16
+    elif accelerator == "ddp_cpu":
+        logger.info(
+            f"Training the model on CPU in {additional_kwargs['num_processes']} processes"
+        )
+    else:
+        logger.info("Training the model on CPU")
+    
     callbacks: List[pl.callbacks.Callback] = [
         pl.callbacks.ProgressBar(),
     ]
@@ -440,32 +467,6 @@ def main(
                 save_period,
             )
         )
-
-    # TODO: find a way to set find_unused_parameters=False
-    if sharded_ddp:
-        if accelerator == "ddp":
-            logger.info("Using sharded DDP")
-            cast(List[str], additional_kwargs.setdefault("plugins", [])).append(
-                "ddp_sharded"
-            )
-        elif accelerator == "ddp_spawn":
-            logger.info("Using sharded spawn DDP")
-            cast(List[str], additional_kwargs.setdefault("plugins", [])).append(
-                "ddp_sharded_spawned"
-            )
-        else:
-            logger.warning(
-                "--sharded-ddp only makes sense when using ddp accelerators. Ignoring the flag."
-            )
-    if n_gpus:
-        logger.info(f"Training the model on {n_gpus} GPUs")
-        additional_kwargs["precision"] = 16
-    elif accelerator == "ddp_cpu":
-        logger.info(
-            f"Training the model on CPU in {additional_kwargs['num_processes']} processes"
-        )
-    else:
-        logger.info("Training the model on CPU")
 
     trainer = pl.Trainer(
         accumulate_grad_batches=accumulate_grad_batches,
