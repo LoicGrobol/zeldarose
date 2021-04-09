@@ -109,6 +109,7 @@ class MLMFinetunerConfig(pydantic.BaseModel):
     warmup_steps: int = 0
     weight_decay: Optional[float] = None
 
+
 class MLMFinetuner(pl.LightningModule):
     def __init__(
         self,
