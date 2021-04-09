@@ -176,6 +176,12 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     help="Where to cache the input data",
 )
 @click.option(
+    "--checkpoint",
+    "checkpoint",
+    type=click_pathlib.Path(resolve_path=True, dir_okay=False, exists=True),
+    help="A checkpoint to restore the training state from",
+)
+@click.option(
     "--config",
     "config_path",
     type=click_pathlib.Path(resolve_path=True, dir_okay=False, exists=True),
@@ -297,6 +303,7 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 def main(
     accelerator: Optional[str],
     cache_dir: Optional[pathlib.Path],
+    checkpoint: Optional[pathlib.Path],
     config_path: Optional[pathlib.Path],
     device_batch_size: Optional[int],
     guess_batch_size: bool,
@@ -483,6 +490,9 @@ def main(
                 save_period,
             )
         )
+
+    if checkpoint is not None:
+        additional_kwargs["resume_from_checkpoint"] = checkpoint
 
     trainer = pl.Trainer(
         accumulate_grad_batches=accumulate_grad_batches,
