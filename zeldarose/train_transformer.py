@@ -480,6 +480,7 @@ def main(
 
     callbacks: List[pl.callbacks.Callback] = [
         pl.callbacks.ProgressBar(),
+        pl.callbacks.LearningRateMonitor("step"),
     ]
     if save_period:
         save_model(model, out_dir / "partway_models" / "initial", tokenizer)
