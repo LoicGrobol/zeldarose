@@ -501,6 +501,7 @@ def main(
         default_root_dir=out_dir,
         accelerator=accelerator,
         gpus=n_gpus,
+        gradient_clip_val=tuning_config.gradient_clipping,
         limit_val_batches=1.0 if val_path is not None else 0,
         max_epochs=max_epochs,
         max_steps=max_steps,
