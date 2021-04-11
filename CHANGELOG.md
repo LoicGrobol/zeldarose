@@ -17,18 +17,21 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ### Changed
 
-- Text datasets are now loaded line-by-line by default and the block mode has been removed
+- Text datasets are now loaded line-by-line by default and the block mode has been removed.
 - We now use [🤗 datasets](https://github.com/huggingface/datasets) as backend, so the datasets are
   implemented as memory-mapped files with dynamic loaders instead of being held in RAM. This
   significantly decrease RAM consumption for a very decent speed cost and allows us to train on much
   larger datasets.
+- GPU usage is now logged in `--profile` mode when relevant.
+- LR is now logged.
 
 ### Removed
 
 - The `--line-by-line` flag has been removed, since this is now the default behaviour.
-- The `zeldarose-create-cache` has been removed, since dataset processing now works correctly in ddp
-- The `data` module has been completely rewritten and the Dataset classes are no more
-- `mlm.masked_accuracy` since it was not used anywhere
+- The `zeldarose-create-cache` has been removed, since dataset processing now works correctly in
+  ddp.
+- The `data` module has been completely rewritten and the Dataset classes are no more.
+- `mlm.masked_accuracy` since it was not used anywhere.
 
 ### Fixed
 
