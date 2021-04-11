@@ -491,6 +491,8 @@ def main(
                 save_period,
             )
         )
+    if profile and n_gpus and "cpu" not in accelerator:
+        callbacks.append(pl.callbacks.GPUStatsMonitor())
 
     if checkpoint is not None:
         additional_kwargs["resume_from_checkpoint"] = checkpoint
