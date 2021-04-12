@@ -75,19 +75,6 @@ def mask_tokens(
     return MaskedTokens(inputs, labels)
 
 
-# FIXME: jitting this sometimes results in aberrations such as `masked_accuracy(tensor([[0, 28031,
-# 16]]), tensor([[-100, -100, -100]]))=32.54999923706055` while the non-jitted accuracy gives a
-# correct (or at least consistent with the code) `1.0`. I haven't been able to find the cause (or
-# indeed to reproduce it outside of using a MLMFineTuner in SLURM ddp) so we don't jit this for now.
-def masked_accuracy(
-    preds: torch.Tensor, labels: torch.Tensor, ignore_index: int = -100
-) -> torch.Tensor:
-    mask = labels.ne(ignore_index)
-    if not mask.any():
-        return torch.tensor(1.0, device=preds.device)
-    return preds.eq(labels).logical_and(mask).float().sum().true_divide(mask.sum())
-
-
 class MaskedAccuracy(pl_metrics.Metric):
     def __init__(self, ignore_index: int = -100):
         super().__init__()
@@ -117,13 +104,13 @@ class MLMFinetunerConfig(pydantic.BaseModel):
     batch_size: int = 64
     betas: Tuple[float, float] = (0.9, 0.98)
     epsilon: float = 1e-8
+    gradient_clipping = 0
     learning_rate: float = 1e-4
     lr_decay_steps: Optional[int] = None
     warmup_steps: int = 0
     weight_decay: Optional[float] = None
 
 
-# TODO: refactor this to take advantages of hparams
 class MLMFinetuner(pl.LightningModule):
     def __init__(
         self,

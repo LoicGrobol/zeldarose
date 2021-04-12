@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import logging
 import os
-from os import path
 import pathlib
 import sys
 import warnings
 
-from typing import Any, Dict, List, Optional, Type, cast
+from typing import Any, Dict, List, Optional, cast
 
 import click
 import click_pathlib
@@ -62,9 +61,9 @@ def setup_logging(
             logfile,
             level="DEBUG",
             format=(
-                f"[{appname}] "
-                "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> |"
-                "<level>{message}</level>"
+                f"[{appname}]"
+                " {time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} |"
+                " {message}"
             ),
             colorize=False,
         )
@@ -73,9 +72,21 @@ def setup_logging(
 
     class InterceptHandler(logging.Handler):
         def emit(self, record):
-            # Retrieve context where the logging call occurred, this happens to be in the 6th frame upward
-            logger_opt = logger.opt(depth=6, exception=record.exc_info)
-            logger_opt.log(record.levelno, record.getMessage())
+            # Get corresponding Loguru level if it exists
+            try:
+                level = logger.level(record.levelname).name
+            except ValueError:
+                level = record.levelno
+
+            # Find caller from where originated the logged message
+            frame, depth = logging.currentframe(), 2
+            while frame.f_code.co_filename == logging.__file__:
+                frame = frame.f_back
+                depth += 1
+
+            logger.opt(depth=depth, exception=record.exc_info).log(
+                level, record.getMessage()
+            )
 
     transformers_logger = logging.getLogger("transformers")
     # FIXME: ugly, but is there a better way?
@@ -89,8 +100,10 @@ def setup_logging(
 
     # Deal with stdlib.warnings
 
-    def showwarning(message, *args, **kwargs):
-        logger.warning(message)
+    def showwarning(message, category, filename, lineno, file=None, line=None):
+        logger.warning(
+            warnings.formatwarning(message, category, filename, lineno, None).strip()
+        )
 
     if replace_warnings:
         warnings.showwarning = showwarning
@@ -163,6 +176,12 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     help="Where to cache the input data",
 )
 @click.option(
+    "--checkpoint",
+    "checkpoint",
+    type=click_pathlib.Path(resolve_path=True, dir_okay=False, exists=True),
+    help="A checkpoint to restore the training state from",
+)
+@click.option(
     "--config",
     "config_path",
     type=click_pathlib.Path(resolve_path=True, dir_okay=False, exists=True),
@@ -183,11 +202,6 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
         "Try to find the max device batch size automatically"
         " (ignored if --device-batch-size is provided)"
     ),
-)
-@click.option(
-    "--line-by-line",
-    is_flag=True,
-    help="Assume that the dataset is pre-segmented in sentences",
 )
 @click.option(
     "--max-epochs",
@@ -289,10 +303,10 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 def main(
     accelerator: Optional[str],
     cache_dir: Optional[pathlib.Path],
+    checkpoint: Optional[pathlib.Path],
     config_path: Optional[pathlib.Path],
     device_batch_size: Optional[int],
     guess_batch_size: bool,
-    line_by_line: bool,
     max_epochs: int,
     max_steps: Optional[int],
     model_config_path: Optional[str],
@@ -368,31 +382,6 @@ def main(
         raise ValueError("You must provide either a pretrained model or a model config")
     model.train()
 
-    dataset_type: Type[data.TextDataset]
-    if line_by_line:
-        dataset_type = data.LineByLineTextDataset
-    else:
-        dataset_type = data.TextDataset
-    logger.info(f"Loading train dataset from {raw_text}")
-    train_set = dataset_type(
-        cache_path=cache_dir,
-        model_name=tokenizer_name.replace("/", "_"),
-        overwrite_cache=overwrite_cache,
-        text_path=raw_text,
-        tokenizer=tokenizer,
-    )
-    val_set: Optional[data.TextDataset]
-    if val_path is not None:
-        val_set = dataset_type(
-            cache_path=cache_dir,
-            model_name=tokenizer_name.replace("/", "_"),
-            overwrite_cache=overwrite_cache,
-            text_path=val_path,
-            tokenizer=tokenizer,
-        )
-    else:
-        val_set = None
-
     logger.info("Creating MLM Finetuner")
 
     if (mask_token_index := getattr(tokenizer, "mask_token_id", None)) is None:
@@ -433,45 +422,65 @@ def main(
     else:
         loader_batch_size = device_batch_size
 
-    logger.info("Creating dataloaders")
-    train_loader = data.TextLoader(
-        train_set,
-        batch_size=loader_batch_size,
+    logger.info("Creating data modules")
+    datamodule = data.TextDataModule(
+        loader_batch_size=loader_batch_size,
         num_workers=n_workers,
-        shuffle=True,
+        tokenizer=tokenizer,
+        tokenizer_name=tokenizer_name.replace("/", "_"),
+        train_text=raw_text,
+        val_text=val_path,
+        data_dir=cache_dir,
     )
-
-    val_loaders: Optional[List[data.TextLoader]]
-    if val_set is not None:
-        val_loaders = [
-            data.TextLoader(
-                val_set,
-                batch_size=loader_batch_size,
-                num_workers=n_workers,
-                shuffle=False,
-            )
-        ]
-    else:
-        val_loaders = None
 
     logger.info("Creating trainer")
     additional_kwargs: Dict[str, Any] = dict()
     if profile:
         logger.info("Running in profile mode")
-        profiler = pl.profiler.AdvancedProfiler(output_filename=out_dir / "profile.txt")
+        profiler = pl.profiler.AdvancedProfiler(
+            output_filename=str(out_dir / "profile.txt")
+        )
         additional_kwargs.update({"profiler": profiler, "overfit_batches": 1024})
 
     if guess_batch_size:
         logger.info("Automatic batch size selection")
         additional_kwargs.update({"auto_scale_batch_size": "binsearch"})
 
+    # TODO: find a way to set find_unused_parameters=False
     if accelerator == "ddp_cpu":
         # FIXME: works but seems like bad practice
         additional_kwargs["num_processes"] = n_gpus
         n_gpus = 0
 
+    if sharded_ddp:
+        if accelerator == "ddp":
+            logger.info("Using sharded DDP")
+            cast(List[str], additional_kwargs.setdefault("plugins", [])).append(
+                "ddp_sharded"
+            )
+        elif accelerator == "ddp_spawn":
+            logger.info("Using sharded spawn DDP")
+            cast(List[str], additional_kwargs.setdefault("plugins", [])).append(
+                "ddp_sharded_spawn"
+            )
+        else:
+            logger.warning(
+                "--sharded-ddp only makes sense when using ddp accelerators. Ignoring the flag."
+            )
+
+    if n_gpus:
+        logger.info(f"Training the model on {n_gpus} GPUs with half precision")
+        additional_kwargs["precision"] = 16
+    elif accelerator == "ddp_cpu":
+        logger.info(
+            f"Training the model on CPU in {additional_kwargs['num_processes']} processes"
+        )
+    else:
+        logger.info("Training the model on CPU")
+
     callbacks: List[pl.callbacks.Callback] = [
         pl.callbacks.ProgressBar(),
+        pl.callbacks.LearningRateMonitor("step"),
     ]
     if save_period:
         save_model(model, out_dir / "partway_models" / "initial", tokenizer)
@@ -482,26 +491,11 @@ def main(
                 save_period,
             )
         )
+    if profile and n_gpus and "cpu" not in accelerator:
+        callbacks.append(pl.callbacks.GPUStatsMonitor())
 
-    if sharded_ddp:
-        if accelerator == "ddp":
-            logger.info("Using sharded DDP")
-            cast(List[str], additional_kwargs.setdefault("plugins", [])).append(
-                "ddp_sharded"
-            )
-        else:
-            logger.warning(
-                "--sharded-ddp only makes sense when using --accelerator=ddp. Ignoring the flag."
-            )
-    if n_gpus:
-        logger.info(f"Training the model on {n_gpus} GPUs")
-        additional_kwargs["precision"] = 16
-    elif accelerator == "ddp_cpu":
-        logger.info(
-            f"Training the model on CPU in {additional_kwargs['num_processes']} processes"
-        )
-    else:
-        logger.info("Training the model on CPU")
+    if checkpoint is not None:
+        additional_kwargs["resume_from_checkpoint"] = checkpoint
 
     trainer = pl.Trainer(
         accumulate_grad_batches=accumulate_grad_batches,
@@ -509,18 +503,18 @@ def main(
         default_root_dir=out_dir,
         accelerator=accelerator,
         gpus=n_gpus,
-        limit_val_batches=1.0 if val_loaders is not None else 0,
+        gradient_clip_val=tuning_config.gradient_clipping,
+        limit_val_batches=1.0 if val_path is not None else 0,
         max_epochs=max_epochs,
         max_steps=max_steps,
         num_nodes=n_nodes,
+        prepare_data_per_node=False,
         **additional_kwargs,
     )
 
     logger.info("Start training")
 
-    trainer.fit(
-        finetuning_model, train_dataloader=train_loader, val_dataloaders=val_loaders
-    )
+    trainer.fit(finetuning_model, datamodule=datamodule)
 
     save_dir = out_dir / model_name
     save_model(model, save_dir, tokenizer)
