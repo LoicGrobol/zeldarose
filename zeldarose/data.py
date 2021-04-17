@@ -154,23 +154,19 @@ class TextDataModule(pl.LightningDataModule):
         self.val_dataset = None
 
     def prepare_data(self):
-        # This should'nt be needed since this method should only be called on rank 0, but since it
-        # is called in every process AND before DDP init (at least in SLURM) we have to enforce it
-        # ourselves
-        if os.environ.get('SLURM_PROCID', '0') == '0':
+        encode_dataset(
+            save_path=self.train_dataset_path,
+            text_path=self.train_text,
+            tokenizer=self.tokenizer,
+            tokenizer_name=self.tokenizer_name,
+        )
+        if self.val_dataset_path is not None:
             encode_dataset(
-                save_path=self.train_dataset_path,
-                text_path=self.train_text,
+                save_path=self.val_dataset_path,
+                text_path=self.val_text,
                 tokenizer=self.tokenizer,
                 tokenizer_name=self.tokenizer_name,
             )
-            if self.val_dataset_path is not None:
-                encode_dataset(
-                    save_path=self.val_dataset_path,
-                    text_path=self.val_text,
-                    tokenizer=self.tokenizer,
-                    tokenizer_name=self.tokenizer_name,
-                )
 
     def setup(self, stage=None):
         self.train_dataset = datasets.load_from_disk(self.train_dataset_path)
