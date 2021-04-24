@@ -497,6 +497,7 @@ def main(
     if checkpoint is not None:
         additional_kwargs["resume_from_checkpoint"] = checkpoint
 
+    datamodule.prepare_data()
     trainer = pl.Trainer(
         accumulate_grad_batches=accumulate_grad_batches,
         callbacks=callbacks,
