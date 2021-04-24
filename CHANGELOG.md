@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 [Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.2.0...HEAD
 
+### Changed
+
+- Stop saving tokenizers in legacy format
+
 ## [0.2.0] — 2021-04-23
 
 [0.2.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.2.0...v0.1.1

@@ -79,7 +79,7 @@ def main(
         str(model_path),
         max_len=max_len,
     )
-    tranformers_tokenizer.save_pretrained(str(model_path))
+    tranformers_tokenizer.save_pretrained(str(model_path), legacy_format=False)
     # Useless in principle since we don't specify a model here but needed in practice for
     # compatibility with `AutoTokenizer`, see
     # <https://github.com/huggingface/transformers/issues/6368> See also
