@@ -60,15 +60,18 @@ def main(
         ],
         vocab_size=vocab_size,
     )
+    logger.info("Training")
     tokenizer.train(
         [str(t) for t in raw_texts],
         trainer=trainer,
     )
+    logger.info("Finalizing")
     tokenizer.post_processor = tokenizers.processors.RobertaProcessing(
         ("</s>", tokenizer.token_to_id("</s>")),
         ("<s>", tokenizer.token_to_id("<s>")),
     )
     tokenizer.enable_truncation(max_length=max_len)
+    logger.info("Saving model")
     model_path = out_path / model_name
     model_path.mkdir(exist_ok=True, parents=True)
     model_file = model_path / "tokenizer.json"
