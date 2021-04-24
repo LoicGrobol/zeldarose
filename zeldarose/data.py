@@ -143,10 +143,12 @@ class TextDataModule(pl.LightningDataModule):
             self.data_dir = data_dir
 
         self.train_dataset_path = self.data_dir / "train_set"
+        self.train_dataset_path.mkdir(exist_ok=True, parents=True)
 
         self.val_dataset_path: Optional[pathlib.Path]
         if self.val_text is not None:
             self.val_dataset_path = self.data_dir / "val_set"
+            self.val_dataset_path.mkdir(exist_ok=True, parents=True)
         else:
             self.val_dataset_path = None
 

@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 ### Changed
 
 - Stop saving tokenizers in legacy format
+- Create data dir if they don't exist
 
 ## [0.2.0] — 2021-04-23
 
