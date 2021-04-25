@@ -491,13 +491,12 @@ def main(
                 save_period,
             )
         )
-    if profile and n_gpus and "cpu" not in accelerator:
+    if profile and n_gpus and accelerator is not None and "cpu" not in accelerator:
         callbacks.append(pl.callbacks.GPUStatsMonitor())
 
     if checkpoint is not None:
         additional_kwargs["resume_from_checkpoint"] = checkpoint
 
-    datamodule.prepare_data()
     trainer = pl.Trainer(
         accumulate_grad_batches=accumulate_grad_batches,
         callbacks=callbacks,
