@@ -156,7 +156,9 @@ class MLMFinetuner(pl.LightningModule):
 
         return output
 
-    def training_step(self, batch: zeldarose.data.TextBatch, batch_idx: int):
+    def training_step(
+        self, batch: zeldarose.data.TextBatch, batch_idx: int
+    ) -> torch.Tensor:
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
         with torch.no_grad():
             masked = mask_tokens(
