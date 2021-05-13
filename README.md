@@ -39,6 +39,12 @@ This is somewhat tricky, you have several options
   - Run with `--accelerator ddp_spawn`, which uses `multiprocessing.spawn` to start the process swarm (tested, but possibly slower and more limited, see `pytorch-lightning` doc)
   - Run with `--accelerator ddp` and start with `torch.distributed.launch` with `--use_env` and `--no_python` (untested)
 
+## Other hints
+
+- Data management relies on 🤗 datasets and use their cache management system. To run in a clear
+  environment, you might have to check the cache directory pointed to by the`HF_DATASETS_CACHE`
+  environment variable.
+
 ## Inspirations
 
 - <https://github.com/shoarora/lmtuners>

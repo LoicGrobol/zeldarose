@@ -255,11 +255,6 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     help="Where to save the trained model",
 )
 @click.option(
-    "--overwrite-cache",
-    is_flag=True,
-    help="Ignore pre-existing dataset cache (problematic in multiprocessing context)",
-)
-@click.option(
     "--pretrained-model",
     type=str,
     help="A pretrained model to fine-tune",
