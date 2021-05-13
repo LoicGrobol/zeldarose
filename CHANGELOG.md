@@ -10,6 +10,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 [Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.0...HEAD
 
+## Removed
+
+- The `--overwrite-cache` option, which was a no-op since 0.2.0 has been removed. Resetting the
+  cache should be done manually if needed (but usually shouldn't be needed).
+
 ## [0.3.0] — 2021-04-23
 
 [0.3.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.0...v0.2.0
