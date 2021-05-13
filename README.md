@@ -39,9 +39,6 @@ This is somewhat tricky, you have several options
   - Run with `--accelerator ddp_spawn`, which uses `multiprocessing.spawn` to start the process swarm (tested, but possibly slower and more limited, see `pytorch-lightning` doc)
   - Run with `--accelerator ddp` and start with `torch.distributed.launch` with `--use_env` and `--no_python` (untested)
 
-Whatever you do, for now it's safer to run once without distributed training in order to preprocess
-the raw texts in a predictable environment.
-
 ## Inspirations
 
 - <https://github.com/shoarora/lmtuners>

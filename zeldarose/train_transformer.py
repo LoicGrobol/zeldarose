@@ -315,7 +315,6 @@ def main(
     n_nodes: int,
     n_workers: int,
     out_dir: pathlib.Path,
-    overwrite_cache: bool,
     pretrained_model: Optional[str],
     profile: bool,
     raw_text: pathlib.Path,
