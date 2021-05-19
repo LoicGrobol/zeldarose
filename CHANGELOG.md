@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 [Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.0...HEAD
 
+## Fixed
+
+- Stop saving tokenizers in legacy format *also* when training transformers
+
 ## Removed
 
 - The `--overwrite-cache` option, which was a no-op since 0.2.0 has been removed. Resetting the
