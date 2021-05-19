@@ -78,9 +78,10 @@ def main(
     tokenizer.save(str(model_file))
     # TODO: set special tokens instead of hardcoding the default values of RoBERTa (see
     # <https://huggingface.co/transformers/_modules/transformers/tokenization_utils_base.html#SpecialTokensMixin>)
-    tranformers_tokenizer = transformers.RobertaTokenizerFast.from_pretrained(
-        str(model_path),
-        max_len=max_len,
+    tranformers_tokenizer = transformers.RobertaTokenizerFast(
+        tokenizer_file=str(model_path),
+        vocab_file=None,
+        merges_file=None,
     )
     tranformers_tokenizer.save_pretrained(str(model_path), legacy_format=False)
     # Useless in principle since we don't specify a model here but needed in practice for
