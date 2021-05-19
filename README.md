@@ -21,7 +21,7 @@ pip install zeldarose
 Here is a short example:
 
 ```console
-zeldarose-tokenizer --vocab-size 4096 --out-path local/tokenizer  --model-name "my-muppet" tests/fixtures/raw.txt
+TOKENIZERS_PARALLELISM=true zeldarose-tokenizer --vocab-size 4096 --out-path local/tokenizer  --model-name "my-muppet" tests/fixtures/raw.txt
 zeldarose-transformer --tokenizer local/tokenizer --pretrained-model flaubert/flaubert_small_cased --out-dir local/muppet --val-text tests/fixtures/raw.txt tests/fixtures/raw.txt
 ```
 

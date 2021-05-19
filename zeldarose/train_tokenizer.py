@@ -25,18 +25,27 @@ from loguru import logger
     type=int,
     default=512,
     help="The maximum number of tokens in a sequence",
+    show_default=True,
 )
 @click.option(
-    "--model-name", type=str, default=None, help="A name to give to the model"
+    "--model-name",
+    type=str,
+    default="muppet",
+    help="A name to give to the model",
+    show_default=True,
 )
 @click.option(
     "--out-path",
     default=".",
-    type=click_pathlib.Path(resolve_path=True, file_okay=False, allow_dash=True),
+    type=click_pathlib.Path(resolve_path=True, file_okay=False),
     help="Where to save the trained model",
 )
 @click.option(
-    "--vocab-size", type=int, default=4096, help="Size of the trained vocabulary"
+    "--vocab-size",
+    type=int,
+    default=4096,
+    help="Size of the trained vocabulary",
+    show_default=True,
 )
 def main(
     raw_texts: ty.Collection[pathlib.Path],
@@ -45,7 +54,7 @@ def main(
     out_path: pathlib.Path,
     vocab_size: int,
 ):
-    tokenizer = tokenizers.Tokenizer(tokenizers.models.BPE(unk_token="<unk>"))
+    tokenizer = tokenizers.Tokenizer(tokenizers.models.ByteLevelBPE(unk_token="<unk>"))
     tokenizer.pre_tokenizer = tokenizers.pre_tokenizers.Whitespace()
     # Special tokens hardcoded from RoBERTa's default, see `__init__` in
     # <https://huggingface.co/transformers/_modules/transformers/tokenization_roberta_fast.html#RobertaTokenizerFast>
