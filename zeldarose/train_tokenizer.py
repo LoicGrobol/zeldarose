@@ -54,8 +54,8 @@ def main(
     out_path: pathlib.Path,
     vocab_size: int,
 ):
-    tokenizer = tokenizers.Tokenizer(tokenizers.models.ByteLevelBPE(unk_token="<unk>"))
-    tokenizer.pre_tokenizer = tokenizers.pre_tokenizers.Whitespace()
+    tokenizer = tokenizers.Tokenizer(tokenizers.models.BPE(unk_token="<unk>"))
+    tokenizer.pre_tokenizer = tokenizers.pre_tokenizers.ByteLevel()
     # Special tokens hardcoded from RoBERTa's default, see `__init__` in
     # <https://huggingface.co/transformers/_modules/transformers/tokenization_roberta_fast.html#RobertaTokenizerFast>
     # and do not forget to adapt this if we allow other tokenizer configs here
