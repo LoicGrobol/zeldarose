@@ -72,18 +72,18 @@ def main(
     )
     tokenizer.enable_truncation(max_length=max_len)
     logger.info("Saving model")
-    model_path = out_path / model_name
-    model_path.mkdir(exist_ok=True, parents=True)
-    model_file = model_path / "tokenizer.json"
+    model_dir = out_path / model_name
+    model_dir.mkdir(exist_ok=True, parents=True)
+    model_file = model_dir / "tokenizer.json"
     tokenizer.save(str(model_file))
     # TODO: set special tokens instead of hardcoding the default values of RoBERTa (see
     # <https://huggingface.co/transformers/_modules/transformers/tokenization_utils_base.html#SpecialTokensMixin>)
     tranformers_tokenizer = transformers.RobertaTokenizerFast(
-        tokenizer_file=str(model_path),
+        tokenizer_file=str(model_file),
         vocab_file=None,
         merges_file=None,
     )
-    tranformers_tokenizer.save_pretrained(str(model_path), legacy_format=False)
+    tranformers_tokenizer.save_pretrained(str(model_dir), legacy_format=False)
     # Useless in principle since we don't specify a model here but needed in practice for
     # compatibility with `AutoTokenizer`, see
     # <https://github.com/huggingface/transformers/issues/6368> See also
@@ -94,8 +94,8 @@ def main(
         max_position_embeddings=max_len,
         type_vocab_size=1,
     )
-    config.to_json_file(str(model_path / "config.json"))
-    logger.info(f"Saved tokenizer in {model_path}")
+    config.to_json_file(str(model_dir / "config.json"))
+    logger.info(f"Saved tokenizer in {model_dir}")
 
 
 if __name__ == "__main__":
