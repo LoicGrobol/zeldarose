@@ -526,7 +526,7 @@ def save_model(
     model.save_pretrained(str(save_dir))
     if tokenizer is not None:
         logger.info(f"Saving tokenizer to {save_dir}")
-        tokenizer.save_pretrained(str(save_dir))
+        tokenizer.save_pretrained(str(save_dir), legacy_format=not tokenizer.is_fast)
 
 
 if __name__ == "__main__":
