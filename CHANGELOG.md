@@ -8,7 +8,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
-[Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.1...HEAD
+
+## [0.3.1] — 2021-05-19
+
+[0.3.1]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.0...v0.3.1
 
 ## Fixed
 
