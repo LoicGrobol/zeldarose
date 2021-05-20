@@ -86,7 +86,7 @@ class MaskedAccuracy(pl_metrics.Metric):
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         assert preds.shape == target.shape
         mask = target.ne(self.ignore_index)
-        if mask.any():
+        if mask.any().item():
             self.correct += preds.eq(target).logical_and(mask).int().sum()
             self.total += mask.sum()
 
