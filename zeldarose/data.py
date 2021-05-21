@@ -20,6 +20,7 @@ def encode_dataset(
     text_path: pathlib.Path,
     tokenizer: transformers.PreTrainedTokenizer,
     tokenizer_name: str,
+    max_length: Optional[int] = None,
 ):
     logger.info(f"Loading data from {text_path}")
     raw_dataset = datasets.load_dataset(
@@ -30,6 +31,7 @@ def encode_dataset(
         lambda examples: tokenizer(
             examples["text"],
             add_special_tokens=True,
+            max_length=max_length,
             return_special_tokens_mask=True,
             truncation=True,
         ),
@@ -127,10 +129,12 @@ class TextDataModule(pl.LightningDataModule):
         tokenizer_name: str,
         train_text: pathlib.Path,
         data_dir: Optional[pathlib.Path] = None,
+        max_length: Optional[int] = None,
         val_text: Optional[pathlib.Path] = None,
     ):
         super().__init__()
         self.loader_batch_size = loader_batch_size
+        self.max_length = max_length
         self.num_workers = num_workers
         self.tokenizer = tokenizer
         self.tokenizer_name = tokenizer_name
@@ -161,6 +165,7 @@ class TextDataModule(pl.LightningDataModule):
         # ourselves
         if os.environ.get('SLURM_PROCID', '0') == '0':
             encode_dataset(
+                max_length=self.max_length,
                 save_path=self.train_dataset_path,
                 text_path=self.train_text,
                 tokenizer=self.tokenizer,
@@ -168,6 +173,7 @@ class TextDataModule(pl.LightningDataModule):
             )
             if self.val_dataset_path is not None:
                 encode_dataset(
+                    max_length=self.max_length,
                     save_path=self.val_dataset_path,
                     text_path=self.val_text,
                     tokenizer=self.tokenizer,

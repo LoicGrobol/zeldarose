@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 - Stop saving tokenizers in legacy format *also* when training transformers
 - The RoBERTa tokenizers now correctly use ByteLevel processing, to make it consistent with 🤗
   transformers
+- Add back automatic truncation of inputs in training transformers
 
 ## Removed
 

@@ -416,15 +416,22 @@ def main(
     else:
         loader_batch_size = device_batch_size
 
+    if (
+        model_max_length := getattr(model.config, "max_position_embeddings")
+    ) is not None:
+        max_length = min(tokenizer.model_max_length, model_max_length)
+    else:
+        max_length = tokenizer.model_max_length
     logger.info("Creating data modules")
     datamodule = data.TextDataModule(
+        data_dir=cache_dir,
         loader_batch_size=loader_batch_size,
+        max_length=max_length,
         num_workers=n_workers,
         tokenizer=tokenizer,
         tokenizer_name=tokenizer_name.replace("/", "_"),
         train_text=raw_text,
         val_text=val_path,
-        data_dir=cache_dir,
     )
 
     logger.info("Creating trainer")
