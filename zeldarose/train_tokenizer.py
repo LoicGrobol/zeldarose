@@ -91,6 +91,7 @@ def main(
         tokenizer_file=str(model_file),
         vocab_file=None,
         merges_file=None,
+        max_len=max_len,
     )
     tranformers_tokenizer.save_pretrained(str(model_dir), legacy_format=False)
     # Useless in principle since we don't specify a model here but needed in practice for
