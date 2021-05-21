@@ -36,7 +36,7 @@ def encode_dataset(
             truncation=True,
         ),
         batched=True,
-        new_fingerprint=f"{raw_dataset._fingerprint}-{tokenizer_name}",
+        new_fingerprint=f"{raw_dataset._fingerprint}-{tokenizer_name}-{max_length}",
     )
     logger.info(f"Saving dataset to {save_path}")
     encoded_dataset.save_to_disk(save_path)

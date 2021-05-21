@@ -351,8 +351,8 @@ def main(
         else:
             raise ValueError("Missing both pretrained tokenizer and pretrained model")
     logger.info(f"Loading pretrained tokenizer {tokenizer_name}")
-    tokenizer = transformers.AutoTokenizer.from_pretrained(
-        tokenizer_name, use_fast=True
+    tokenizer: transformers.PreTrainedTokenizerBase = (
+        transformers.AutoTokenizer.from_pretrained(tokenizer_name, use_fast=True)
     )
 
     if pretrained_model is not None:
@@ -417,9 +417,12 @@ def main(
         loader_batch_size = device_batch_size
 
     if (
-        model_max_length := getattr(model.config, "max_position_embeddings")
+        model_max_positions := getattr(model.config, "max_position_embeddings")
     ) is not None:
-        max_length = min(tokenizer.model_max_length, model_max_length)
+        max_length = min(
+            tokenizer.model_max_length,
+            model_max_positions,
+        )
     else:
         max_length = tokenizer.model_max_length
     logger.info("Creating data modules")
