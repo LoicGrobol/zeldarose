@@ -23,14 +23,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 [0.3.1]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.0...v0.3.1
 
-## Fixed
+### Fixed
 
 - Stop saving tokenizers in legacy format *also* when training transformers
 - The RoBERTa tokenizers now correctly use ByteLevel processing, to make it consistent with 🤗
   transformers
 - Add back automatic truncation of inputs in training transformers
 
-## Removed
+### Removed
 
 - The `--overwrite-cache` option, which was a no-op since 0.2.0 has been removed. Resetting the
   cache should be done manually if needed (but usually shouldn't be needed).
