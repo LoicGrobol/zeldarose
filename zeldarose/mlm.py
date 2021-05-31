@@ -75,6 +75,19 @@ def mask_tokens(
     return MaskedTokens(inputs, labels)
 
 
+@torch.jit.script
+def nanmean_reduction(v: torch.Tensor) -> torch.Tensor:
+    """A reduction for metrics that ignores NaNs.
+
+    This will be replaced by a native torch function once
+    <https://github.com/pytorch/pytorch/pull/38632> lands.
+    """
+    is_nan = torch.isnan(v)
+    if is_nan.all():
+        return torch.tensor(float("nan"), device=v.device)
+    return v.nansum() / (is_nan.numel() - is_nan.int().sum())
+
+
 class MaskedAccuracy(torchmetrics.Metric):
     def __init__(self, ignore_index: int = -100, dist_sync_on_step: bool = False):
         super().__init__(dist_sync_on_step=dist_sync_on_step)
@@ -181,8 +194,8 @@ class MLMFinetuner(pl.LightningModule):
         loss = outputs.loss
 
         preds = torch.argmax(outputs.logits, dim=-1)
-        accuracy = self.accuracy(preds, masked.labels)
         perplexity = torch.exp(loss)
+        self.accuracy(preds, masked.labels)
 
         self.log(
             "train/loss",
@@ -199,7 +212,7 @@ class MLMFinetuner(pl.LightningModule):
         )
         self.log(
             "train/accuracy",
-            accuracy,
+            self.accuracy,
             on_epoch=True,
         )
         return loss
@@ -225,10 +238,10 @@ class MLMFinetuner(pl.LightningModule):
         )
 
         loss = outputs.loss
+        perplexity = torch.exp(loss)
 
         preds = torch.argmax(outputs.logits, dim=-1)
-        accuracy = self.accuracy(preds, masked.labels)
-        perplexity = torch.exp(loss)
+        self.accuracy(preds, masked.labels)
 
         self.log("validation/loss", loss, sync_dist=True)
         self.log(
@@ -239,7 +252,7 @@ class MLMFinetuner(pl.LightningModule):
         )
         self.log(
             "validation/accuracy",
-            accuracy,
+            self.accuracy,
             on_epoch=True,
         )
 
