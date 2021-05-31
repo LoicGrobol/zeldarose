@@ -232,17 +232,15 @@ class MLMFinetuner(pl.LightningModule):
 
         self.log("validation/loss", loss, sync_dist=True)
         self.log(
-            "validation/accuracy",
-            accuracy,
-            on_step=False,
-            on_epoch=True,
-            sync_dist=True,
-        )
-        self.log(
             "validation/perplexity",
             perplexity,
             on_epoch=True,
             sync_dist=True,
+        )
+        self.log(
+            "validation/accuracy",
+            accuracy,
+            on_epoch=True,
         )
 
     def configure_optimizers(self):
