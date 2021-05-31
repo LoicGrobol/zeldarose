@@ -503,7 +503,7 @@ def main(
 
     trainer = pl.Trainer(
         accumulate_grad_batches=accumulate_grad_batches,
-        auto_select_gpus=True,
+        auto_select_gpus=True if n_gpus,
         callbacks=callbacks,
         default_root_dir=out_dir,
         accelerator=accelerator,
