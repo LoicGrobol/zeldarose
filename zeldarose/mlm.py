@@ -2,10 +2,10 @@ from typing import NamedTuple, Optional, Tuple
 
 import pydantic
 import pytorch_lightning as pl
-import pytorch_lightning.metrics as pl_metrics
 import torch
 import torch.jit
 import torch.utils.data
+import torchmetrics
 import transformers
 
 from loguru import logger
@@ -75,9 +75,9 @@ def mask_tokens(
     return MaskedTokens(inputs, labels)
 
 
-class MaskedAccuracy(pl_metrics.Metric):
-    def __init__(self, ignore_index: int = -100):
-        super().__init__()
+class MaskedAccuracy(torchmetrics.Metric):
+    def __init__(self, ignore_index: int = -100, dist_sync_on_step: bool = False):
+        super().__init__(dist_sync_on_step=dist_sync_on_step)
 
         self.ignore_index = ignore_index
         self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
@@ -181,8 +181,8 @@ class MLMFinetuner(pl.LightningModule):
         loss = outputs.loss
 
         preds = torch.argmax(outputs.logits, dim=-1)
-        accuracy = self.accuracy(preds, masked.labels)
         perplexity = torch.exp(loss)
+        self.accuracy(preds, masked.labels)
 
         self.log(
             "train/loss",
@@ -199,7 +199,7 @@ class MLMFinetuner(pl.LightningModule):
         )
         self.log(
             "train/accuracy",
-            accuracy,
+            self.accuracy,
             on_epoch=True,
         )
         return loss
@@ -225,24 +225,22 @@ class MLMFinetuner(pl.LightningModule):
         )
 
         loss = outputs.loss
-
-        preds = torch.argmax(outputs.logits, dim=-1)
-        accuracy = self.accuracy(preds, masked.labels)
         perplexity = torch.exp(loss)
 
+        preds = torch.argmax(outputs.logits, dim=-1)
+        self.accuracy(preds, masked.labels)
+
         self.log("validation/loss", loss, sync_dist=True)
-        self.log(
-            "validation/accuracy",
-            accuracy,
-            on_step=False,
-            on_epoch=True,
-            sync_dist=True,
-        )
         self.log(
             "validation/perplexity",
             perplexity,
             on_epoch=True,
             sync_dist=True,
+        )
+        self.log(
+            "validation/accuracy",
+            self.accuracy,
+            on_epoch=True,
         )
 
     def configure_optimizers(self):

@@ -25,7 +25,7 @@ def encode_dataset(
     logger.info(f"Loading data from {text_path}")
     raw_dataset = datasets.load_dataset(
         "text", data_files=str(text_path), split="train"
-    )
+    ).filter(lambda example: len(example["text"]) > 0 and not example["text"].isspace())
     logger.info("Tokenizing")
     encoded_dataset = raw_dataset.map(
         lambda examples: tokenizer(
@@ -163,7 +163,7 @@ class TextDataModule(pl.LightningDataModule):
         # This should'nt be needed since this method should only be called on rank 0, but since it
         # is called in every process AND before DDP init (at least in SLURM) we have to enforce it
         # ourselves
-        if os.environ.get('SLURM_PROCID', '0') == '0':
+        if os.environ.get("SLURM_PROCID", "0") == "0":
             encode_dataset(
                 max_length=self.max_length,
                 save_path=self.train_dataset_path,

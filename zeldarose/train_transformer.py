@@ -189,7 +189,7 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 )
 @click.option(
     "--device-batch-size",
-    type=int,
+    type=click.IntRange(0),
     help=(
         "Number of samples in a processing batch"
         " (must be a divisor of training bath size, defaults to training batch size)"
@@ -205,13 +205,13 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 )
 @click.option(
     "--max-epochs",
-    type=int,
+    type=click.IntRange(0),
     default=2,
     help="How many epochs to train for",
 )
 @click.option(
     "--max-steps",
-    type=int,
+    type=click.IntRange(0),
     help="How many steps to train for",
 )
 @click.option(
@@ -233,18 +233,18 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 @click.option(
     "--n-gpus",
     default=0,
-    type=int,
+    type=click.IntRange(0),
     help="How many GPUs to train on. In ddp_cpu mode, this is the number of processes",
 )
 @click.option(
     "--n-nodes",
-    type=int,
+    type=click.IntRange(0),
     default=os.environ.get("SLURM_JOB_NUM_NODES", 1),
     help="How many nodes to train on (for clusters), defaults to $SLURM_JOB_NUM_NODES if on SLURM and 1 otherwise",
 )
 @click.option(
     "--n-workers",
-    type=int,
+    type=click.IntRange(0),
     default=0,
     help="How many data loading workers to use",
 )
@@ -267,7 +267,7 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 )
 @click.option(
     "--save-period",
-    type=int,
+    type=click.IntRange(0),
     help="The number of epoch between intermediate model saving",
     default=0,
 )
@@ -503,6 +503,7 @@ def main(
 
     trainer = pl.Trainer(
         accumulate_grad_batches=accumulate_grad_batches,
+        auto_select_gpus=n_gpus > 0,
         callbacks=callbacks,
         default_root_dir=out_dir,
         accelerator=accelerator,
