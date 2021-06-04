@@ -416,15 +416,11 @@ def main(
     else:
         loader_batch_size = device_batch_size
 
-    if (
-        model_max_positions := getattr(model.config, "max_position_embeddings")
-    ) is not None:
-        max_length = min(
-            tokenizer.model_max_length,
-            model_max_positions,
-        )
-    else:
-        max_length = tokenizer.model_max_length
+    max_length = min(
+        tokenizer.max_len_single_sentence,
+        getattr(model.config, "max_position_embeddings", float("inf"))
+        - tokenizer.num_special_tokens_to_add(pair=False),
+    )
     logger.info("Creating data modules")
     datamodule = data.TextDataModule(
         data_dir=cache_dir,
