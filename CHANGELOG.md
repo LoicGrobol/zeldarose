@@ -14,7 +14,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 - `max_steps` is automatically inferred from the tuning config if a number of lr decay steps is
   given
-- `max_epochs` is not optional (if both `max_steps` and `max_epochs` are unset, Lightning's default will be used)
+- `max_epochs` is not optional (if both `max_steps` and `max_epochs` are unset and no lr schedule is
+  provided, Lightning's default will be used)
 
 ## Fixed
 
