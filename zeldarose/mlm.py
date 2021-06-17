@@ -283,14 +283,17 @@ class MLMFinetuner(pl.LightningModule):
         )
         if self.config.lr_decay_steps:
             if self.config.lr_decay_steps == -1:
-                num_training_steps = self.trainer.max_steps
+                num_training_steps = self.trainer.max_steps - self.config.warmup_steps
+                logger.info(
+                    f"Number of lr decay steps set at {num_training_steps} since -1 was asked"
+                )
             else:
                 num_training_steps = self.config.lr_decay_steps
 
             schedule = transformers.get_linear_schedule_with_warmup(
                 optimizer,
                 num_warmup_steps=self.config.warmup_steps,
-                num_training_steps=num_training_steps,
+                num_training_steps=num_training_steps + self.config.warmup_steps,
             )
             schedulers = [{"scheduler": schedule, "interval": "step"}]
         elif self.config.warmup_steps > 0:

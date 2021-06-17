@@ -206,7 +206,6 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 @click.option(
     "--max-epochs",
     type=click.IntRange(0),
-    default=2,
     help="How many epochs to train for",
 )
 @click.option(
@@ -302,7 +301,7 @@ def main(
     config_path: Optional[pathlib.Path],
     device_batch_size: Optional[int],
     guess_batch_size: bool,
-    max_epochs: int,
+    max_epochs: Optional[int],
     max_steps: Optional[int],
     model_config_path: Optional[str],
     model_name: str,
@@ -496,6 +495,12 @@ def main(
 
     if checkpoint is not None:
         additional_kwargs["resume_from_checkpoint"] = checkpoint
+
+    if max_steps is None and tuning_config.lr_decay_steps is not None:
+        max_steps = tuning_config.lr_decay_steps + tuning_config.warmup_steps
+        logger.info(
+            f"Setting the max number of steps at {max_steps} according to the tuning config"
+        )
 
     trainer = pl.Trainer(
         accumulate_grad_batches=accumulate_grad_batches,
