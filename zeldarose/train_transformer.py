@@ -18,6 +18,7 @@ import torch.cuda
 import transformers
 
 from loguru import logger
+from pytorch_lightning.plugins import DDPPlugin
 from pytorch_lightning.utilities import rank_zero_only
 
 from zeldarose import data
@@ -445,7 +446,11 @@ def main(
         logger.info("Automatic batch size selection")
         additional_kwargs.update({"auto_scale_batch_size": "binsearch"})
 
-    # TODO: find a way to set find_unused_parameters=False
+    if accelerator is not None and "ddp" in accelerator:
+        cast(List, additional_kwargs.setdefault("plugins", [])).append(
+            DDPPlugin(find_unused_parameters=False),
+        )
+
     if accelerator == "ddp_cpu":
         # FIXME: works but seems like bad practice
         additional_kwargs["num_processes"] = n_gpus
