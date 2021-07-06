@@ -180,28 +180,29 @@ class MLMFinetuner(pl.LightningModule):
 
         loss = outputs.loss
 
-        preds = torch.argmax(outputs.logits, dim=-1)
-        perplexity = torch.exp(loss)
-        self.accuracy(preds, masked.labels)
+        with torch.no_grad():
+            preds = torch.argmax(outputs.logits, dim=-1)
+            perplexity = torch.exp(loss)
+            self.accuracy(preds, masked.labels)
 
-        self.log(
-            "train/loss",
-            loss,
-            reduce_fx=torch.mean,
-            on_epoch=True,
-            sync_dist=True,
-        )
-        self.log(
-            "train/perplexity",
-            perplexity,
-            on_epoch=True,
-            sync_dist=True,
-        )
-        self.log(
-            "train/accuracy",
-            self.accuracy,
-            on_epoch=True,
-        )
+            self.log(
+                "train/loss",
+                loss,
+                reduce_fx=torch.mean,
+                on_epoch=True,
+                sync_dist=True,
+            )
+            self.log(
+                "train/perplexity",
+                perplexity,
+                on_epoch=True,
+                sync_dist=True,
+            )
+            self.log(
+                "train/accuracy",
+                self.accuracy,
+                on_epoch=True,
+            )
         return loss
 
     def validation_step(self, batch: zeldarose.data.TextBatch, batch_idx: int):
