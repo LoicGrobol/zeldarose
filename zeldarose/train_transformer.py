@@ -421,6 +421,7 @@ def main(
         getattr(model.config, "max_position_embeddings", float("inf"))
         - tokenizer.num_special_tokens_to_add(pair=False),
     )
+    logger.info(f"Training with a maximum sequence length of {max_length} tokens")
     logger.info("Creating data modules")
     datamodule = data.TextDataModule(
         data_dir=cache_dir,
