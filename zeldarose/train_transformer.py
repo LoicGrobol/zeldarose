@@ -449,7 +449,7 @@ def main(
 
     if accelerator is not None and "ddp" in accelerator:
         cast(List, additional_kwargs.setdefault("plugins", [])).append(
-            DDPPlugin(find_unused_parameters=False, num_nodes=n_nodes),
+            DDPPlugin(find_unused_parameters=not profile, num_nodes=n_nodes),
         )
 
     if accelerator == "ddp_cpu":
