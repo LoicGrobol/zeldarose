@@ -1,7 +1,7 @@
 import os
 import pathlib
 
-from typing import List, NamedTuple, Optional, Sequence, TypedDict
+from typing import cast, List, NamedTuple, Optional, Sequence, TypedDict
 
 import datasets
 import pytorch_lightning as pl
@@ -23,22 +23,31 @@ def encode_dataset(
     max_length: Optional[int] = None,
 ):
     logger.info(f"Loading data from {text_path}")
-    raw_dataset = datasets.load_dataset(
-        "text", data_files=str(text_path), split="train"
-    ).filter(lambda example: len(example["text"]) > 0 and not example["text"].isspace())
+    raw_dataset = cast(
+        datasets.Dataset,
+        datasets.load_dataset("text", data_files=str(text_path), split="train"),
+    ).filter(
+        (lambda example: len(example) > 0 and not example.isspace()),
+        input_columns="text",
+    )
     logger.info("Tokenizing")
     encoded_dataset = raw_dataset.map(
-        lambda examples: tokenizer(
-            examples["text"],
-            add_special_tokens=True,
-            max_length=max_length,
-            return_special_tokens_mask=True,
-            truncation=True,
+        (
+            lambda examples: tokenizer(
+                examples,
+                add_special_tokens=True,
+                max_length=max_length,
+                return_special_tokens_mask=True,
+                truncation=True,
+            )
         ),
         batched=True,
+        desc="Tokenizing",
+        input_columns="text",
         new_fingerprint=f"{raw_dataset._fingerprint}-{tokenizer_name}-{max_length}",
     )
     logger.info(f"Saving dataset to {save_path}")
+    # FIXME: this causes an obscure crash whe, two instance want to access the same --cache-dir
     encoded_dataset.save_to_disk(save_path)
 
 

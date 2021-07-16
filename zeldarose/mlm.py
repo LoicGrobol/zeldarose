@@ -180,28 +180,29 @@ class MLMFinetuner(pl.LightningModule):
 
         loss = outputs.loss
 
-        preds = torch.argmax(outputs.logits, dim=-1)
-        perplexity = torch.exp(loss)
-        self.accuracy(preds, masked.labels)
+        with torch.no_grad():
+            preds = torch.argmax(outputs.logits, dim=-1)
+            perplexity = torch.exp(loss)
+            self.accuracy(preds, masked.labels)
 
-        self.log(
-            "train/loss",
-            loss,
-            reduce_fx=torch.mean,
-            on_epoch=True,
-            sync_dist=True,
-        )
-        self.log(
-            "train/perplexity",
-            perplexity,
-            on_epoch=True,
-            sync_dist=True,
-        )
-        self.log(
-            "train/accuracy",
-            self.accuracy,
-            on_epoch=True,
-        )
+            self.log(
+                "train/loss",
+                loss,
+                reduce_fx=torch.mean,
+                on_epoch=True,
+                sync_dist=True,
+            )
+            self.log(
+                "train/perplexity",
+                perplexity,
+                on_epoch=True,
+                sync_dist=True,
+            )
+            self.log(
+                "train/accuracy",
+                self.accuracy,
+                on_epoch=True,
+            )
         return loss
 
     def validation_step(self, batch: zeldarose.data.TextBatch, batch_idx: int):
@@ -283,14 +284,17 @@ class MLMFinetuner(pl.LightningModule):
         )
         if self.config.lr_decay_steps:
             if self.config.lr_decay_steps == -1:
-                num_training_steps = self.trainer.max_steps
+                num_training_steps = self.trainer.max_steps - self.config.warmup_steps
+                logger.info(
+                    f"Number of lr decay steps set at {num_training_steps} since -1 was asked"
+                )
             else:
                 num_training_steps = self.config.lr_decay_steps
 
             schedule = transformers.get_linear_schedule_with_warmup(
                 optimizer,
                 num_warmup_steps=self.config.warmup_steps,
-                num_training_steps=num_training_steps,
+                num_training_steps=num_training_steps + self.config.warmup_steps,
             )
             schedulers = [{"scheduler": schedule, "interval": "step"}]
         elif self.config.warmup_steps > 0:

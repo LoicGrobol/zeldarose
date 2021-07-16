@@ -18,6 +18,7 @@ import torch.cuda
 import transformers
 
 from loguru import logger
+from pytorch_lightning.plugins import DDPPlugin
 from pytorch_lightning.utilities import rank_zero_only
 
 from zeldarose import data
@@ -206,7 +207,6 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 @click.option(
     "--max-epochs",
     type=click.IntRange(0),
-    default=2,
     help="How many epochs to train for",
 )
 @click.option(
@@ -302,7 +302,7 @@ def main(
     config_path: Optional[pathlib.Path],
     device_batch_size: Optional[int],
     guess_batch_size: bool,
-    max_epochs: int,
+    max_epochs: Optional[int],
     max_steps: Optional[int],
     model_config_path: Optional[str],
     model_name: str,
@@ -421,6 +421,7 @@ def main(
         getattr(model.config, "max_position_embeddings", float("inf"))
         - tokenizer.num_special_tokens_to_add(pair=False),
     )
+    logger.info(f"Training with a maximum sequence length of {max_length} tokens")
     logger.info("Creating data modules")
     datamodule = data.TextDataModule(
         data_dir=cache_dir,
@@ -446,7 +447,11 @@ def main(
         logger.info("Automatic batch size selection")
         additional_kwargs.update({"auto_scale_batch_size": "binsearch"})
 
-    # TODO: find a way to set find_unused_parameters=False
+    if accelerator is not None and "ddp" in accelerator:
+        cast(List, additional_kwargs.setdefault("plugins", [])).append(
+            DDPPlugin(find_unused_parameters=not profile, num_nodes=n_nodes),
+        )
+
     if accelerator == "ddp_cpu":
         # FIXME: works but seems like bad practice
         additional_kwargs["num_processes"] = n_gpus
@@ -496,6 +501,12 @@ def main(
 
     if checkpoint is not None:
         additional_kwargs["resume_from_checkpoint"] = checkpoint
+
+    if max_steps is None and tuning_config.lr_decay_steps is not None:
+        max_steps = tuning_config.lr_decay_steps + tuning_config.warmup_steps
+        logger.info(
+            f"Setting the max number of steps at {max_steps} according to the tuning config"
+        )
 
     trainer = pl.Trainer(
         accumulate_grad_batches=accumulate_grad_batches,

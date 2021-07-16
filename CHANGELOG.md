@@ -10,6 +10,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 [Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.2...HEAD
 
+## Changed
+
+- `max_steps` is automatically inferred from the tuning config if a number of lr decay steps is
+  given
+- `max_epochs` is not optional (if both `max_steps` and `max_epochs` are unset and no lr schedule is
+  provided, Lightning's default will be used)
+- `find_unused_parameters` is now disabled in DDP mode, unless in profile mode
+
+## Fixed
+
+- Linear decay now properly takes the warmup period into account
+
 ## [0.3.2] — 2021-05-3&
 
 [0.3.2]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.1...v0.3.2
