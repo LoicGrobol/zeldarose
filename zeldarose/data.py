@@ -47,6 +47,7 @@ def encode_dataset(
         new_fingerprint=f"{raw_dataset._fingerprint}-{tokenizer_name}-{max_length}",
     )
     logger.info(f"Saving dataset to {save_path}")
+    # FIXME: this causes an obscure crash whe, two instance want to access the same --cache-dir
     encoded_dataset.save_to_disk(save_path)
 
 
