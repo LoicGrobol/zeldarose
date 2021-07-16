@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
   given
 - `max_epochs` is not optional (if both `max_steps` and `max_epochs` are unset and no lr schedule is
   provided, Lightning's default will be used)
+- `find_unused_parameters` is now disabled in DDP mode, unless in profile mode
 
 ## Fixed
 
