@@ -409,6 +409,7 @@ def main(
     accumulate_grad_batches = tuning_config.batch_size // (
         device_batch_size * n_devices
     )
+    logger.info(f"Using {accumulate_grad_batches} steps gradient accumulation.")
 
     # In DP mode, every batch is split between the devices
     if accelerator == "dp":
