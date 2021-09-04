@@ -289,6 +289,11 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     ),
 )
 @click.option(
+    "--use-fp16",
+    is_flag=True,
+    help="Activate half-preicions mode (only on GPUs)",
+)
+@click.option(
     "--val-text",
     "val_path",
     type=click_pathlib.Path(resolve_path=True, exists=True, dir_okay=False),
@@ -317,6 +322,7 @@ def main(
     save_period: int,
     sharded_ddp: bool,
     tokenizer_name: Optional[str],
+    use_fp16: bool,
     val_path: Optional[pathlib.Path],
     verbose: bool,
 ):
@@ -450,7 +456,7 @@ def main(
 
     if accelerator is not None and "ddp" in accelerator:
         cast(List, additional_kwargs.setdefault("plugins", [])).append(
-            DDPPlugin(find_unused_parameters=not profile, num_nodes=n_nodes),
+            DDPPlugin(find_unused_parameters=profile),
         )
 
     if accelerator == "ddp_cpu":
@@ -475,8 +481,9 @@ def main(
             )
 
     if n_gpus:
-        logger.info(f"Training the model on {n_gpus} GPUs with half precision")
-        additional_kwargs["precision"] = 16
+        if use_fp16:
+            logger.info(f"Training the model on {n_gpus} GPUs with half precision")
+            additional_kwargs["precision"] = 16
     elif accelerator == "ddp_cpu":
         logger.info(
             f"Training the model on CPU in {additional_kwargs['num_processes']} processes"
