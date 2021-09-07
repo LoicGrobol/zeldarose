@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
+## Changed
+
+- Bumped lightning to 1.4.x
+
+## Fixed
+
+- Fix an issue that forced a batch size of 1 in DDP using a distributed sampler
+
 [Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.2...HEAD
 
 ## Changed

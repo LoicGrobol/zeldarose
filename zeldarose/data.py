@@ -78,15 +78,19 @@ class EncodedSample(TypedDict):
     text: str
 
 
+# NOTE: we need an explicit batch size here to make sure it gets picked up by
+# <https://github.com/PyTorchLightning/pytorch-lightning/blob/a79c351a6a0f45a46e7176148ae718b3242c3d2e/pytorch_lightning/trainer/data_loading.py#L191>
 class TextLoader(torch.utils.data.DataLoader):
     def __init__(
         self,
         dataset: datasets.Dataset,
         tokenizer: transformers.PreTrainedTokenizer,
+        batch_size: int = 1,
         *args,
         **kwargs,
     ):
         self.dataset: datasets.Dataset
+        kwargs["batch_size"] = batch_size
         if "collate_fn" not in kwargs:
             kwargs["collate_fn"] = self.collate
         super().__init__(dataset, *args, **kwargs)
