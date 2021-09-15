@@ -85,12 +85,10 @@ class TextLoader(torch.utils.data.DataLoader[TextBatch]):
         self,
         dataset: torch.utils.data.Dataset[TextBatch],
         tokenizer: transformers.PreTrainedTokenizer,
-        batch_size: int = 1,
         *args,
         **kwargs,
     ):
         self.dataset: torch.utils.data.Dataset[TextBatch]
-        kwargs["batch_size"] = batch_size
         if "collate_fn" not in kwargs:
             kwargs["collate_fn"] = self.collate
         super().__init__(dataset, *args, **kwargs)
