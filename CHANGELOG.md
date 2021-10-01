@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 [0.3.3]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.2...v0.3.3
 
-## Changed
+### Changed
 
 - `max_steps` is automatically inferred from the tuning config if a number of lr decay steps is
   given
@@ -23,7 +23,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 - `find_unused_parameters` is now disabled in DDP mode, unless in profile mode
 - Bumped lightning to 1.4.x
 
-## Fixed
+### Fixed
 
 - Linear decay now properly takes the warmup period into account
 
