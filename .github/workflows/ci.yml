@@ -69,10 +69,8 @@ jobs:
                 key: ${{ runner.os }}-transformers-${{ hashFiles('**/setup.cfg') }}
                 restore-keys: |
                   ${{ runner.os }}-transformers-
-            - name: Test with tox
-              run: |
-                  pip install tox
-                  tox
+            - name: Run tox with tox-gh-actions
+              uses: ymyzk/run-tox-gh-actions@main
     build_wheels:
         name: Build wheels on ${{ matrix.os }}
         runs-on: ${{ matrix.os }}
