@@ -2,6 +2,8 @@ name: Continuous integration
 
 on:
   push:
+  release:
+    types: [ published ]
   workflow_dispatch:
     inputs:
       deploy_trigger:
