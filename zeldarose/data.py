@@ -136,7 +136,7 @@ class TextDataModule(pl.LightningDataModule):
         self,
         loader_batch_size: int,
         num_workers: int,
-        tokenizer: transformers.PreTrainedTokenizer,
+        tokenizer: transformers.PreTrainedTokenizerBase,
         tokenizer_name: str,
         train_text: pathlib.Path,
         data_dir: Optional[pathlib.Path] = None,

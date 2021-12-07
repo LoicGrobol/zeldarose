@@ -142,7 +142,7 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     def __init__(
         self,
         save_dir: pathlib.Path,
-        tokenizer: transformers.PreTrainedTokenizer,
+        tokenizer: transformers.PreTrainedTokenizerBase,
         period: int = 1,
     ):
         self.period = period
@@ -435,12 +435,12 @@ def main(
         loader_batch_size=loader_batch_size,
         max_length=max_length,
         num_workers=n_workers,
-        prepare_data_per_node=False,
         tokenizer=tokenizer,
         tokenizer_name=tokenizer_name.replace("/", "_"),
         train_text=raw_text,
         val_text=val_path,
     )
+    datamodule.prepare_data_per_node = False
 
     logger.info("Creating trainer")
     additional_kwargs: Dict[str, Any] = dict()
