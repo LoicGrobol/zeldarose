@@ -435,6 +435,7 @@ def main(
         loader_batch_size=loader_batch_size,
         max_length=max_length,
         num_workers=n_workers,
+        prepare_data_per_node=False,
         tokenizer=tokenizer,
         tokenizer_name=tokenizer_name.replace("/", "_"),
         train_text=raw_text,
@@ -528,7 +529,6 @@ def main(
         max_epochs=max_epochs,
         max_steps=max_steps,
         num_nodes=n_nodes,
-        prepare_data_per_node=False,
         **additional_kwargs,
     )
 
