@@ -10,7 +10,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 [Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.3...HEAD
 
-## [0.3.3] — 2021-05-3&
+## [0.3.3] — 2021-12-21
+
+[0.3.3]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.3...v0.3.4
+
+## Changed
+
+- Bump lightning to 1.5.x
+
+## [0.3.3] — 2021-11-01
 
 [0.3.3]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.2...v0.3.3
 
@@ -27,7 +35,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 - Linear decay now properly takes the warmup period into account
 
-## [0.3.2] — 2021-05-3&
+## [0.3.2] — 2021-05-31
 
 [0.3.2]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.1...v0.3.2
 
