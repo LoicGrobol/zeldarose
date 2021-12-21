@@ -142,7 +142,7 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     def __init__(
         self,
         save_dir: pathlib.Path,
-        tokenizer: transformers.PreTrainedTokenizer,
+        tokenizer: transformers.PreTrainedTokenizerBase,
         period: int = 1,
     ):
         self.period = period
@@ -440,6 +440,7 @@ def main(
         train_text=raw_text,
         val_text=val_path,
     )
+    datamodule.prepare_data_per_node = False
 
     logger.info("Creating trainer")
     additional_kwargs: Dict[str, Any] = dict()
@@ -528,7 +529,6 @@ def main(
         max_epochs=max_epochs,
         max_steps=max_steps,
         num_nodes=n_nodes,
-        prepare_data_per_node=False,
         **additional_kwargs,
     )
 
