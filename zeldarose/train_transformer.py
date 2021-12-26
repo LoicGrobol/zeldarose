@@ -6,7 +6,7 @@ import pathlib
 import sys
 import warnings
 
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
 import click
 import click_pathlib
@@ -119,7 +119,7 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
         self.tokenizer = tokenizer
 
     @rank_zero_only
-    def on_epoch_end(self, trainer: pl.Trainer, pl_module: mlm.MLMFinetuner):
+    def on_epoch_end(self, trainer: pl.Trainer, pl_module: mlm.MLMTrainingModel):
         if not trainer.current_epoch % self.period:
             epoch_save_dir = self.save_dir / f"epoch_{trainer.current_epoch}"
             logger.info(f"Saving intermediate model to {epoch_save_dir}")
@@ -296,10 +296,10 @@ def main(
     if config_path is not None:
         config = toml.loads(config_path.read_text())
         task_config = mlm.MLMTaskConfig.parse_obj(config.get("task", dict()))
-        tuning_config = mlm.MLMFinetunerConfig.parse_obj(config.get("tuning", dict()))
+        tuning_config = mlm.MLMTrainConfig.parse_obj(config.get("tuning", dict()))
     else:
         task_config = mlm.MLMTaskConfig()
-        tuning_config = mlm.MLMFinetunerConfig()
+        tuning_config = mlm.MLMTrainConfig()
 
     # NOTE: this is likely duplicated somewhere in pl codebase but we need it now unless pl rolls
     # out something like `optim_batch_size` that takes into account the number of tasks and the
@@ -322,40 +322,18 @@ def main(
         transformers.AutoTokenizer.from_pretrained(tokenizer_name, use_fast=True)
     )
 
-    # TODO: export this block to the task-specific module
-    # <block>
-    if pretrained_model is not None:
-        logger.info(f"Loading pretrained model {pretrained_model!r}")
-        model = transformers.AutoModelForMaskedLM.from_pretrained(pretrained_model)
-    elif model_config_path is not None:
-        logger.info(f"Loading pretrained config {model_config_path!r}")
-        model_config = transformers.AutoConfig.from_pretrained(model_config_path)
-        logger.info("Generating model from config")
-        # TODO: check the other parameters?
-        if model_config.vocab_size != tokenizer.vocab_size:
-            logger.warning(
-                f"Vocabulary size mismatch between model ({model_config.vocab_size})"
-                f" and tokenizer ({tokenizer.vocab_size}), using {tokenizer.vocab_size}."
-            )
-            model_config.vocab_size = tokenizer.vocab_size
-        model = transformers.AutoModelForMaskedLM.from_config(model_config)
-    else:
-        raise ValueError("You must provide either a pretrained model or a model config")
-
-    logger.info("Creating MLM Finetuner")
-
     if (mask_token_index := getattr(tokenizer, "mask_token_id", None)) is None:
         mask_token_index = tokenizer.convert_tokens_to_ids(tokenizer.mask_token)
-    logger.debug(f"Mask token index: {mask_token_index}")
-    finetuning_model = mlm.MLMFinetuner(
-        model,
+
+    training_model = get_training_model(
         mask_token_index=mask_token_index,
-        vocabulary_size=len(tokenizer),
-        config=tuning_config,
+        model_config_path=model_config_path,
+        pretrained_model=pretrained_model,
         task_config=task_config,
+        tuning_config=tuning_config,
+        vocab_size=tokenizer.vocab_size,
     )
-    # </block>
-    finetuning_model.train()
+    training_model.train()
 
     if device_batch_size is None:
         device_batch_size = tuning_config.batch_size
@@ -388,7 +366,7 @@ def main(
     # FIXME: we shouldn't need num_special_tokens_to_add here
     max_length = min(
         tokenizer.max_len_single_sentence,
-        finetuning_model.max_len - tokenizer.num_special_tokens_to_add(pair=False),
+        training_model.max_len - tokenizer.num_special_tokens_to_add(pair=False),
     )
     logger.info(f"Training with a maximum sequence length of {max_length} tokens")
     logger.info("Creating data modules")
@@ -459,7 +437,7 @@ def main(
         pl.callbacks.LearningRateMonitor("step"),
     ]
     if save_period:
-        finetuning_model.save_transformer(
+        training_model.save_transformer(
             out_dir / "partway_models" / "initial", tokenizer
         )
         callbacks.append(
@@ -501,10 +479,50 @@ def main(
 
     logger.info("Start training")
 
-    trainer.fit(finetuning_model, datamodule=datamodule)
+    trainer.fit(training_model, datamodule=datamodule)
 
     save_dir = out_dir / model_name
-    finetuning_model.save_transformer(save_dir, tokenizer)
+    training_model.save_transformer(save_dir, tokenizer)
+
+
+def get_training_model(
+    mask_token_index: int,
+    model_config_path: Optional[Union[str, pathlib.Path]],
+    pretrained_model: Optional[Union[str, pathlib.Path]],
+    task_config,
+    tuning_config,
+    vocab_size: Optional[int],
+) -> mlm.MLMTrainingModel:
+    if pretrained_model is not None:
+        logger.info(f"Loading pretrained model {pretrained_model!r}")
+        model = transformers.AutoModelForMaskedLM.from_pretrained(pretrained_model)
+    elif model_config_path is not None:
+        logger.info(f"Loading pretrained config {model_config_path!r}")
+        model_config = transformers.AutoConfig.from_pretrained(model_config_path)
+        logger.info("Generating model from config")
+        # TODO: check the other parameters?
+        if vocab_size is not None and model_config.vocab_size != vocab_size:
+            logger.warning(
+                f"Vocabulary size mismatch between model ({model_config.vocab_size})"
+                f" and tokenizer ({vocab_size}), using {vocab_size}."
+            )
+            model_config.vocab_size = vocab_size
+        model = transformers.AutoModelForMaskedLM.from_config(model_config)
+    else:
+        raise ValueError("You must provide either a pretrained model or a model config")
+
+    logger.info("Creating MLM Finetuner")
+
+    logger.debug(f"Mask token index: {mask_token_index}")
+    training_model = mlm.MLMTrainingModel(
+        model,
+        mask_token_index=mask_token_index,
+        vocabulary_size=vocab_size,
+        config=tuning_config,
+        task_config=task_config,
+    )
+
+    return training_model
 
 
 if __name__ == "__main__":

@@ -102,7 +102,7 @@ class MLMTaskConfig(pydantic.BaseModel):
     switch_ratio: float = 0.1
 
 
-class MLMFinetunerConfig(pydantic.BaseModel):
+class MLMTrainConfig(pydantic.BaseModel):
     batch_size: int = 64
     betas: Tuple[float, float] = (0.9, 0.98)
     epsilon: float = 1e-8
@@ -113,20 +113,20 @@ class MLMFinetunerConfig(pydantic.BaseModel):
     weight_decay: Optional[float] = None
 
 
-class MLMFinetuner(pl.LightningModule):
+class MLMTrainingModel(pl.LightningModule):
     def __init__(
         self,
         model: transformers.PreTrainedModel,
         mask_token_index: int,
         vocabulary_size: int,
-        config: Optional[MLMFinetunerConfig] = None,
+        config: Optional[MLMTrainConfig] = None,
         task_config: Optional[MLMTaskConfig] = None,
     ):
         super().__init__()
         if config is not None:
             self.config = config
         else:
-            self.config = MLMFinetunerConfig()
+            self.config = MLMTrainConfig()
         if task_config is not None:
             self.task_config = task_config
         else:
