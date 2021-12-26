@@ -12,17 +12,14 @@ import click
 import click_pathlib
 import pytorch_lightning as pl
 import toml
-import torch
-import torch.nn
-import torch.cuda
 import transformers
 
 from loguru import logger
 from pytorch_lightning.plugins import DDPPlugin
 from pytorch_lightning.utilities import rank_zero_only
-
 from zeldarose import data
 from zeldarose import mlm
+from zeldarose.utils import reset_transformer_vocab
 
 
 def setup_logging(
@@ -110,34 +107,6 @@ def setup_logging(
         warnings.showwarning = showwarning
 
 
-def reset_transformer_vocab(model: transformers.PreTrainedModel):
-    logger.info("Reinitializing model embeddings")
-    # There is no consensus in hf transformers as to how the underlying transformer of a MLM
-    # model is called
-    transformer_model = next(
-        tr_model
-        for transformer_name in ("bert", "roberta", "transformer")
-        for tr_model in [getattr(model, transformer_name, None)]
-        if tr_model is not None
-    )
-    if isinstance(transformer_model.embeddings, torch.nn.Embedding):
-        transformer_model.embeddings.reset_parameters()
-    # Assume a custom huggingface embedding class
-    else:
-        transformer_model.embeddings = type(transformer_model.embeddings)(
-            transformer_model.config
-        )
-    logger.info("Reinitializing LM head")
-    # There is no consensus in hf transformers as to how the LM head of a MLM model is
-    # called so we have to do an ugly song and dance here
-    lm_head_name = next(
-        layer_name
-        for layer_name in ("lm_head", "cls", "pred_layer")
-        if hasattr(model, layer_name)
-    )
-    setattr(model, lm_head_name, type(getattr(model, lm_head_name))(model.config))
-
-
 class SavePretrainedModelCallback(pl.callbacks.Callback):
     def __init__(
         self,
@@ -152,15 +121,13 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     @rank_zero_only
     def on_epoch_end(self, trainer: pl.Trainer, pl_module: mlm.MLMFinetuner):
         if not trainer.current_epoch % self.period:
-            transformer_model = pl_module.model
             epoch_save_dir = self.save_dir / f"epoch_{trainer.current_epoch}"
             logger.info(f"Saving intermediate model to {epoch_save_dir}")
-            save_model(transformer_model, epoch_save_dir, self.tokenizer)
+            pl_module.save_transformer(epoch_save_dir, self.tokenizer)
 
 
 # TODO: allow reading all these from a config file (except perhaps for paths)
 # TODO: refactor the api to have a single `zeldarose` entrypoint with subcommands.
-# TODO: allow restarting from checkpoint
 @click.command()
 @click.argument(
     "raw_text",
@@ -361,6 +328,8 @@ def main(
         transformers.AutoTokenizer.from_pretrained(tokenizer_name, use_fast=True)
     )
 
+    # TODO: export this block to the task-specific module
+    # <block>
     if pretrained_model is not None:
         logger.info(f"Loading pretrained model {pretrained_model!r}")
         model = transformers.AutoModelForMaskedLM.from_pretrained(pretrained_model)
@@ -380,7 +349,6 @@ def main(
         model = transformers.AutoModelForMaskedLM.from_config(model_config)
     else:
         raise ValueError("You must provide either a pretrained model or a model config")
-    model.train()
 
     logger.info("Creating MLM Finetuner")
 
@@ -394,6 +362,8 @@ def main(
         config=tuning_config,
         task_config=task_config,
     )
+    # </block>
+    finetuning_model.train()
 
     if device_batch_size is None:
         device_batch_size = tuning_config.batch_size
@@ -423,10 +393,10 @@ def main(
     else:
         loader_batch_size = device_batch_size
 
+    # FIXME: we shouldn't need num_special_tokens_to_add here
     max_length = min(
         tokenizer.max_len_single_sentence,
-        getattr(model.config, "max_position_embeddings", float("inf"))
-        - tokenizer.num_special_tokens_to_add(pair=False),
+        finetuning_model.max_len - tokenizer.num_special_tokens_to_add(pair=False),
     )
     logger.info(f"Training with a maximum sequence length of {max_length} tokens")
     logger.info("Creating data modules")
@@ -497,7 +467,9 @@ def main(
         pl.callbacks.LearningRateMonitor("step"),
     ]
     if save_period:
-        save_model(model, out_dir / "partway_models" / "initial", tokenizer)
+        finetuning_model.save_transformer(
+            out_dir / "partway_models" / "initial", tokenizer
+        )
         callbacks.append(
             SavePretrainedModelCallback(
                 out_dir / "partway_models",
@@ -537,22 +509,7 @@ def main(
     trainer.fit(finetuning_model, datamodule=datamodule)
 
     save_dir = out_dir / model_name
-    save_model(model, save_dir, tokenizer)
-
-
-@rank_zero_only
-def save_model(
-    model: transformers.PreTrainedModel,
-    save_dir: pathlib.Path,
-    tokenizer: Optional[transformers.PreTrainedTokenizer] = None,
-):
-    """Save a transformer model."""
-    save_dir.mkdir(parents=True, exist_ok=True)
-    logger.info(f"Saving model to {save_dir}")
-    model.save_pretrained(str(save_dir))
-    if tokenizer is not None:
-        logger.info(f"Saving tokenizer to {save_dir}")
-        tokenizer.save_pretrained(str(save_dir), legacy_format=not tokenizer.is_fast)
+    finetuning_model.save_transformer(save_dir, tokenizer)
 
 
 if __name__ == "__main__":

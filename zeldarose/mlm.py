@@ -1,3 +1,4 @@
+import pathlib
 from typing import NamedTuple, Optional, Tuple
 
 import pydantic
@@ -9,6 +10,7 @@ import torchmetrics
 import transformers
 
 from loguru import logger
+from pytorch_lightning.utilities import rank_zero_only
 
 import zeldarose.data
 
@@ -136,6 +138,7 @@ class MLMFinetuner(pl.LightningModule):
 
         self.accuracy = MaskedAccuracy()
         self.model = model
+        self.max_len = getattr(model.config, "max_position_embeddings", float("inf"))
 
         self.save_hyperparameters("config", "task_config")
 
@@ -307,3 +310,19 @@ class MLMFinetuner(pl.LightningModule):
             schedulers = []
 
         return [optimizer], schedulers
+
+    @rank_zero_only
+    def save_transformer(
+        self,
+        save_dir: pathlib.Path,
+        tokenizer: Optional[transformers.PreTrainedTokenizer] = None,
+    ):
+        """Save the wrapped transformer model."""
+        save_dir.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Saving model to {save_dir}")
+        self.model.save_pretrained(str(save_dir))
+        if tokenizer is not None:
+            logger.info(f"Saving tokenizer to {save_dir}")
+            tokenizer.save_pretrained(
+                str(save_dir), legacy_format=not tokenizer.is_fast
+            )
