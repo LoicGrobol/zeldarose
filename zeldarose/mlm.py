@@ -1,5 +1,5 @@
 import pathlib
-from typing import NamedTuple, Optional, Tuple
+from typing import NamedTuple, Optional
 
 import pydantic
 import pytorch_lightning as pl
@@ -13,6 +13,8 @@ from loguru import logger
 from pytorch_lightning.utilities import rank_zero_only
 
 import zeldarose.data
+
+from zeldarose.common import TrainConfig
 
 
 class MaskedTokens(NamedTuple):
@@ -102,36 +104,25 @@ class MLMTaskConfig(pydantic.BaseModel):
     switch_ratio: float = 0.1
 
 
-class MLMTrainConfig(pydantic.BaseModel):
-    batch_size: int = 64
-    betas: Tuple[float, float] = (0.9, 0.98)
-    epsilon: float = 1e-8
-    gradient_clipping = 0
-    learning_rate: float = 1e-4
-    lr_decay_steps: Optional[int] = None
-    warmup_steps: int = 0
-    weight_decay: Optional[float] = None
-
-
 class MLMTrainingModel(pl.LightningModule):
     def __init__(
         self,
         model: transformers.PreTrainedModel,
         mask_token_index: int,
         vocabulary_size: int,
-        config: Optional[MLMTrainConfig] = None,
+        training_config: Optional[TrainConfig] = None,
         task_config: Optional[MLMTaskConfig] = None,
     ):
         super().__init__()
-        if config is not None:
-            self.config = config
+        if training_config is not None:
+            self.training_config = training_config
         else:
-            self.config = MLMTrainConfig()
+            self.training_config = TrainConfig()
         if task_config is not None:
             self.task_config = task_config
         else:
             self.task_config = MLMTaskConfig()
-        logger.info(f"MLM trainer config: {self.config}")
+        logger.info(f"MLM trainer config: {self.training_config}")
         logger.info(f"MLM task config: {self.task_config}")
         self.mask_token_index = mask_token_index
         self.vocabulary_size = vocabulary_size
@@ -140,7 +131,7 @@ class MLMTrainingModel(pl.LightningModule):
         self.model = model
         self.max_len = getattr(model.config, "max_position_embeddings", float("inf"))
 
-        self.save_hyperparameters("config", "task_config")
+        self.save_hyperparameters("training_config", "task_config")
 
     def forward(
         self,
@@ -248,9 +239,9 @@ class MLMTrainingModel(pl.LightningModule):
         )
 
     def configure_optimizers(self):
-        if self.config.weight_decay is not None:
+        if self.training_config.weight_decay is not None:
             no_decay = ["bias", "LayerNorm.weight"]
-            decay_rate = self.config.weight_decay
+            decay_rate = self.training_config.weight_decay
             optimizer_grouped_parameters = [
                 {
                     "params": [
@@ -280,30 +271,33 @@ class MLMTrainingModel(pl.LightningModule):
 
         optimizer = torch.optim.AdamW(
             optimizer_grouped_parameters,
-            betas=self.config.betas,
-            lr=self.config.learning_rate,
-            eps=self.config.epsilon,
+            betas=self.training_config.betas,
+            lr=self.training_config.learning_rate,
+            eps=self.training_config.epsilon,
             weight_decay=decay_rate,
         )
-        if self.config.lr_decay_steps:
-            if self.config.lr_decay_steps == -1:
-                num_training_steps = self.trainer.max_steps - self.config.warmup_steps
+        if self.training_config.lr_decay_steps:
+            if self.training_config.lr_decay_steps == -1:
+                num_training_steps = (
+                    self.trainer.max_steps - self.training_config.warmup_steps
+                )
                 logger.info(
                     f"Number of lr decay steps set at {num_training_steps} since -1 was asked"
                 )
             else:
-                num_training_steps = self.config.lr_decay_steps
+                num_training_steps = self.training_config.lr_decay_steps
 
             schedule = transformers.get_linear_schedule_with_warmup(
                 optimizer,
-                num_warmup_steps=self.config.warmup_steps,
-                num_training_steps=num_training_steps + self.config.warmup_steps,
+                num_warmup_steps=self.training_config.warmup_steps,
+                num_training_steps=num_training_steps
+                + self.training_config.warmup_steps,
             )
             schedulers = [{"scheduler": schedule, "interval": "step"}]
-        elif self.config.warmup_steps > 0:
+        elif self.training_config.warmup_steps > 0:
             schedule = transformers.get_constant_schedule_with_warmup(
                 optimizer,
-                num_warmup_steps=self.config.warmup_steps,
+                num_warmup_steps=self.training_config.warmup_steps,
             )
             schedulers = [{"scheduler": schedule, "interval": "step"}]
         else:
