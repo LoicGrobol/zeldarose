@@ -228,11 +228,6 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     metavar="NAME_OR_PATH",
 )
 @click.option(
-    "--reset-vocab",
-    is_flag=True,
-    help="Re-init the pretrained model embeddings and LM head layers (to train using a different tokenizer)",
-)
-@click.option(
     "--save-period",
     type=click.IntRange(0),
     help="The number of epoch between intermediate model saving",
@@ -285,7 +280,6 @@ def main(
     pretrained_model: Optional[str],
     profile: bool,
     raw_text: pathlib.Path,
-    reset_vocab: bool,
     save_period: int,
     sharded_ddp: bool,
     tokenizer_name: Optional[str],
@@ -333,8 +327,6 @@ def main(
     if pretrained_model is not None:
         logger.info(f"Loading pretrained model {pretrained_model!r}")
         model = transformers.AutoModelForMaskedLM.from_pretrained(pretrained_model)
-        if reset_vocab:
-            reset_transformer_vocab(model)
     elif model_config_path is not None:
         logger.info(f"Loading pretrained config {model_config_path!r}")
         model_config = transformers.AutoConfig.from_pretrained(model_config_path)
