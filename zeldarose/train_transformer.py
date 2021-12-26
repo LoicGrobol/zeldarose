@@ -6,7 +6,7 @@ import pathlib
 import sys
 import warnings
 
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Optional, cast
 
 import click
 import click_pathlib
@@ -324,14 +324,17 @@ def main(
         config = dict()
     tuning_config = TrainConfig.parse_obj(config.get("tuning", dict()))
 
-    training_model = get_training_model(
-        mask_token_index=mask_token_index,
-        model_config_path=model_config_path,
-        pretrained_model=pretrained_model,
-        task_config_dict=config.get("task"),
-        training_config=tuning_config,
-        vocab_size=tokenizer.vocab_size,
-    )
+    if (task_type := config.get("type", "mlm")) == "mlm":
+        training_model = mlm.get_training_model(
+            mask_token_index=mask_token_index,
+            model_config_path=model_config_path,
+            pretrained_model=pretrained_model,
+            task_config_dict=config.get("task"),
+            training_config=tuning_config,
+            vocab_size=tokenizer.vocab_size,
+        )
+    else:
+        raise ValueError(f"Unknown task type: {task_type!r}")
     training_model.train()
 
     if device_batch_size is None:
@@ -482,51 +485,6 @@ def main(
 
     save_dir = out_dir / model_name
     training_model.save_transformer(save_dir, tokenizer)
-
-
-def get_training_model(
-    mask_token_index: int,
-    model_config_path: Optional[Union[str, pathlib.Path]],
-    pretrained_model: Optional[Union[str, pathlib.Path]],
-    task_config_dict: Optional[Dict[str, Any]],
-    training_config: TrainConfig,
-    vocab_size: Optional[int],
-) -> mlm.MLMTrainingModel:
-    if task_config_dict is not None:
-        task_config = mlm.MLMTaskConfig.parse_obj(task_config_dict)
-    else:
-        task_config = mlm.MLMTaskConfig()
-
-    if pretrained_model is not None:
-        logger.info(f"Loading pretrained model {pretrained_model!r}")
-        model = transformers.AutoModelForMaskedLM.from_pretrained(pretrained_model)
-    elif model_config_path is not None:
-        logger.info(f"Loading pretrained config {model_config_path!r}")
-        model_config = transformers.AutoConfig.from_pretrained(model_config_path)
-        logger.info("Generating model from config")
-        # TODO: check the other parameters?
-        if vocab_size is not None and model_config.vocab_size != vocab_size:
-            logger.warning(
-                f"Vocabulary size mismatch between model ({model_config.vocab_size})"
-                f" and task ({vocab_size}), using {vocab_size}."
-            )
-            model_config.vocab_size = vocab_size
-        model = transformers.AutoModelForMaskedLM.from_config(model_config)
-    else:
-        raise ValueError("You must provide either a pretrained model or a model config")
-
-    logger.info("Creating MLM training model")
-
-    logger.debug(f"Mask token index: {mask_token_index}")
-    training_model = mlm.MLMTrainingModel(
-        model,
-        mask_token_index=mask_token_index,
-        vocabulary_size=vocab_size,
-        task_config=task_config,
-        training_config=training_config,
-    )
-
-    return training_model
 
 
 if __name__ == "__main__":

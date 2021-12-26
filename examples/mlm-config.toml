@@ -1,3 +1,5 @@
+type = "mlm"
+
 [task]
 # The default MLM task config
 change_ratio = 0.15  # The proportion of tokens to modify
