@@ -463,7 +463,7 @@ def main(
         logger.info("Training the model on CPU")
 
     callbacks: List[pl.callbacks.Callback] = [
-        pl.callbacks.ProgressBar(),
+        pl.callbacks.RichProgressBar(),
         pl.callbacks.LearningRateMonitor("step"),
     ]
     if save_period:
@@ -483,11 +483,14 @@ def main(
     if checkpoint is not None:
         additional_kwargs["resume_from_checkpoint"] = checkpoint
 
-    if max_steps is None and tuning_config.lr_decay_steps is not None:
-        max_steps = tuning_config.lr_decay_steps + tuning_config.warmup_steps
-        logger.info(
-            f"Setting the max number of steps at {max_steps} according to the tuning config"
-        )
+    if max_steps is None:
+        if tuning_config.lr_decay_steps is not None:
+            max_steps = tuning_config.lr_decay_steps + tuning_config.warmup_steps
+            logger.info(
+                f"Setting the max number of steps at {max_steps} according to the tuning config"
+            )
+        else:
+            max_steps = -1
 
     trainer = pl.Trainer(
         accumulate_grad_batches=accumulate_grad_batches,
