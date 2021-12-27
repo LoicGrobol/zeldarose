@@ -315,9 +315,6 @@ def main(
         transformers.AutoTokenizer.from_pretrained(tokenizer_name, use_fast=True)
     )
 
-    if (mask_token_index := getattr(tokenizer, "mask_token_id", None)) is None:
-        mask_token_index = tokenizer.convert_tokens_to_ids(tokenizer.mask_token)
-
     if config_path is not None:
         config = toml.loads(config_path.read_text())
     else:
@@ -326,12 +323,11 @@ def main(
 
     if (task_type := config.get("type", "mlm")) == "mlm":
         training_model = mlm.get_training_model(
-            mask_token_index=mask_token_index,
             model_config_path=model_config_path,
             pretrained_model=pretrained_model,
             task_config_dict=config.get("task"),
+            tokenizer=tokenizer,
             training_config=tuning_config,
-            vocab_size=tokenizer.vocab_size,
         )
     else:
         raise ValueError(f"Unknown task type: {task_type!r}")

@@ -323,17 +323,20 @@ class MLMTrainingModel(pl.LightningModule):
 
 
 def get_training_model(
-    mask_token_index: int,
     model_config_path: Optional[Union[str, pathlib.Path]],
     pretrained_model: Optional[Union[str, pathlib.Path]],
     task_config_dict: Optional[Dict[str, Any]],
+    tokenizer: transformers.PreTrainedTokenizerBase,
     training_config: TrainConfig,
-    vocab_size: Optional[int],
 ) -> MLMTrainingModel:
     if task_config_dict is not None:
         task_config = MLMTaskConfig.parse_obj(task_config_dict)
     else:
         task_config = MLMTaskConfig()
+
+    if (mask_token_index := getattr(tokenizer, "mask_token_id", None)) is None:
+        mask_token_index = tokenizer.convert_tokens_to_ids(tokenizer.mask_token)
+    vocabulary_size = tokenizer.vocab_size
 
     if pretrained_model is not None:
         logger.info(f"Loading pretrained model {pretrained_model!r}")
@@ -343,12 +346,12 @@ def get_training_model(
         model_config = transformers.AutoConfig.from_pretrained(model_config_path)
         logger.info("Generating model from config")
         # TODO: check the other parameters?
-        if vocab_size is not None and model_config.vocab_size != vocab_size:
+        if vocabulary_size is not None and model_config.vocab_size != vocabulary_size:
             logger.warning(
                 f"Vocabulary size mismatch between model ({model_config.vocab_size})"
-                f" and task ({vocab_size}), using {vocab_size}."
+                f" and task ({vocabulary_size}), using {vocabulary_size}."
             )
-            model_config.vocab_size = vocab_size
+            model_config.vocab_size = vocabulary_size
         model = transformers.AutoModelForMaskedLM.from_config(model_config)
     else:
         raise ValueError("You must provide either a pretrained model or a model config")
@@ -357,9 +360,9 @@ def get_training_model(
 
     logger.debug(f"Mask token index: {mask_token_index}")
     training_model = MLMTrainingModel(
-        model,
+        model=model,
         mask_token_index=mask_token_index,
-        vocabulary_size=vocab_size,
+        vocabulary_size=vocabulary_size,
         task_config=task_config,
         training_config=training_config,
     )
