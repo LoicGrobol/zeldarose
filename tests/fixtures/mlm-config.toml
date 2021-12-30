@@ -1,0 +1,18 @@
+type = "mlm"
+
+[task]
+# The default MLM task config
+change_ratio = 0.15  # The proportion of tokens to modify
+mask_ratio = 0.8  # The proportion of modified tokens to mask
+switch_ratio = 0.1  # The proportion of modified tokens to change to a random token
+
+[tuning]
+# The default MLM fine-tuning config
+batch_size = 64
+betas = [0.9, 0.98]
+epsilon = 1e-8
+learning_rate = 1e-4
+# Uncomment these for a more complex training setup
+# lr_decay_steps = 1000000
+# warmup_steps = 1000
+# weight_decay = 1e-5
