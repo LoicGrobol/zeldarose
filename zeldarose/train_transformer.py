@@ -17,7 +17,7 @@ import transformers
 from loguru import logger
 from pytorch_lightning.plugins import DDPPlugin
 from pytorch_lightning.utilities import rank_zero_only
-from zeldarose import data
+from zeldarose import data, rtd
 from zeldarose import mlm
 from zeldarose.common import TrainConfig
 
@@ -316,13 +316,23 @@ def main(
     )
 
     if config_path is not None:
-        config = toml.loads(config_path.read_text())
+        with open(config_path) as in_stream:
+            config = toml.load(in_stream)
     else:
         config = dict()
     tuning_config = TrainConfig.parse_obj(config.get("tuning", dict()))
 
-    if (task_type := config.get("type", "mlm")) == "mlm":
+    task_type = config.get("type", "mlm")
+    if task_type == "mlm":
         training_model = mlm.get_training_model(
+            model_config_path=model_config_path,
+            pretrained_model=pretrained_model,
+            task_config_dict=config.get("task"),
+            tokenizer=tokenizer,
+            training_config=tuning_config,
+        )
+    elif task_type == "rtd":
+        training_model = rtd.get_training_model(
             model_config_path=model_config_path,
             pretrained_model=pretrained_model,
             task_config_dict=config.get("task"),
