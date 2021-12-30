@@ -59,7 +59,7 @@ def save_model(
         tokenizer.save_pretrained(str(save_dir), legacy_format=not tokenizer.is_fast)
 
 
-class ShareEmbeddingsCallback(pl.Callback):
+class ShareTransformersEmbeddingsCallback(pl.Callback):
     def __init__(
         self,
         leader: transformers.PreTrainedModel,
@@ -75,7 +75,7 @@ class ShareEmbeddingsCallback(pl.Callback):
             raise ValueError(
                 f"Unsupported transformer: {self.follower_transformer} has no embedding submodule"
             )
-        if isinstance(
+        if not isinstance(
             self.leader_transformer.embeddings,
             type(self.follower_transformer.embeddings),
         ):
@@ -85,9 +85,7 @@ class ShareEmbeddingsCallback(pl.Callback):
             )
 
     def on_train_start(self, trainer, pl_module):
-        self.follower_transformer.embeddings = (
-            self.leader_transforfollower_transformer.embeddings
-        )
+        self.follower_transformer.embeddings = self.leader_transformer.embeddings
 
     def on_train_end(self, trainer, pl_module):
         self.follower_transformer.embeddings = type(

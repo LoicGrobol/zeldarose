@@ -14,7 +14,7 @@ from pytorch_lightning.utilities import rank_zero_only
 
 import zeldarose.data
 
-from zeldarose.common import TrainConfig
+from zeldarose.common import MaskedAccuracy, TrainConfig
 
 
 class MaskedTokens(NamedTuple):
@@ -77,25 +77,6 @@ def mask_tokens(
 
     # The rest of the time (10% of the time) we keep the masked input tokens unchanged
     return MaskedTokens(inputs, labels)
-
-
-class MaskedAccuracy(torchmetrics.Metric):
-    def __init__(self, ignore_index: int = -100, dist_sync_on_step: bool = False):
-        super().__init__(dist_sync_on_step=dist_sync_on_step)
-
-        self.ignore_index = ignore_index
-        self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
-        self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
-
-    def update(self, preds: torch.Tensor, target: torch.Tensor):
-        assert preds.shape == target.shape
-        mask = target.ne(self.ignore_index)
-        if mask.any():
-            self.correct += preds.eq(target).logical_and(mask).int().sum()
-            self.total += mask.sum()
-
-    def compute(self):
-        return self.correct.true_divide(self.total)
 
 
 class MLMTaskConfig(pydantic.BaseModel):
@@ -348,8 +329,8 @@ def get_training_model(
         # TODO: check the other parameters?
         if vocabulary_size is not None and model_config.vocab_size != vocabulary_size:
             logger.warning(
-                f"Vocabulary size mismatch between model ({model_config.vocab_size})"
-                f" and task ({vocabulary_size}), using {vocabulary_size}."
+                f"Vocabulary size mismatch between model config ({model_config.vocab_size})"
+                f" and pretrained tokenizer ({vocabulary_size}), using {vocabulary_size}."
             )
             model_config.vocab_size = vocabulary_size
         model = transformers.AutoModelForMaskedLM.from_config(model_config)

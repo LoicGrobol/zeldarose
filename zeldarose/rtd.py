@@ -15,8 +15,8 @@ from pytorch_lightning.utilities import rank_zero_only
 
 import zeldarose.data
 
-from zeldarose.common import TrainConfig
-from zeldarose.utils import TieEmbeddingsCallback
+from zeldarose.common import MaskedAccuracy, TrainConfig
+from zeldarose.utils import ShareTransformersEmbeddingsCallback
 
 
 class MaskedTokens(NamedTuple):
@@ -26,6 +26,7 @@ class MaskedTokens(NamedTuple):
 
 class RTDOutput(NamedTuple):
     discriminator_output: transformers.modeling_outputs.MaskedLMOutput
+    discriminator_predictions: torch.Tensor
     generator_output: transformers.modeling_outputs.TokenClassifierOutput
     generator_predictions: torch.Tensor
     rtd_labels: torch.Tensor
@@ -37,7 +38,7 @@ def mask_tokens(
     input_mask_index: int,
     mask_ratio: float,
     keep_mask: Optional[torch.Tensor] = None,
-    label_mask_indice: int = -100,
+    label_mask_index: int = -100,
 ) -> MaskedTokens:
     """Prepare masked tokens inputs/labels for masked language modeling
 
@@ -61,32 +62,13 @@ def mask_tokens(
         what_to_do.masked_fill_(keep_mask, 1.0)
     preserved_tokens = what_to_do.gt(mask_ratio)
     # We only compute loss on masked tokens
-    labels.masked_fill_(preserved_tokens, label_mask_indice)
+    labels.masked_fill_(preserved_tokens, label_mask_index)
 
     # replace some input tokens with tokenizer.mask_token ([MASK])
     masked_tokens = what_to_do.le(mask_ratio)
     inputs.masked_fill_(masked_tokens, input_mask_index)
 
     return MaskedTokens(inputs, labels)
-
-
-class MaskedAccuracy(torchmetrics.Metric):
-    def __init__(self, ignore_index: int = -100, dist_sync_on_step: bool = False):
-        super().__init__(dist_sync_on_step=dist_sync_on_step)
-
-        self.ignore_index = ignore_index
-        self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
-        self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
-
-    def update(self, preds: torch.Tensor, target: torch.Tensor):
-        assert preds.shape == target.shape
-        mask = target.ne(self.ignore_index)
-        if mask.any():
-            self.correct += preds.eq(target).logical_and(mask).int().sum()
-            self.total += mask.sum()
-
-    def compute(self):
-        return self.correct.true_divide(self.total)
 
 
 class RTDTaskConfig(pydantic.BaseModel):
@@ -133,7 +115,7 @@ class RTDTrainingModel(pl.LightningModule):
         self,
         attention_mask: torch.Tensor,
         mlm_labels: torch.Tensor,
-        special_tokens_mask: torch.Tensor,
+        internal_tokens_mask: torch.Tensor,
         tokens: torch.Tensor,
         token_type_ids: torch.Tensor,
     ) -> RTDOutput:
@@ -149,8 +131,8 @@ class RTDTrainingModel(pl.LightningModule):
         )
 
         generator_predictions = torch.argmax(generator_output.logits, dim=-1).detach()
-        rtd_labels = generator_predictions.neq(tokens).to(torch.long)
-        rtd_labels.masked_fill(special_tokens_mask, -100)
+        rtd_labels = generator_predictions.ne(tokens).to(torch.long)
+        rtd_labels.masked_fill(internal_tokens_mask, -100)
         rtd_labels.masked_fill(attention_mask, -100)
 
         discriminator_output = cast(
@@ -163,9 +145,11 @@ class RTDTrainingModel(pl.LightningModule):
                 return_dict=True,
             ),
         )
+        discriminator_predictions = discriminator_output.logits.argmax(dim=-1)
 
         return RTDOutput(
             discriminator_output=discriminator_output,
+            discriminator_predictions=discriminator_predictions,
             generator_output=generator_output,
             generator_predictions=generator_predictions,
             rtd_labels=rtd_labels,
@@ -177,20 +161,18 @@ class RTDTrainingModel(pl.LightningModule):
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
         with torch.no_grad():
             masked = mask_tokens(
-                inputs=tokens,
-                change_ratio=self.task_config.change_ratio,
+                tokens=tokens,
                 keep_mask=internal_tokens_mask,
-                label_mask_indice=-100,
+                label_mask_index=-100,
                 mask_ratio=self.task_config.mask_ratio,
                 input_mask_index=self.mask_token_index,
-                switch_ratio=self.task_config.switch_ratio,
-                vocabulary_size=self.vocabulary_size,
             )
 
         outputs: RTDOutput = self(
             tokens=masked.inputs,
             attention_mask=attention_mask,
             mlm_labels=masked.labels,
+            internal_tokens_mask=internal_tokens_mask,
             token_type_ids=token_type_ids,
         )
 
@@ -238,23 +220,20 @@ class RTDTrainingModel(pl.LightningModule):
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
         with torch.no_grad():
             masked = mask_tokens(
-                inputs=tokens,
-                change_ratio=self.task_config.change_ratio,
+                tokens=tokens,
                 keep_mask=internal_tokens_mask,
-                label_mask_indice=-100,
+                label_mask_index=-100,
                 mask_ratio=self.task_config.mask_ratio,
                 input_mask_index=self.mask_token_index,
-                switch_ratio=self.task_config.switch_ratio,
-                vocabulary_size=self.vocabulary_size,
             )
 
         outputs: RTDOutput = self(
             tokens=masked.inputs,
             attention_mask=attention_mask,
             mlm_labels=masked.labels,
+            internal_tokens_mask=internal_tokens_mask,
             token_type_ids=token_type_ids,
         )
-
         generator_perplexity = torch.exp(outputs.generator_output.loss)
         self.generator_accuracy(outputs.generator_predictions, masked.labels)
 
@@ -296,7 +275,9 @@ class RTDTrainingModel(pl.LightningModule):
     def configure_callbacks(self):
         callbacks: List[pl.Callback] = []
         if self.task_config.embeddings_sharing == "electra":
-            callbacks.append(TieEmbeddingsCallback(self))
+            callbacks.append(
+                ShareTransformersEmbeddingsCallback(self.generator, self.discriminator)
+            )
         return callbacks
 
     def configure_optimizers(self):
@@ -428,10 +409,22 @@ def get_training_model(
         discriminator_config = transformers.AutoConfig.from_pretrained(
             discriminator_config_path
         )
+        if vocabulary_size is not None and discriminator_config.vocab_size != vocabulary_size:
+            logger.warning(
+                f"Vocabulary size mismatch between discriminator config ({discriminator_config.vocab_size})"
+                f" and pretrained tokenizer ({vocabulary_size}), using {vocabulary_size}."
+            )
+            discriminator_config.vocab_size = vocabulary_size
         logger.info(f"Loading generator config {generator_config_path,!r}")
         generator_config = transformers.AutoConfig.from_pretrained(
             generator_config_path
         )
+        if vocabulary_size is not None and generator_config.vocab_size != vocabulary_size:
+            logger.warning(
+                f"Vocabulary size mismatch between generator config ({generator_config.vocab_size})"
+                f" and pretrained tokenizer ({vocabulary_size}), using {vocabulary_size}."
+            )
+            generator_config.vocab_size = vocabulary_size
         logger.info("Generating discriminator from config")
         discriminator = transformers.AutoModelForMaskedLM.from_config(
             discriminator_config
