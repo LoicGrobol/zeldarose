@@ -27,9 +27,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
   plugin](https://github.com/kvas-it/pytest-console-scripts) for smoke tests.
 - Some refactoring for better factorization of the common utilities for MLM and RTD.
 
-## [0.3.3] — 2021-12-21
+## [0.3.4] — 2021-12-21
 
-[0.3.3]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.3...v0.3.4
+[0.3.4]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.3...v0.3.4
 
 ## Changed
 
