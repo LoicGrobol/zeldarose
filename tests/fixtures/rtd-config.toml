@@ -1,10 +1,8 @@
-type = "mlm"
+type = "rtd"
 
 [task]
-# The default MLM task config
-change_ratio = 0.15  # The proportion of tokens to modify
-mask_ratio = 0.8  # The proportion of modified tokens to mask
-switch_ratio = 0.1  # The proportion of modified tokens to change to a random token
+mask_ratio = 0.15  # The proportion of modified tokens to mask
+embeddings_sharing = "electra"
 
 [tuning]
 # The default MLM fine-tuning config
