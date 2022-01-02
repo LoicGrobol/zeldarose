@@ -6,7 +6,6 @@ import pytorch_lightning as pl
 import torch
 import torch.jit
 import torch.utils.data
-import torchmetrics
 import transformers
 import transformers.modeling_outputs
 
@@ -409,7 +408,10 @@ def get_training_model(
         discriminator_config = transformers.AutoConfig.from_pretrained(
             discriminator_config_path
         )
-        if vocabulary_size is not None and discriminator_config.vocab_size != vocabulary_size:
+        if (
+            vocabulary_size is not None
+            and discriminator_config.vocab_size != vocabulary_size
+        ):
             logger.warning(
                 f"Vocabulary size mismatch between discriminator config ({discriminator_config.vocab_size})"
                 f" and pretrained tokenizer ({vocabulary_size}), using {vocabulary_size}."
@@ -419,7 +421,10 @@ def get_training_model(
         generator_config = transformers.AutoConfig.from_pretrained(
             generator_config_path
         )
-        if vocabulary_size is not None and generator_config.vocab_size != vocabulary_size:
+        if (
+            vocabulary_size is not None
+            and generator_config.vocab_size != vocabulary_size
+        ):
             logger.warning(
                 f"Vocabulary size mismatch between generator config ({generator_config.vocab_size})"
                 f" and pretrained tokenizer ({vocabulary_size}), using {vocabulary_size}."
@@ -433,6 +438,18 @@ def get_training_model(
         generator = transformers.AutoModelForMaskedLM.from_config(generator_config)
     else:
         raise ValueError("You must provide either pretrained models or model configs")
+    # 2 is the default
+    # (<https://github.com/huggingface/transformers/blob/e68c3756fea7c811d02b8470539ae17ec3ec0e71/src/transformers/configuration_utils.py#L302>)
+    # but it could have been overriden
+    if not discriminator.config.num_labels == 2:
+        raise ValueError(
+            f"RTD discriminator must have exactly 2 tokens classes, found {discriminator.config.num_labels}"
+        )
+    if discriminator.config.vocab_size != generator_config.vocab_size:
+        raise ValueError(
+            "Vocabulary size mismatch between discriminator and generator:"
+            f" {discriminator.config.vocab_size} vs {generator_config.vocab_size}"
+        )
 
     logger.info("Creating RTD training model")
 

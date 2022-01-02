@@ -46,7 +46,7 @@ def mlm_task_config(test_data_dir: pathlib.Path) -> str:
 
 
 @pytest.fixture(
-    params=["google/electra-small-discriminator,google/electra-small-generator"],
+    params=["lgrobol/electra-minuscule-discriminator,lgrobol/electra-minuscule-generator"],
     scope="session",
 )
 def rtd_model_config(request) -> str:
