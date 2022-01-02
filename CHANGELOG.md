@@ -10,18 +10,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 [Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.4...HEAD
 
-## Added
+### Added
 
 - Replaced Token Detection ([ELECTRA](https://arxiv.org/abs/2003.10555)-like) pretraining
   - Some of the API is still provisional, the priority was to get it out, a nicer interface will
     hopefully come later.
 
-## Changed
+### Changed
 
 - Training task configs now have a `type` config key to specify the task type
 - Lightning progress bars are now provided by [Rich](https://rich.readthedocs.io)
 
-## Internal
+### Internal
 
 - Tests now run in [Pytest](https://pytest.org) using the [console-scripts
   plugin](https://github.com/kvas-it/pytest-console-scripts) for smoke tests.
