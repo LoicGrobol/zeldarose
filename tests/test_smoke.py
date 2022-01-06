@@ -58,7 +58,7 @@ def test_train_mlm(
     if strategy is not None:
         extra_args.extend(["--strategy", strategy])
     if devices is not None:
-        extra_args.extend(["--devices", str(devices)])
+        extra_args.extend(["--num-devices", str(devices)])
 
     ret = script_runner.run(
         "zeldarose-transformer",
@@ -81,11 +81,20 @@ def test_train_mlm(
         str(raw_text_path),
         "--max-epochs",
         "2",
+        *extra_args,
     )
     assert ret.success
 
 
+@pytest.mark.parametrize(
+    "accelerators_strategies_devices",
+    [
+        pytest.param(v, id="+".join(map(str, v)))
+        for v in accelerators_strategies_devices
+    ],
+)
 def test_train_rtd(
+    accelerators_strategies_devices: Tuple[str, Optional[str], Optional[int]],
     rtd_model_config: Union[pathlib.Path, str],
     rtd_task_config: pathlib.Path,
     raw_text_path: pathlib.Path,
@@ -93,8 +102,17 @@ def test_train_rtd(
     tmp_path: pathlib.Path,
     tokenizer_name_or_path: Union[pathlib.Path, str],
 ):
+    accelerator, strategy, num_devices = accelerators_strategies_devices
+
+    extra_args: List[str] = []
+    if strategy is not None:
+        extra_args.extend(["--strategy", strategy])
+    if num_devices is not None:
+        extra_args.extend(["--num-devices", str(num_devices)])
     ret = script_runner.run(
         "zeldarose-transformer",
+        "--accelerator",
+        accelerator,
         "--config",
         str(rtd_task_config),
         "--tokenizer",
@@ -112,5 +130,6 @@ def test_train_rtd(
         str(raw_text_path),
         "--max-epochs",
         "2",
+        *extra_args,
     )
     assert ret.success

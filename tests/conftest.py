@@ -32,7 +32,7 @@ def tokenizer_name_or_path(request) -> str:
     params=[
         "lgrobol/flaubert-minuscule",
         "lgrobol/roberta-minuscule",
-        fixtures_dir / "roberta-minuscule",
+        pytest.param(fixtures_dir / "roberta-minuscule", id="roberta-minuscule-local"),
     ],
     scope="session",
 )
@@ -46,7 +46,9 @@ def mlm_task_config(test_data_dir: pathlib.Path) -> str:
 
 
 @pytest.fixture(
-    params=["lgrobol/electra-minuscule-discriminator,lgrobol/electra-minuscule-generator"],
+    params=[
+        "lgrobol/electra-minuscule-discriminator,lgrobol/electra-minuscule-generator"
+    ],
     scope="session",
 )
 def rtd_model_config(request) -> str:

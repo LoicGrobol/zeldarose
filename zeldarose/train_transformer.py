@@ -400,11 +400,6 @@ def main(
         logger.info("Automatic batch size selection")
         additional_kwargs.update({"auto_scale_batch_size": "binsearch"})
 
-    if strategy is not None and "ddp" in strategy:
-        cast(List, additional_kwargs.setdefault("plugins", [])).append(
-            DDPPlugin(find_unused_parameters=profile),
-        )
-
     if accelerator == "gpu":
         if use_fp16:
             logger.info(f"Training the model on {num_devices} GPUs with half precision")
