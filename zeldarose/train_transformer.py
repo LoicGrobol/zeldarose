@@ -6,7 +6,7 @@ import pathlib
 import sys
 import warnings
 
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional, Union
 
 import click
 import click_pathlib
@@ -15,7 +15,6 @@ import toml
 import transformers
 
 from loguru import logger
-from pytorch_lightning.plugins import DDPPlugin
 from pytorch_lightning.utilities import rank_zero_only
 from zeldarose import data, rtd
 from zeldarose import mlm
@@ -322,6 +321,7 @@ def main(
     tuning_config = TrainConfig.parse_obj(config.get("tuning", dict()))
 
     task_type = config.get("type", "mlm")
+    training_model: Union[mlm.MLMTrainingModel, rtd.RTDTrainingModel]
     if task_type == "mlm":
         training_model = mlm.get_training_model(
             model_config_path=model_config_path,

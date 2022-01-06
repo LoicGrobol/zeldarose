@@ -24,10 +24,10 @@ class MaskedTokens(NamedTuple):
 
 
 class RTDOutput(NamedTuple):
-    discriminator_output: transformers.modeling_outputs.MaskedLMOutput
-    discriminator_predictions: torch.Tensor
-    generator_output: transformers.modeling_outputs.TokenClassifierOutput
+    discriminator_output: transformers.modeling_outputs.TokenClassifierOutput
     generator_predictions: torch.Tensor
+    discriminator_predictions: torch.Tensor
+    generator_output: transformers.modeling_outputs.MaskedLMOutput
     rtd_labels: torch.Tensor
 
 
@@ -110,6 +110,7 @@ class RTDTrainingModel(pl.LightningModule):
 
         self.save_hyperparameters("training_config", "task_config")
 
+    # type: ignore[override]
     def forward(
         self,
         attention_mask: torch.Tensor,
@@ -154,6 +155,7 @@ class RTDTrainingModel(pl.LightningModule):
             rtd_labels=rtd_labels,
         )
 
+    # type: ignore[override]
     def training_step(
         self, batch: zeldarose.data.TextBatch, batch_idx: int
     ) -> torch.Tensor:
@@ -176,12 +178,14 @@ class RTDTrainingModel(pl.LightningModule):
         )
 
         with torch.no_grad():
-            generator_perplexity = torch.exp(outputs.generator_output.loss)
+            generator_perplexity = torch.exp(
+                cast(torch.Tensor, outputs.generator_output.loss)
+            )
             self.generator_accuracy(outputs.generator_predictions, masked.labels)
 
             self.log(
                 "train/generator_loss",
-                outputs.generator_output.loss,
+                cast(torch.Tensor, outputs.generator_output.loss),
                 reduce_fx=torch.mean,
                 on_epoch=True,
                 sync_dist=True,
@@ -203,7 +207,7 @@ class RTDTrainingModel(pl.LightningModule):
             )
             self.log(
                 "train/discriminator_loss",
-                outputs.discriminator_output.loss,
+                cast(torch.Tensor, outputs.discriminator_output.loss),
                 reduce_fx=torch.mean,
                 on_epoch=True,
                 sync_dist=True,
@@ -213,7 +217,9 @@ class RTDTrainingModel(pl.LightningModule):
                 self.discriminator_accuracy,
                 on_epoch=True,
             )
-        return outputs.generator_output.loss + outputs.discriminator_output.loss
+        return cast(torch.Tensor, outputs.generator_output.loss) + cast(
+            torch.Tensor, outputs.discriminator_output.loss
+        )
 
     def validation_step(self, batch: zeldarose.data.TextBatch, batch_idx: int):
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
@@ -233,12 +239,14 @@ class RTDTrainingModel(pl.LightningModule):
             internal_tokens_mask=internal_tokens_mask,
             token_type_ids=token_type_ids,
         )
-        generator_perplexity = torch.exp(outputs.generator_output.loss)
+        generator_perplexity = torch.exp(
+            cast(torch.Tensor, outputs.generator_output.loss)
+        )
         self.generator_accuracy(outputs.generator_predictions, masked.labels)
 
         self.log(
             "validation/generator_loss",
-            outputs.generator_output.loss,
+            cast(torch.Tensor, outputs.generator_output.loss),
             reduce_fx=torch.mean,
             on_epoch=True,
             sync_dist=True,
@@ -260,7 +268,7 @@ class RTDTrainingModel(pl.LightningModule):
         )
         self.log(
             "validation/discriminator_loss",
-            outputs.discriminator_output.loss,
+            cast(torch.Tensor, outputs.discriminator_output.loss),
             reduce_fx=torch.mean,
             on_epoch=True,
             sync_dist=True,

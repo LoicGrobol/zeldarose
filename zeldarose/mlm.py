@@ -6,7 +6,6 @@ import pytorch_lightning as pl
 import torch
 import torch.jit
 import torch.utils.data
-import torchmetrics
 import transformers
 
 from loguru import logger
@@ -114,6 +113,7 @@ class MLMTrainingModel(pl.LightningModule):
 
         self.save_hyperparameters("training_config", "task_config")
 
+    # type: ignore[override]
     def forward(
         self,
         tokens: torch.Tensor,
@@ -131,6 +131,7 @@ class MLMTrainingModel(pl.LightningModule):
 
         return output
 
+    # type: ignore[override]
     def training_step(
         self, batch: zeldarose.data.TextBatch, batch_idx: int
     ) -> torch.Tensor:
@@ -180,6 +181,7 @@ class MLMTrainingModel(pl.LightningModule):
             )
         return loss
 
+    # type: ignore[override]
     def validation_step(self, batch: zeldarose.data.TextBatch, batch_idx: int):
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
         with torch.no_grad():

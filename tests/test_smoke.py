@@ -1,6 +1,7 @@
 import pathlib
 from typing import List, Optional, Tuple, Union
 
+from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
 import torch.cuda
 
 import pytest
@@ -14,9 +15,9 @@ accelerators_strategies_devices = [
 if torch.cuda.is_available():
     accelerators_strategies_devices.append(("gpu", None, None))
     if torch.cuda.device_count() > 1:
-        accelerators_strategies_devices.extend(
-            [("gpu", "ddp_spawn", 2), ("gpu", "ddp_sharded_spawn", 2)]
-        )
+        accelerators_strategies_devices.append(("gpu", "ddp_spawn", 2))
+        if _FAIRSCALE_AVAILABLE:
+            accelerators_strategies_devices.append(("gpu", "ddp_sharded_spawn", 2))
 
 
 def test_train_tokenizer(
