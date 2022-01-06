@@ -20,7 +20,7 @@ def raw_text_path(test_data_dir: pathlib.Path) -> pathlib.Path:
     params=[
         "lgrobol/flaubert-minuscule",
         "lgrobol/roberta-minuscule",
-        fixtures_dir / "roberta-minuscule",
+        pytest.param(fixtures_dir / "roberta-minuscule", id="roberta-minuscule-local"),
     ],
     scope="session",
 )
