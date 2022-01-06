@@ -1,14 +1,22 @@
 import pathlib
-from typing import Union
+from typing import List, Optional, Tuple, Union
 
 import torch.cuda
 
 import pytest
 import pytest_console_scripts
 
-devices = ["cpu"]
+
+accelerators_strategies_devices = [
+    ("cpu", None, None),
+    ("cpu", "ddp_spawn", 2),
+]
 if torch.cuda.is_available():
-    devices.append("cuda:0")
+    accelerators_strategies_devices.append(("gpu", None, None))
+    if torch.cuda.device_count() > 1:
+        accelerators_strategies_devices.extend(
+            [("gpu", "ddp_spawn", 2), ("gpu", "ddp_sharded_spawn", 2)]
+        )
 
 
 def test_train_tokenizer(
@@ -29,7 +37,15 @@ def test_train_tokenizer(
     assert ret.success
 
 
+@pytest.mark.parametrize(
+    "accelerators_strategies_devices",
+    [
+        pytest.param(v, id="+".join(map(str, v)))
+        for v in accelerators_strategies_devices
+    ],
+)
 def test_train_mlm(
+    accelerators_strategies_devices: Tuple[str, Optional[str], Optional[int]],
     mlm_model_config: Union[pathlib.Path, str],
     mlm_task_config: pathlib.Path,
     raw_text_path: pathlib.Path,
@@ -37,8 +53,17 @@ def test_train_mlm(
     tmp_path: pathlib.Path,
     tokenizer_name_or_path: Union[pathlib.Path, str],
 ):
+    accelerator, strategy, devices = accelerators_strategies_devices
+    extra_args: List[str] = []
+    if strategy is not None:
+        extra_args.extend(["--strategy", strategy])
+    if devices is not None:
+        extra_args.extend(["--devices", str(devices)])
+
     ret = script_runner.run(
         "zeldarose-transformer",
+        "--accelerator",
+        accelerator,
         "--config",
         str(mlm_task_config),
         "--tokenizer",

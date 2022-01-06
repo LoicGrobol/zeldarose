@@ -39,9 +39,9 @@ This is somewhat tricky, you have several options
 - If you are running in a SLURM cluster use `--accelerator ddp` and invoke via `srun`
 - Otherwise you have two options
 
-  - Run with `--accelerator ddp_spawn`, which uses `multiprocessing.spawn` to start the process
+  - Run with `--strategy ddp_spawn`, which uses `multiprocessing.spawn` to start the process
     swarm (tested, but possibly slower and more limited, see `pytorch-lightning` doc)
-  - Run with `--accelerator ddp` and start with `torch.distributed.launch` with `--use_env` and
+  - Run with `--strategy ddp` and start with `torch.distributed.launch` with `--use_env` and
     `--no_python` (untested)
 
 ## Other hints
