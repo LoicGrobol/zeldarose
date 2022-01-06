@@ -47,7 +47,10 @@ def mlm_task_config(test_data_dir: pathlib.Path) -> pathlib.Path:
 
 @pytest.fixture(
     params=[
-        "lgrobol/electra-minuscule-discriminator,lgrobol/electra-minuscule-generator"
+        pytest.param(
+            "lgrobol/electra-minuscule-discriminator,lgrobol/electra-minuscule-generator",
+            id="lgrobol/electra-minuscule",
+        )
     ],
     scope="session",
 )
