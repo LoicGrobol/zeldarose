@@ -376,13 +376,15 @@ def main(
         tokenizer.max_len_single_sentence,
         training_model.max_len - tokenizer.num_special_tokens_to_add(pair=False),
     )
+    if max_length == math.inf:
+        max_length = None
     logger.info(f"Training with a maximum sequence length of {max_length} tokens")
     logger.info("Creating data modules")
     datamodule = data.TextDataModule(
         data_dir=cache_dir,
         loader_batch_size=loader_batch_size,
-        max_length=max_length,
-        num_workers=n_workers,
+        max_length=cast(Union[int, None], max_length),
+        num_workers=num_workers,
         tokenizer=tokenizer,
         tokenizer_name=tokenizer_name.replace("/", "_"),
         train_text=raw_text,
