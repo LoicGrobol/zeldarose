@@ -18,6 +18,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ### Changed
 
+- The command line options have been changed to reflect change in Lightning
+  - `--accelerator` is now used for devices, tested values are `"cpu"` and `"gpu"`
+  - `--strategy` now specifies how to train, tested values are `None` (missing), `"ddp"`,
+    `"ddp_sharded"` `"ddp_spawn"` and`"ddp_sharded_spawn"`.
+  - No more option to select sharded training, use the strategy alias for that
+  - `--n-gpus` has been renamed to `--num-devices`.
 - Training task configs now have a `type` config key to specify the task type
 - Lightning progress bars are now provided by [Rich](https://rich.readthedocs.io)
 
@@ -25,6 +31,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 - Tests now run in [Pytest](https://pytest.org) using the [console-scripts
   plugin](https://github.com/kvas-it/pytest-console-scripts) for smoke tests.
+- Smoke tests now include `ddp_spawn` tests and tests on gpu devices if available.
 - Some refactoring for better factorization of the common utilities for MLM and RTD.
 
 ## [0.3.4] — 2021-12-21
