@@ -24,6 +24,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
     `"ddp_sharded"` `"ddp_spawn"` and`"ddp_sharded_spawn"`.
   - No more option to select sharded training, use the strategy alias for that
   - `--n-gpus` has been renamed to `--num-devices`.
+  - `--n-workers` and `--n-nodes` have been respectively renamed to `--num-workers` and
+    `--num-nodes`.
 - Training task configs now have a `type` config key to specify the task type
 - Lightning progress bars are now provided by [Rich](https://rich.readthedocs.io)
 

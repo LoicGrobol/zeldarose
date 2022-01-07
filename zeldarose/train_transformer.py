@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import logging
+import math
 import os
 import pathlib
 import sys
 import warnings
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 import click
 import click_pathlib
@@ -204,13 +205,13 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     help="How many devices to train on. If `accelerator` is `cpu`, this is the number of processes",
 )
 @click.option(
-    "--n-nodes",
+    "--num-nodes",
     type=click.IntRange(0),
     default=os.environ.get("SLURM_JOB_NUM_NODES", 1),
     help="How many nodes to train on (for clusters), defaults to $SLURM_JOB_NUM_NODES if on SLURM and 1 otherwise",
 )
 @click.option(
-    "--n-workers",
+    "--num-workers",
     type=click.IntRange(0),
     default=0,
     help="How many data loading workers to use",
@@ -273,8 +274,8 @@ def main(
     max_steps: Optional[int],
     model_config_path: Optional[str],
     model_name: str,
-    n_nodes: int,
-    n_workers: int,
+    num_nodes: int,
+    num_workers: int,
     num_devices: int,
     out_dir: pathlib.Path,
     pretrained_model: Optional[str],
@@ -300,7 +301,7 @@ def main(
     if (num_slurm_tasks := os.environ.get("SLURM_NTASKS")) is not None:
         total_devices = int(num_slurm_tasks)
     else:
-        total_devices = n_nodes * num_devices
+        total_devices = num_nodes * num_devices
     logger.info(f"Training on a total of {total_devices} devices.")
 
     if tokenizer_name is None:
@@ -450,7 +451,7 @@ def main(
         limit_val_batches=1.0 if val_path is not None else 0,
         max_epochs=max_epochs,
         max_steps=max_steps,
-        num_nodes=n_nodes,
+        num_nodes=num_nodes,
         strategy=strategy,
         **additional_kwargs,
     )
