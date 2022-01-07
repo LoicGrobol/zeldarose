@@ -1,7 +1,7 @@
 import os
 import pathlib
 
-from typing import cast, List, NamedTuple, Optional, Sequence, TypedDict
+from typing import Union, cast, List, NamedTuple, Optional, Sequence, TypedDict
 
 import datasets
 import pytorch_lightning as pl
@@ -17,7 +17,7 @@ from torch.nn.utils.rnn import pad_sequence
 # end users can still manually set HF_DATASETS_CACHE if e.g. their home has a small quota
 def encode_dataset(
     save_path: pathlib.Path,
-    text_path: pathlib.Path,
+    text_path: Union[pathlib.Path, str],
     tokenizer: transformers.PreTrainedTokenizer,
     tokenizer_name: str,
     max_length: Optional[int] = None,
@@ -47,7 +47,7 @@ def encode_dataset(
         new_fingerprint=f"{raw_dataset._fingerprint}-{tokenizer_name}-{max_length}",
     )
     logger.info(f"Saving dataset to {save_path}")
-    # FIXME: this causes an obscure crash whe, two instance want to access the same --cache-dir
+    # FIXME: this causes an obscure crash when two instance want to access the same --cache-dir
     encoded_dataset.save_to_disk(save_path)
 
 
@@ -78,8 +78,6 @@ class EncodedSample(TypedDict):
     text: str
 
 
-# NOTE: we need an explicit batch size here to make sure it gets picked up by
-# <https://github.com/PyTorchLightning/pytorch-lightning/blob/a79c351a6a0f45a46e7176148ae718b3242c3d2e/pytorch_lightning/trainer/data_loading.py#L191>
 class TextLoader(torch.utils.data.DataLoader[TextBatch]):
     def __init__(
         self,
