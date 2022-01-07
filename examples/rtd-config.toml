@@ -3,15 +3,14 @@ type = "rtd"
 [task]
 discriminator_loss_weight = 50
 embeddings_sharing = "electra"
-mask_ratio = 0.15  # The proportion of modified tokens to mask
+mask_ratio = 0.15
 
 
 [tuning]
-batch_size = 32
+batch_size = 128
 betas = [0.9, 0.999]
 epsilon = 1e-6
-learning_rate = 3e-4
-# Uncomment these for a more complex training setup
-# lr_decay_steps = 1000000
-# warmup_steps = 1000
-# weight_decay = 1e-5
+learning_rate = 5e-4
+lr_decay_steps = 1000000
+warmup_steps = 10000
+weight_decay = 1e-2
