@@ -20,7 +20,7 @@ def raw_text_path(test_data_dir: pathlib.Path) -> pathlib.Path:
     params=[
         "lgrobol/flaubert-minuscule",
         "lgrobol/roberta-minuscule",
-        fixtures_dir / "roberta-minuscule",
+        pytest.param(fixtures_dir / "roberta-minuscule", id="roberta-minuscule-local"),
     ],
     scope="session",
 )
@@ -32,7 +32,7 @@ def tokenizer_name_or_path(request) -> str:
     params=[
         "lgrobol/flaubert-minuscule",
         "lgrobol/roberta-minuscule",
-        fixtures_dir / "roberta-minuscule",
+        pytest.param(fixtures_dir / "roberta-minuscule", id="roberta-minuscule-local"),
     ],
     scope="session",
 )
@@ -41,12 +41,17 @@ def mlm_model_config(request) -> str:
 
 
 @pytest.fixture(scope="session")
-def mlm_task_config(test_data_dir: pathlib.Path) -> str:
+def mlm_task_config(test_data_dir: pathlib.Path) -> pathlib.Path:
     return test_data_dir / "mlm-config.toml"
 
 
 @pytest.fixture(
-    params=["lgrobol/electra-minuscule-discriminator,lgrobol/electra-minuscule-generator"],
+    params=[
+        pytest.param(
+            "lgrobol/electra-minuscule-discriminator,lgrobol/electra-minuscule-generator",
+            id="lgrobol/electra-minuscule",
+        )
+    ],
     scope="session",
 )
 def rtd_model_config(request) -> str:
@@ -54,5 +59,5 @@ def rtd_model_config(request) -> str:
 
 
 @pytest.fixture(scope="session")
-def rtd_task_config(test_data_dir: pathlib.Path) -> str:
+def rtd_task_config(test_data_dir: pathlib.Path) -> pathlib.Path:
     return test_data_dir / "rtd-config.toml"

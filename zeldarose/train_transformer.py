@@ -6,7 +6,7 @@ import pathlib
 import sys
 import warnings
 
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional, Union
 
 import click
 import click_pathlib
@@ -15,7 +15,6 @@ import toml
 import transformers
 
 from loguru import logger
-from pytorch_lightning.plugins import DDPPlugin
 from pytorch_lightning.utilities import rank_zero_only
 from zeldarose import data, rtd
 from zeldarose import mlm
@@ -135,6 +134,7 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 )
 @click.option(
     "--accelerator",
+    default="cpu",
     type=str,
     help="The lightning accelerator to use (see lightning doc)",
 )
@@ -198,10 +198,10 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     help="A name to give to the model",
 )
 @click.option(
-    "--n-gpus",
-    default=0,
-    type=click.IntRange(0),
-    help="How many GPUs to train on. In ddp_cpu mode, this is the number of processes",
+    "--num-devices",
+    default=1,
+    type=click.IntRange(1),
+    help="How many devices to train on. If `accelerator` is `cpu`, this is the number of processes",
 )
 @click.option(
     "--n-nodes",
@@ -234,9 +234,9 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     default=0,
 )
 @click.option(
-    "--sharded-ddp",
-    is_flag=True,
-    help="Activate to use the sharded DDP mode (requires fairscale)",
+    "--strategy",
+    type=str,
+    help="The lightning strategy to use (see lightning doc)",
 )
 @click.option("--profile", is_flag=True, help="Run in profiling mode")
 @click.option(
@@ -253,7 +253,7 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 @click.option(
     "--use-fp16",
     is_flag=True,
-    help="Activate half-preicions mode (only on GPUs)",
+    help="Activate half-precisions mode (only on GPUs)",
 )
 @click.option(
     "--val-text",
@@ -263,7 +263,7 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 )
 @click.option("--verbose", is_flag=True, help="More detailed logs")
 def main(
-    accelerator: Optional[str],
+    accelerator: str,
     cache_dir: Optional[pathlib.Path],
     checkpoint: Optional[pathlib.Path],
     config_path: Optional[pathlib.Path],
@@ -273,15 +273,15 @@ def main(
     max_steps: Optional[int],
     model_config_path: Optional[str],
     model_name: str,
-    n_gpus: int,
     n_nodes: int,
     n_workers: int,
+    num_devices: int,
     out_dir: pathlib.Path,
     pretrained_model: Optional[str],
     profile: bool,
     raw_text: pathlib.Path,
     save_period: int,
-    sharded_ddp: bool,
+    strategy: Optional[str],
     tokenizer_name: Optional[str],
     use_fp16: bool,
     val_path: Optional[pathlib.Path],
@@ -298,12 +298,10 @@ def main(
     # out something like `optim_batch_size` that takes into account the number of tasks and the
     # number of samples per gpu
     if (num_slurm_tasks := os.environ.get("SLURM_NTASKS")) is not None:
-        n_devices = int(num_slurm_tasks)
-    elif n_gpus:
-        n_devices = n_nodes * n_gpus
+        total_devices = int(num_slurm_tasks)
     else:
-        n_devices = 1
-    logger.info(f"Training on {n_devices} devices.")
+        total_devices = n_nodes * num_devices
+    logger.info(f"Training on a total of {total_devices} devices.")
 
     if tokenizer_name is None:
         if pretrained_model is not None:
@@ -323,6 +321,7 @@ def main(
     tuning_config = TrainConfig.parse_obj(config.get("tuning", dict()))
 
     task_type = config.get("type", "mlm")
+    training_model: Union[mlm.MLMTrainingModel, rtd.RTDTrainingModel]
     if task_type == "mlm":
         training_model = mlm.get_training_model(
             model_config_path=model_config_path,
@@ -345,29 +344,29 @@ def main(
 
     if device_batch_size is None:
         device_batch_size = tuning_config.batch_size
-    elif tuning_config.batch_size < device_batch_size * n_devices:
+    elif tuning_config.batch_size < device_batch_size * total_devices:
         raise ValueError(
             f"Batch size ({tuning_config.batch_size}) is smaller than"
-            f" loader batch size({device_batch_size} samples per device × {n_devices} devices)"
+            f" loader batch size({device_batch_size} samples per device × {total_devices} devices)"
             " try using fewer devices"
         )
-    elif tuning_config.batch_size % (device_batch_size * n_devices):
-        remainder = tuning_config.batch_size % device_batch_size * n_devices
+    elif tuning_config.batch_size % (device_batch_size * total_devices):
+        remainder = tuning_config.batch_size % device_batch_size * total_devices
         logger.warning(
             f"Batch size ({tuning_config.batch_size}) is not a muliple"
-            f" of loader batch size({device_batch_size} samples per device × {n_devices} devices)"
+            f" of loader batch size({device_batch_size} samples per device × {total_devices} devices)"
             f" the actual tuning batch size used will be {tuning_config.batch_size-remainder}."
         )
 
     # A pl Trainer batch is in fact one batch per device, so if we use multiple devices
     accumulate_grad_batches = tuning_config.batch_size // (
-        device_batch_size * n_devices
+        device_batch_size * total_devices
     )
     logger.info(f"Using {accumulate_grad_batches} steps gradient accumulation.")
 
     # In DP mode, every batch is split between the devices
     if accelerator == "dp":
-        loader_batch_size = device_batch_size * n_devices
+        loader_batch_size = device_batch_size * total_devices
     else:
         loader_batch_size = device_batch_size
 
@@ -394,49 +393,19 @@ def main(
     additional_kwargs: Dict[str, Any] = dict()
     if profile:
         logger.info("Running in profile mode")
-        profiler = pl.profiler.AdvancedProfiler(
-            output_filename=str(out_dir / "profile.txt")
-        )
+        profiler = pl.profiler.AdvancedProfiler(dirpath=out_dir, filename="profile.txt")
         additional_kwargs.update({"profiler": profiler, "overfit_batches": 1024})
 
     if guess_batch_size:
         logger.info("Automatic batch size selection")
         additional_kwargs.update({"auto_scale_batch_size": "binsearch"})
 
-    if accelerator is not None and "ddp" in accelerator:
-        cast(List, additional_kwargs.setdefault("plugins", [])).append(
-            DDPPlugin(find_unused_parameters=profile),
-        )
-
-    if accelerator == "ddp_cpu":
-        # FIXME: works but seems like bad practice
-        additional_kwargs["num_processes"] = n_gpus
-        n_gpus = 0
-
-    if sharded_ddp:
-        if accelerator == "ddp":
-            logger.info("Using sharded DDP")
-            cast(List[str], additional_kwargs.setdefault("plugins", [])).append(
-                "ddp_sharded"
-            )
-        elif accelerator == "ddp_spawn":
-            logger.info("Using sharded spawn DDP")
-            cast(List[str], additional_kwargs.setdefault("plugins", [])).append(
-                "ddp_sharded_spawn"
-            )
-        else:
-            logger.warning(
-                "--sharded-ddp only makes sense when using ddp accelerators. Ignoring the flag."
-            )
-
-    if n_gpus:
+    if accelerator == "gpu":
         if use_fp16:
-            logger.info(f"Training the model on {n_gpus} GPUs with half precision")
+            logger.info(f"Training the model on {num_devices} GPUs with half precision")
             additional_kwargs["precision"] = 16
-    elif accelerator == "ddp_cpu":
-        logger.info(
-            f"Training the model on CPU in {additional_kwargs['num_processes']} processes"
-        )
+    elif accelerator == "cpu":
+        logger.info(f"Training the model on CPU in {num_devices} processes")
     else:
         logger.info("Training the model on CPU")
 
@@ -455,7 +424,7 @@ def main(
                 save_period,
             )
         )
-    if profile and n_gpus and accelerator is not None and "cpu" not in accelerator:
+    if profile and accelerator == "gpu":
         callbacks.append(pl.callbacks.GPUStatsMonitor())
 
     if checkpoint is not None:
@@ -472,16 +441,17 @@ def main(
 
     trainer = pl.Trainer(
         accumulate_grad_batches=accumulate_grad_batches,
-        auto_select_gpus=n_gpus > 0,
+        accelerator=accelerator,
+        auto_select_gpus=accelerator == "gpu",
         callbacks=callbacks,
         default_root_dir=out_dir,
-        accelerator=accelerator,
-        gpus=n_gpus,
+        devices=num_devices,
         gradient_clip_val=tuning_config.gradient_clipping,
         limit_val_batches=1.0 if val_path is not None else 0,
         max_epochs=max_epochs,
         max_steps=max_steps,
         num_nodes=n_nodes,
+        strategy=strategy,
         **additional_kwargs,
     )
 
