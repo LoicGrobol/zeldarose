@@ -1,5 +1,6 @@
+import math
 import pathlib
-from typing import Any, Dict, List, Literal, NamedTuple, Optional, cast
+from typing import Any, Dict, List, Literal, NamedTuple, Optional, Union, cast
 
 import pydantic
 import pytorch_lightning as pl
@@ -72,7 +73,7 @@ def mask_tokens(
 
 class RTDTaskConfig(pydantic.BaseModel):
     discriminator_loss_weight: float = 1.0
-    embeddings_sharing: Optional[Literal["electra"]] = None
+    embeddings_sharing: Optional[Literal["deberta", "electra"]] = None
     mask_ratio: float = 0.15
 
 
@@ -105,8 +106,8 @@ class RTDTrainingModel(pl.LightningModule):
         self.generator = generator
         self.discriminator = discriminator
         self.max_len = min(
-            getattr(generator.config, "max_position_embeddings", float("inf")),
-            getattr(discriminator.config, "max_position_embeddings", float("inf")),
+            getattr(generator.config, "max_position_embeddings", math.inf),
+            getattr(discriminator.config, "max_position_embeddings", math.inf),
         )
 
         self.save_hyperparameters("training_config", "task_config")

@@ -1,3 +1,4 @@
+import math
 import pathlib
 from typing import Any, Dict, NamedTuple, Optional, Union
 
@@ -109,7 +110,7 @@ class MLMTrainingModel(pl.LightningModule):
 
         self.accuracy = MaskedAccuracy()
         self.model = model
-        self.max_len = getattr(model.config, "max_position_embeddings", float("inf"))
+        self.max_len = getattr(model.config, "max_position_embeddings", math.inf)
 
         self.save_hyperparameters("training_config", "task_config")
 
