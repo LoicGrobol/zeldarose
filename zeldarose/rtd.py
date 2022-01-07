@@ -71,8 +71,9 @@ def mask_tokens(
 
 
 class RTDTaskConfig(pydantic.BaseModel):
-    mask_ratio: float = 0.8
+    discriminator_loss_weight: float = 1.0
     embeddings_sharing: Optional[Literal["electra"]] = None
+    mask_ratio: float = 0.15
 
 
 class RTDTrainingModel(pl.LightningModule):
@@ -217,7 +218,9 @@ class RTDTrainingModel(pl.LightningModule):
                 self.discriminator_accuracy,
                 on_epoch=True,
             )
-        return cast(torch.Tensor, outputs.generator_output.loss) + cast(
+        return cast(
+            torch.Tensor, outputs.generator_output.loss
+        ) + self.task_config.discriminator_loss_weight * cast(
             torch.Tensor, outputs.discriminator_output.loss
         )
 
