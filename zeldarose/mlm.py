@@ -260,6 +260,12 @@ class MLMTrainingModel(pl.LightningModule):
             weight_decay=decay_rate,
         )
         if self.training_config.lr_decay_steps:
+            if self.training_config.lr_decay_steps > 2 * self.trainer.max_steps:
+                logger.warning(
+                    f"Asked for {self.training_config.lr_decay_steps} LR decay steps"
+                    f" but the model will only be trained for {self.trainer.max_steps} steps"
+                    ", this might be an oversight."
+                )
             if self.training_config.lr_decay_steps == -1:
                 num_training_steps = (
                     self.trainer.max_steps - self.training_config.warmup_steps
