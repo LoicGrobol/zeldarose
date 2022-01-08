@@ -86,6 +86,11 @@ class ShareTransformersEmbeddingsCallback(pl.Callback):
 
     def on_train_start(self, trainer, pl_module):
         self.follower_transformer.embeddings = self.leader_transformer.embeddings
+        # Tying weights if needed
+        # This works because in 🤗, embeddings tying makes output embeddings follow input embeddings
+        # so here everyone will transitively follow the leader's embeddings
+        if hasattr(self.follower_transformer, "tie_weights"):
+            self.follower.tie_weights()
 
     def on_train_end(self, trainer, pl_module):
         self.follower_transformer.embeddings = type(
@@ -94,6 +99,10 @@ class ShareTransformersEmbeddingsCallback(pl.Callback):
         self.follower_transformer.embeddings.load_state_dict(
             self.leader_transformer.embeddings.state_dict()
         )
+        # Retying weights, here again, we rely on the fact that this uses
+        # the input embeddings as ground truth
+        if hasattr(self.follower_transformer, "tie_weights"):
+            self.follower.tie_weights()
 
 
 class TieEmbeddingsCallback(pl.Callback):
