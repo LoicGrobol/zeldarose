@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 import pydantic
 import torch
 import torchmetrics
@@ -8,7 +8,7 @@ class TrainConfig(pydantic.BaseModel):
     batch_size: int = 64
     betas: Tuple[float, float] = (0.9, 0.98)
     epsilon: float = 1e-8
-    gradient_clipping = None
+    gradient_clipping: Optional[Union[float, int]] = None
     learning_rate: float = 1e-4
     lr_decay_steps: Optional[int] = None
     warmup_steps: int = 0
