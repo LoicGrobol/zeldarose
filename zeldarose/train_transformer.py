@@ -455,6 +455,7 @@ def main(
         max_steps=max_steps,
         num_nodes=num_nodes,
         strategy=strategy,
+        track_grad_norm=2,
         **additional_kwargs,
     )
 

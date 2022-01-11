@@ -286,7 +286,9 @@ class RTDTrainingModel(pl.LightningModule):
         callbacks: List[pl.Callback] = []
         if self.task_config.embeddings_sharing == "electra":
             callbacks.append(
-                ShareTransformersEmbeddingsCallback(self.generator, self.discriminator)
+                ShareTransformersEmbeddingsCallback(
+                    leader=self.generator, follower=self.discriminator
+                )
             )
         return callbacks
 
