@@ -178,6 +178,12 @@ class RTDTrainingModel(pl.LightningModule):
             token_type_ids=token_type_ids,
         )
 
+        combined_loss = cast(
+            torch.Tensor, outputs.generator_output.loss
+        ) + self.task_config.discriminator_loss_weight * cast(
+            torch.Tensor, outputs.discriminator_output.loss
+        )
+
         with torch.no_grad():
             generator_perplexity = torch.exp(
                 cast(torch.Tensor, outputs.generator_output.loss)
@@ -219,11 +225,6 @@ class RTDTrainingModel(pl.LightningModule):
                 on_epoch=True,
             )
 
-            combined_loss = cast(
-                torch.Tensor, outputs.generator_output.loss
-            ) + self.task_config.discriminator_loss_weight * cast(
-                torch.Tensor, outputs.discriminator_output.loss
-            )
             self.log(
                 "train/combined_loss",
                 combined_loss,
