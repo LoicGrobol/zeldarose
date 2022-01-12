@@ -218,11 +218,21 @@ class RTDTrainingModel(pl.LightningModule):
                 self.discriminator_accuracy,
                 on_epoch=True,
             )
-        return cast(
-            torch.Tensor, outputs.generator_output.loss
-        ) + self.task_config.discriminator_loss_weight * cast(
-            torch.Tensor, outputs.discriminator_output.loss
-        )
+
+            combined_loss = cast(
+                torch.Tensor, outputs.generator_output.loss
+            ) + self.task_config.discriminator_loss_weight * cast(
+                torch.Tensor, outputs.discriminator_output.loss
+            )
+            self.log(
+                "train/combined_loss",
+                combined_loss,
+                reduce_fx=torch.mean,
+                on_epoch=True,
+                sync_dist=True,
+            )
+
+        return combined_loss
 
     def validation_step(self, batch: zeldarose.data.TextBatch, batch_idx: int):
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
