@@ -121,7 +121,14 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
         self.tokenizer = tokenizer
 
     @rank_zero_only
-    def on_train_batch_end(self, trainer: pl.Trainer, pl_module: mlm.MLMTrainingModel):
+    def on_train_batch_end(
+        self,
+        trainer: pl.Trainer,
+        pl_module: Union[rtd.RTDTrainingModel, mlm.MLMTrainingModel],
+        outputs: pl.utilities.types.STEP_OUTPUT,
+        batch: Any,
+        batch_idx: int,
+    ):
         step = trainer.global_step
         if self.step_period is not None and step % self.step_period == 0:
             step_save_dir = self.save_dir / f"step_{step}"
@@ -466,7 +473,7 @@ def main(
             )
         else:
             max_steps = -1
-    
+
     if val_check_period is not None:
         additional_kwargs["val_check_interval"] = val_check_period
 
