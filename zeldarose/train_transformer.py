@@ -448,8 +448,8 @@ def main(
             SavePretrainedModelCallback(
                 out_dir / "partway_models",
                 tokenizer,
-                epoch_save_period=epoch_save_period,
-                step_save_period=step_save_period,
+                epoch_period=epoch_save_period,
+                step_period=step_save_period,
             )
         )
     if profile and accelerator == "gpu":
