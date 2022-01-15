@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 - Replaced Token Detection ([ELECTRA](https://arxiv.org/abs/2003.10555)-like) pretraining
   - Some of the API is still provisional, the priority was to get it out, a nicer interface will
     hopefully come later.
+- `--val-check-period` and  `--step-save-period` allowing to evaluate and save a model decoupled
+  from epochs. This should be useful for training with very long epochs.
 
 ### Changed
 

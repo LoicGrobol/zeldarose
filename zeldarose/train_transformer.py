@@ -112,15 +112,26 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
         self,
         save_dir: pathlib.Path,
         tokenizer: transformers.PreTrainedTokenizerBase,
-        period: int = 1,
+        epoch_period: Optional[int] = 1,
+        step_period: Optional[int] = None,
     ):
-        self.period = period
+        self.epoch_period = epoch_period
+        self.step_period = step_period
         self.save_dir = save_dir
         self.tokenizer = tokenizer
 
     @rank_zero_only
+    def on_train_batch_end(self, trainer: pl.Trainer, pl_module: mlm.MLMTrainingModel):
+        step = trainer.global_step
+        if self.step_period is not None and step % self.step_period == 0:
+            step_save_dir = self.save_dir / f"step_{step}"
+            logger.info(f"Saving intermediate model to {step_save_dir}")
+            pl_module.save_transformer(step_save_dir, self.tokenizer)
+
+    @rank_zero_only
     def on_epoch_end(self, trainer: pl.Trainer, pl_module: mlm.MLMTrainingModel):
-        if not trainer.current_epoch % self.period:
+        epoch = trainer.current_epoch
+        if self.epoch_period is not None and epoch % self.epoch_period == 0:
             epoch_save_dir = self.save_dir / f"epoch_{trainer.current_epoch}"
             logger.info(f"Saving intermediate model to {epoch_save_dir}")
             pl_module.save_transformer(epoch_save_dir, self.tokenizer)
@@ -230,9 +241,15 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 )
 @click.option(
     "--save-period",
+    "--epoch-save-period",
+    "epoch_save_period",
     type=click.IntRange(0),
     help="The number of epoch between intermediate model saving",
-    default=0,
+)
+@click.option(
+    "--step-save-period",
+    type=click.IntRange(0),
+    help="The number of steps between intermediate model saving",
 )
 @click.option(
     "--strategy",
@@ -257,6 +274,11 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     help="Activate half-precisions mode (only on GPUs)",
 )
 @click.option(
+    "--val-check-period",
+    type=click.IntRange(0),
+    help="The number of steps between validation runs (useful for very long epochs)",
+)
+@click.option(
     "--val-text",
     "val_path",
     type=click_pathlib.Path(resolve_path=True, exists=True, dir_okay=False),
@@ -269,6 +291,7 @@ def main(
     checkpoint: Optional[pathlib.Path],
     config_path: Optional[pathlib.Path],
     device_batch_size: Optional[int],
+    epoch_save_period: Optional[int],
     guess_batch_size: bool,
     max_epochs: Optional[int],
     max_steps: Optional[int],
@@ -281,10 +304,11 @@ def main(
     pretrained_model: Optional[str],
     profile: bool,
     raw_text: pathlib.Path,
-    save_period: int,
+    step_save_period: Optional[int],
     strategy: Optional[str],
     tokenizer_name: Optional[str],
     use_fp16: bool,
+    val_check_period: Optional[int],
     val_path: Optional[pathlib.Path],
     verbose: bool,
 ):
@@ -416,7 +440,7 @@ def main(
         pl.callbacks.RichProgressBar(),
         pl.callbacks.LearningRateMonitor("step"),
     ]
-    if save_period:
+    if epoch_save_period is not None or step_save_period is not None:
         training_model.save_transformer(
             out_dir / "partway_models" / "initial", tokenizer
         )
@@ -424,7 +448,8 @@ def main(
             SavePretrainedModelCallback(
                 out_dir / "partway_models",
                 tokenizer,
-                save_period,
+                epoch_save_period=epoch_save_period,
+                step_save_period=step_save_period,
             )
         )
     if profile and accelerator == "gpu":
@@ -441,6 +466,9 @@ def main(
             )
         else:
             max_steps = -1
+    
+    if val_check_period is not None:
+        additional_kwargs["val_check_interval"] = val_check_period
 
     trainer = pl.Trainer(
         accumulate_grad_batches=accumulate_grad_batches,
