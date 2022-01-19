@@ -23,10 +23,22 @@ def encode_dataset(
     max_length: Optional[int] = None,
 ):
     logger.info(f"Loading data from {text_path}")
-    raw_dataset = cast(
-        datasets.Dataset,
-        datasets.load_dataset("text", data_files=str(text_path), split="train"),
-    ).filter(
+    try:
+        full_dataset = datasets.load_dataset(
+            "text", data_files=str(text_path), split="train"
+        )
+    except FileNotFoundError as e:
+        if isinstance(text_path, str):
+            dataset_name, dataset_config, dataset_split = text_path.split(":")
+            full_dataset = datasets.load_dataset(
+                dataset_name,
+                name=dataset_config if dataset_config else None,
+                split=dataset_split if dataset_split else None,
+            )
+        else:
+            raise e
+
+    raw_dataset = cast(datasets.Dataset, full_dataset,).filter(
         (lambda example: len(example) > 0 and not example.isspace()),
         input_columns="text",
     )
@@ -136,10 +148,10 @@ class TextDataModule(pl.LightningDataModule):
         num_workers: int,
         tokenizer: transformers.PreTrainedTokenizerBase,
         tokenizer_name: str,
-        train_text: pathlib.Path,
+        train_text: Union[str, pathlib.Path],
         data_dir: Optional[pathlib.Path] = None,
         max_length: Optional[int] = None,
-        val_text: Optional[pathlib.Path] = None,
+        val_text: Optional[Union[str, pathlib.Path]] = None,
     ):
         super().__init__()
         self.loader_batch_size = loader_batch_size
@@ -151,7 +163,11 @@ class TextDataModule(pl.LightningDataModule):
         self.val_text = val_text
 
         if data_dir is None:
-            self.data_dir = self.train_text.parent
+            self.data_dir = pathlib.Path(self.train_text).parent
+            if not self.data_dir.exists():
+                raise ValueError(
+                    "You must provide a cache path if you are loading a dataset from an url."
+                )
         else:
             self.data_dir = data_dir
 
