@@ -1,6 +1,9 @@
 import pathlib
+from typing import Union
 
 import pytest
+
+from pytest_lazyfixture import lazy_fixture
 
 
 fixtures_dir = pathlib.Path(__file__).parent / "fixtures"
@@ -14,6 +17,11 @@ def test_data_dir() -> pathlib.Path:
 @pytest.fixture(scope="session")
 def raw_text_path(test_data_dir: pathlib.Path) -> pathlib.Path:
     return test_data_dir / "raw.txt"
+
+
+@pytest.fixture(scope="session")
+def remote_raw_text() -> str:
+    return "lgrobol/openminuscule:text:train"
 
 
 @pytest.fixture(

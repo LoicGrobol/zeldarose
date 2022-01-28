@@ -134,3 +134,36 @@ def test_train_rtd(
         *extra_args,
     )
     assert ret.success
+
+
+def test_train_mlm_with_remote_dataset(
+    mlm_task_config: pathlib.Path,
+    remote_raw_text: str,
+    script_runner: pytest_console_scripts.ScriptRunner,
+    tmp_path: pathlib.Path,
+):
+    ret = script_runner.run(
+        "zeldarose-transformer",
+        "--strategy",
+        "ddp_spawn",
+        "--num-devices",
+        "2",
+        "--config",
+        str(mlm_task_config),
+        "--tokenizer",
+        "lgrobol/roberta-minuscule",
+        "--model-config",
+        "lgrobol/roberta-minuscule",
+        "--device-batch-size",
+        "8",
+        "--out-dir",
+        str(tmp_path / "train-out"),
+        "--cache-dir",
+        str(tmp_path / "tokenizer-cache"),
+        "--val-text",
+        remote_raw_text,
+        remote_raw_text,
+        "--max-epochs",
+        "2",
+    )
+    assert ret.success

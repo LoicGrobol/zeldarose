@@ -147,10 +147,7 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 # TODO: allow reading all these from a config file (except perhaps for paths)
 # TODO: refactor the api to have a single `zeldarose` entrypoint with subcommands.
 @click.command()
-@click.argument(
-    "raw_text",
-    type=click_pathlib.Path(resolve_path=True, exists=True, dir_okay=False),
-)
+@click.argument("raw_text")
 @click.option(
     "--accelerator",
     default="cpu",
@@ -288,8 +285,11 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 @click.option(
     "--val-text",
     "val_path",
-    type=click_pathlib.Path(resolve_path=True, exists=True, dir_okay=False),
-    help="A raw corpus for validation",
+    help=(
+        "A raw corpus for validation."
+        " Either as a path or as a `handle:config:split` identifier for 🤗 hub."
+        " (handle can be a url)"
+    ),
 )
 @click.option("--verbose", is_flag=True, help="More detailed logs")
 def main(
@@ -310,15 +310,20 @@ def main(
     out_dir: pathlib.Path,
     pretrained_model: Optional[str],
     profile: bool,
-    raw_text: pathlib.Path,
+    raw_text: str,
     step_save_period: Optional[int],
     strategy: Optional[str],
     tokenizer_name: Optional[str],
     use_fp16: bool,
     val_check_period: Optional[int],
-    val_path: Optional[pathlib.Path],
+    val_path: Optional[str],
     verbose: bool,
 ):
+    """Train a Transformer model.
+
+     The training dataset should be given with `raw_text` as either a path to a local file or or as a
+    `handle:config:split` identifier for 🤗 hub (handle can be a url).
+    """
     if (slurm_procid := os.environ.get("SLURM_PROCID")) is not None:
         log_file = out_dir / "logs" / f"train{slurm_procid}.log"
     else:

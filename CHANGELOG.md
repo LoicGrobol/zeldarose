@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
     hopefully come later.
 - `--val-check-period` and  `--step-save-period` allowing to evaluate and save a model decoupled
   from epochs. This should be useful for training with very long epochs.
+- The datasets path in `zeldarose-transformer` can now be 🤗 hub handles. See `--help`.
 
 ### Changed
 
