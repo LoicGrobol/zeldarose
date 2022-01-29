@@ -36,7 +36,7 @@ models](https://huggingface.co/transformers/pretrained_models.html) names or loc
 
 This is somewhat tricky, you have several options
 
-- If you are running in a SLURM cluster use `--accelerator ddp` and invoke via `srun`
+- If you are running in a SLURM cluster use `--strategy ddp` and invoke via `srun`
 - Otherwise you have two options
 
   - Run with `--strategy ddp_spawn`, which uses `multiprocessing.spawn` to start the process

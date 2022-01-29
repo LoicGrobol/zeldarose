@@ -8,6 +8,15 @@ import transformers
 
 from loguru import logger
 
+import transformers.models.auto.configuration_auto as autoconf
+import transformers.models.auto.modeling_auto as automod
+
+config_type_to_config_name = {t: n for n, t in autoconf.CONFIG_MAPPING.items()}
+model_type_to_model_name = {
+    m: config_type_to_config_name[c]
+    for c, m in automod.MODEL_FOR_MASKED_LM_MAPPING.items()
+}
+
 
 def get_internal_transformer_model(
     model: transformers.PreTrainedModel,
@@ -16,7 +25,14 @@ def get_internal_transformer_model(
     # model is called
     transformer_model = next(
         tr_model
-        for transformer_name in ("bert", "electra", "roberta", "transformer")
+        for transformer_name in (
+            model_type_to_model_name[type(model)],
+            "bert",
+            "roberta",
+            "deberta",
+            "transformer",
+            "model",
+        )
         for tr_model in [getattr(model, transformer_name, None)]
         if tr_model is not None
     )
