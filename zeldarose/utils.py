@@ -1,5 +1,5 @@
 import pathlib
-from typing import Optional
+from typing import Dict, Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_only
@@ -69,11 +69,15 @@ class ShareTransformersEmbeddingsCallback(pl.Callback):
         self.follower = follower
         self.leader_transformer = get_internal_transformer_model(leader)
         self.follower_transformer = get_internal_transformer_model(follower)
-        if not hasattr(self.leader_transformer, "embeddings"):
+        if not hasattr(self.leader_transformer, "embeddings") or not isinstance(
+            self.leader_transformer, torch.nn.Module
+        ):
             raise ValueError(
                 f"Unsupported transformer: {self.leader_transformer} has no embedding submodule"
             )
-        if not hasattr(self.follower_transformer, "embeddings"):
+        if not hasattr(self.follower_transformer, "embeddings") or not isinstance(
+            self.follower_transformer, torch.nn.Module
+        ):
             raise ValueError(
                 f"Unsupported transformer: {self.follower_transformer} has no embedding submodule"
             )
@@ -105,6 +109,79 @@ class ShareTransformersEmbeddingsCallback(pl.Callback):
         # the input embeddings as ground truth
         if hasattr(self.follower, "tie_weights"):
             self.follower.tie_weights()
+
+
+class CombiningLayer(torch.nn.Module):
+    def __init__(self, leader: torch.nn.Module, follower: torch.nn.Module):
+        super().__init__()
+        self.leader = leader
+        self.follower = follower
+
+    def forward(self, *args, **kwargs):
+        with torch.no_grad():
+            leader_out = self.leader(*args, **kwargs)
+        follower_out = self.follower(*args, **kwargs)
+
+        return leader_out + follower_out
+
+
+class OneWayShareTransformersEmbeddingsCallback(pl.Callback):
+    def __init__(
+        self,
+        leader: transformers.PreTrainedModel,
+        follower: transformers.PreTrainedModel,
+    ):
+        self.leader = leader
+        self.follower = follower
+        self.leader_transformer = get_internal_transformer_model(leader)
+        self.follower_transformer = get_internal_transformer_model(follower)
+        if not hasattr(self.leader_transformer, "embeddings") or not isinstance(
+            self.leader_transformer, torch.nn.Module
+        ):
+            raise ValueError(
+                f"Unsupported transformer: {self.leader_transformer} has no embedding submodule"
+            )
+        if not hasattr(self.follower_transformer, "embeddings") or not isinstance(
+            self.follower_transformer, torch.nn.Module
+        ):
+            raise ValueError(
+                f"Unsupported transformer: {self.follower_transformer} has no embedding submodule"
+            )
+        if not isinstance(
+            self.leader_transformer.embeddings,
+            type(self.follower_transformer.embeddings),
+        ):
+            logger.warning(
+                "Sharing embeddings between different model types might not work well:"
+                f" {type(self.follower_transformer.embeddings)} vs {type(self.leader_transformer.embeddings)}"
+            )
+        
+        self.replaced_layer: Dict[str, CombiningLayer] = dict()
+
+    def on_train_start(self, trainer, pl_module):
+        for layer_name, layer in self.follower.embeddings.named_children():
+            if isinstance(layer, torch.nn.Embedding):
+                logger.debug(f"One-way sharing of {layer_name}.")
+                torch.nn.init.zeros_(layer)
+                leader_equiv = getattr(self.leader.embeddings, layer_name)
+                combiner = CombiningLayer(leader=leader_equiv, follower=layer)
+                setattr(self.follower.embeddings, layer_name, combiner)
+                self.replaced_layer[layer_name] = combiner
+
+        if not self.replaced_layer:
+            logger.warning(
+                "No embeddings actually shared, you should probably check your config."
+            )
+
+    def on_train_end(self, trainer, pl_module):
+        for layer_name, combiner in self.replaced_layer.items():
+            combiner.follower.weight += combiner.leader.weight
+            setattr(self.follower.embeddings, layer_name, combiner.follower)
+        # Retying weights, here again, we rely on the fact that this uses
+        # the input embeddings as ground truth
+        if hasattr(self.follower, "tie_weights"):
+            self.follower.tie_weights()
+        self.replaced_layer = dict()
 
 
 class TieEmbeddingsCallback(pl.Callback):

@@ -15,7 +15,10 @@ from pytorch_lightning.utilities import rank_zero_only
 import zeldarose.data
 
 from zeldarose.common import MaskedAccuracy, TrainConfig
-from zeldarose.utils import ShareTransformersEmbeddingsCallback
+from zeldarose.utils import (
+    OneWayShareTransformersEmbeddingsCallback,
+    ShareTransformersEmbeddingsCallback,
+)
 
 
 class MaskedTokens(NamedTuple):
@@ -72,7 +75,7 @@ def mask_tokens(
 
 class RTDTaskConfig(pydantic.BaseModel):
     discriminator_loss_weight: float = 1.0
-    embeddings_sharing: Optional[Literal["electra"]] = None
+    embeddings_sharing: Optional[Literal["deberta", "electra"]] = None
     mask_ratio: float = 0.15
 
 
@@ -298,6 +301,12 @@ class RTDTrainingModel(pl.LightningModule):
         if self.task_config.embeddings_sharing == "electra":
             callbacks.append(
                 ShareTransformersEmbeddingsCallback(
+                    leader=self.generator, follower=self.discriminator
+                )
+            )
+        elif self.task_config.embeddings_sharing == "deberta":
+            callbacks.append(
+                OneWayShareTransformersEmbeddingsCallback(
                     leader=self.generator, follower=self.discriminator
                 )
             )
