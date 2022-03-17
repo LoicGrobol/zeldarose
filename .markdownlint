@@ -1,0 +1,10 @@
+MD003: false
+MD010:
+  code_blocks: false
+MD013:
+  code_blocks: false
+  line_length: 100
+  stern: true
+  tables: false
+MD025: false
+MD033: false
