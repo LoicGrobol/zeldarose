@@ -35,6 +35,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
     `--num-nodes`.
 - Training task configs now have a `type` config key to specify the task type
 - Lightning progress bars are now provided by [Rich](https://rich.readthedocs.io)
+- Now supports Pytorch 1.11 and Python 3.10
 
 ### Internal
 
