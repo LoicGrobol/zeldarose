@@ -8,14 +8,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
-[Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.4...HEAD
+[Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.4.0...HEAD
+
+## [0.4.0] — 2022-03-18
+
+[0.4.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.4...v0.4.0
 
 ### Added
 
 - Replaced Token Detection ([ELECTRA](https://arxiv.org/abs/2003.10555)-like) pretraining
   - Some of the API is still provisional, the priority was to get it out, a nicer interface will
     hopefully come later.
-- `--val-check-period` and  `--step-save-period` allowing to evaluate and save a model decoupled
+- `--val-check-period` and `--step-save-period` allowing to evaluate and save a model decoupled
   from epochs. This should be useful for training with very long epochs.
 - The datasets path in `zeldarose-transformer` can now be 🤗 hub handles. See `--help`.
 
