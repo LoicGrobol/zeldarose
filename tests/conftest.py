@@ -1,10 +1,6 @@
 import pathlib
-from typing import Union
 
 import pytest
-
-from pytest_lazyfixture import lazy_fixture
-
 
 fixtures_dir = pathlib.Path(__file__).parent / "fixtures"
 
