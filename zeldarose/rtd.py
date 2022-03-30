@@ -401,9 +401,10 @@ def get_training_model(
     else:
         task_config = RTDTaskConfig()
 
-    mask_token_index: int
-    if (mask_token_index := getattr(tokenizer, "mask_token_id", None)) is None:
-        mask_token_index = tokenizer.convert_tokens_to_ids(tokenizer.mask_token)
+    if (
+        mask_token_index := cast(Union[int, None], getattr(tokenizer, "mask_token_id", None))
+    ) is None:
+        mask_token_index = cast(int, tokenizer.convert_tokens_to_ids(tokenizer.mask_token))
     vocabulary_size = tokenizer.vocab_size
 
     if pretrained_model is not None:
