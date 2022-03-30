@@ -54,11 +54,6 @@ jobs:
                   python -m pip install --upgrade pip wheel setuptools
             - name: Get transformers and cache
               id: transfo-install
-              outputs:
-                dir:
-                  description: 'Transformers cache path'
-                version:
-                  description: 'Transformers package version'
               run: |
                 python -m pip install --upgrade transformers
                 python -c "from transformers.file_utils import TRANSFORMERS_CACHE; print('::set-output name=dir::' + TRANSFORMERS_CACHE)"
