@@ -57,7 +57,7 @@ jobs:
               run: |
                 python -m pip install --upgrade transformers
                 python -c "from transformers.file_utils import TRANSFORMERS_CACHE; print('::set-output name=dir::' + TRANSFORMERS_CACHE)"
-                echo "::set-output name=version::transformers@$(pip show transformers | grep Version)"
+                echo "::set-output name=version::$(pip show transformers | grep Version)"
             - uses: actions/cache@v3
               with:
                 path: ${{ steps.transfo-install.outputs.dir }}
