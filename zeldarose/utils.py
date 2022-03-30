@@ -155,7 +155,7 @@ class OneWayShareTransformersEmbeddingsCallback(pl.Callback):
                 "Sharing embeddings between different model types might not work well:"
                 f" {type(self.follower_transformer.embeddings)} vs {type(self.leader_transformer.embeddings)}"
             )
-        
+
         self.replaced_layer: Dict[str, CombiningLayer] = dict()
 
     def on_train_start(self, trainer, pl_module):

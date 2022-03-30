@@ -10,6 +10,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 [Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.4.0...HEAD
 
+### Added
+
+- `lint` extra that install linting tools and plugins
+- Config for [flakeheaven](https://github.com/flakeheaven/flakeheaven)
+
+### Changed
+
+- Move packaging config to `pyproject.toml` and require `setuptools>=61".
+
 ## [0.4.0] — 2022-03-18
 
 [0.4.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.4...v0.4.0
