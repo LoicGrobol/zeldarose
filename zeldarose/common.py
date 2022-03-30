@@ -23,7 +23,7 @@ class MaskedAccuracy(torchmetrics.Metric):
         self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
-    def update(self, preds: torch.Tensor, target: torch.Tensor):
+    def update(self, preds: torch.Tensor, target: torch.Tensor):  # type: ignore[override]
         assert preds.shape == target.shape
         mask = target.ne(self.ignore_index)
         if mask.any():

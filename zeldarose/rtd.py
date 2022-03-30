@@ -1,5 +1,5 @@
 import pathlib
-from typing import Any, Dict, List, Literal, NamedTuple, Optional, cast
+from typing import Any, Dict, List, Literal, NamedTuple, Optional, Union, cast
 
 import pydantic
 import pytorch_lightning as pl
@@ -114,8 +114,7 @@ class RTDTrainingModel(pl.LightningModule):
 
         self.save_hyperparameters("training_config", "task_config")
 
-    # type: ignore[override]
-    def forward(
+    def forward(  # type: ignore[override]
         self,
         attention_mask: torch.Tensor,
         mlm_labels: torch.Tensor,
@@ -159,10 +158,7 @@ class RTDTrainingModel(pl.LightningModule):
             rtd_labels=rtd_labels,
         )
 
-    # type: ignore[override]
-    def training_step(
-        self, batch: zeldarose.data.TextBatch, batch_idx: int
-    ) -> torch.Tensor:
+    def training_step(self, batch: zeldarose.data.TextBatch, batch_idx: int) -> torch.Tensor:  # type: ignore[override]
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
         with torch.no_grad():
             masked = mask_tokens(
@@ -188,9 +184,7 @@ class RTDTrainingModel(pl.LightningModule):
         )
 
         with torch.no_grad():
-            generator_perplexity = torch.exp(
-                cast(torch.Tensor, outputs.generator_output.loss)
-            )
+            generator_perplexity = torch.exp(cast(torch.Tensor, outputs.generator_output.loss))
             self.generator_accuracy(outputs.generator_predictions, masked.labels)
 
             self.log(
@@ -212,9 +206,7 @@ class RTDTrainingModel(pl.LightningModule):
                 on_epoch=True,
             )
 
-            self.discriminator_accuracy(
-                outputs.discriminator_predictions, outputs.rtd_labels
-            )
+            self.discriminator_accuracy(outputs.discriminator_predictions, outputs.rtd_labels)
             self.log(
                 "train/discriminator_loss",
                 cast(torch.Tensor, outputs.discriminator_output.loss),
@@ -238,7 +230,7 @@ class RTDTrainingModel(pl.LightningModule):
 
         return combined_loss
 
-    def validation_step(self, batch: zeldarose.data.TextBatch, batch_idx: int):
+    def validation_step(self, batch: zeldarose.data.TextBatch, batch_idx: int):  # type: ignore[override]
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
         with torch.no_grad():
             masked = mask_tokens(
@@ -256,9 +248,7 @@ class RTDTrainingModel(pl.LightningModule):
             internal_tokens_mask=internal_tokens_mask,
             token_type_ids=token_type_ids,
         )
-        generator_perplexity = torch.exp(
-            cast(torch.Tensor, outputs.generator_output.loss)
-        )
+        generator_perplexity = torch.exp(cast(torch.Tensor, outputs.generator_output.loss))
         self.generator_accuracy(outputs.generator_predictions, masked.labels)
 
         self.log(
@@ -280,9 +270,7 @@ class RTDTrainingModel(pl.LightningModule):
             on_epoch=True,
         )
 
-        self.discriminator_accuracy(
-            outputs.discriminator_predictions, outputs.rtd_labels
-        )
+        self.discriminator_accuracy(outputs.discriminator_predictions, outputs.rtd_labels)
         self.log(
             "validation/discriminator_loss",
             cast(torch.Tensor, outputs.discriminator_output.loss),
@@ -324,18 +312,12 @@ class RTDTrainingModel(pl.LightningModule):
             optimizer_grouped_parameters = [
                 {
                     "params": [
-                        p
-                        for n, p in named_parameters
-                        if not any(nd in n for nd in no_decay)
+                        p for n, p in named_parameters if not any(nd in n for nd in no_decay)
                     ],
                     "weight_decay": decay_rate,
                 },
                 {
-                    "params": [
-                        p
-                        for n, p in named_parameters
-                        if any(nd in n for nd in no_decay)
-                    ],
+                    "params": [p for n, p in named_parameters if any(nd in n for nd in no_decay)],
                     "weight_decay": 0.0,
                 },
             ]
@@ -363,9 +345,7 @@ class RTDTrainingModel(pl.LightningModule):
                     ", this might be an oversight."
                 )
             if self.training_config.lr_decay_steps == -1:
-                num_training_steps = (
-                    self.trainer.max_steps - self.training_config.warmup_steps
-                )
+                num_training_steps = self.trainer.max_steps - self.training_config.warmup_steps
                 logger.info(
                     f"Number of lr decay steps set at {num_training_steps} since -1 was asked"
                 )
@@ -375,8 +355,7 @@ class RTDTrainingModel(pl.LightningModule):
             schedule = transformers.get_linear_schedule_with_warmup(
                 optimizer,
                 num_warmup_steps=self.training_config.warmup_steps,
-                num_training_steps=num_training_steps
-                + self.training_config.warmup_steps,
+                num_training_steps=num_training_steps + self.training_config.warmup_steps,
             )
             schedulers = [{"scheduler": schedule, "interval": "step"}]
         elif self.training_config.warmup_steps > 0:
@@ -407,16 +386,14 @@ class RTDTrainingModel(pl.LightningModule):
             model.save_pretrained(str(save_subdir))
             if tokenizer is not None:
                 logger.info(f"Saving tokenizer to {save_subdir}")
-                tokenizer.save_pretrained(
-                    str(save_subdir), legacy_format=not tokenizer.is_fast
-                )
+                tokenizer.save_pretrained(str(save_subdir), legacy_format=not tokenizer.is_fast)
 
 
 def get_training_model(
     model_config_path: Optional[str],
     pretrained_model: Optional[str],
     task_config_dict: Optional[Dict[str, Any]],
-    tokenizer: transformers.PreTrainedTokenizerBase,
+    tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
     training_config: TrainConfig,
 ) -> RTDTrainingModel:
     if task_config_dict is not None:
@@ -424,6 +401,7 @@ def get_training_model(
     else:
         task_config = RTDTaskConfig()
 
+    mask_token_index: int
     if (mask_token_index := getattr(tokenizer, "mask_token_id", None)) is None:
         mask_token_index = tokenizer.convert_tokens_to_ids(tokenizer.mask_token)
     vocabulary_size = tokenizer.vocab_size
@@ -435,44 +413,30 @@ def get_training_model(
             pretrained_discriminator
         )
         logger.info(f"Loading pretrained generator {pretrained_generator!r}")
-        generator = transformers.AutoModelForMaskedLM.from_pretrained(
-            pretrained_generator
-        )
+        generator = transformers.AutoModelForMaskedLM.from_pretrained(pretrained_generator)
     elif model_config_path is not None:
         (
             discriminator_config_path,
             generator_config_path,
         ) = model_config_path.split(",")
         logger.info(f"Loading discriminator config {discriminator_config_path!r}")
-        discriminator_config = transformers.AutoConfig.from_pretrained(
-            discriminator_config_path
-        )
-        if (
-            vocabulary_size is not None
-            and discriminator_config.vocab_size != vocabulary_size
-        ):
+        discriminator_config = transformers.AutoConfig.from_pretrained(discriminator_config_path)
+        if vocabulary_size is not None and discriminator_config.vocab_size != vocabulary_size:
             logger.warning(
                 f"Vocabulary size mismatch between discriminator config ({discriminator_config.vocab_size})"
                 f" and pretrained tokenizer ({vocabulary_size}), using {vocabulary_size}."
             )
             discriminator_config.vocab_size = vocabulary_size
         logger.info(f"Loading generator config {generator_config_path,!r}")
-        generator_config = transformers.AutoConfig.from_pretrained(
-            generator_config_path
-        )
-        if (
-            vocabulary_size is not None
-            and generator_config.vocab_size != vocabulary_size
-        ):
+        generator_config = transformers.AutoConfig.from_pretrained(generator_config_path)
+        if vocabulary_size is not None and generator_config.vocab_size != vocabulary_size:
             logger.warning(
                 f"Vocabulary size mismatch between generator config ({generator_config.vocab_size})"
                 f" and pretrained tokenizer ({vocabulary_size}), using {vocabulary_size}."
             )
             generator_config.vocab_size = vocabulary_size
         logger.info("Generating discriminator from config")
-        discriminator = transformers.AutoModelForMaskedLM.from_config(
-            discriminator_config
-        )
+        discriminator = transformers.AutoModelForMaskedLM.from_config(discriminator_config)
         logger.info("Generating generator from config")
         generator = transformers.AutoModelForMaskedLM.from_config(generator_config)
     else:

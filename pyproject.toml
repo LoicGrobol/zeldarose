@@ -44,6 +44,7 @@ content-type = "text/markdown"
 
 [project.optional-dependencies]
 lint = [
+    "black",
     "flakeheaven",
     "flake8-bugbear",
     "flake8-pytest-style",
