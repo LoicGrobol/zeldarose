@@ -10,7 +10,6 @@ import warnings
 from typing import Any, Dict, List, Optional, Union, cast
 
 import click
-import click_pathlib
 import pytorch_lightning as pl
 import toml
 import transformers
@@ -142,25 +141,26 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 @click.argument("raw_text")
 @click.option(
     "--accelerator",
-    default="cpu",
+    default="auto",
+    show_default=True,
     type=str,
-    help="The lightning accelerator to use (see lightning doc)",
+    help="The lightning accelerator to use (see lightning doc).",
 )
 @click.option(
     "--cache-dir",
-    type=click_pathlib.Path(resolve_path=True, file_okay=False),
+    type=click.Path(resolve_path=True, file_okay=False, path_type=pathlib.Path),
     help="Where to cache the input data",
 )
 @click.option(
     "--checkpoint",
     "checkpoint",
-    type=click_pathlib.Path(resolve_path=True, dir_okay=False, exists=True),
+    type=click.Path(resolve_path=True, dir_okay=False, exists=True, path_type=pathlib.Path),
     help="A checkpoint to restore the training state from",
 )
 @click.option(
     "--config",
     "config_path",
-    type=click_pathlib.Path(resolve_path=True, dir_okay=False, exists=True),
+    type=click.Path(resolve_path=True, dir_okay=False, exists=True, path_type=pathlib.Path),
     help="A config file (in TOML format)",
 )
 @click.option(
@@ -226,8 +226,8 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 @click.option(
     "--out-dir",
     default=".",
-    type=click_pathlib.Path(resolve_path=True, file_okay=False),
-    help="Where to save the trained model",
+    type=click.Path(resolve_path=True, file_okay=False, path_type=pathlib.Path),
+    help="Where to save the trained model. (defaults to cwd)",
 )
 @click.option(
     "--pretrained-model",
@@ -257,7 +257,6 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     "--tokenizer",
     "tokenizer_name",
     type=str,
-    show_default=True,
     metavar="NAME_OR_PATH",
     help=(
         "A pretrained tokenizer model to use"
