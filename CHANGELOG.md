@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 - `lint` extra that install linting tools and plugins
 - Config for [flakeheaven](https://github.com/flakeheaven/flakeheaven)
+- Support for [pytorch-lightning
+  1.6](https://github.com/PyTorchLightning/pytorch-lightning/releases/tag/1.6.0)
 
 ### Changed
 
