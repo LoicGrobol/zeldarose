@@ -22,13 +22,12 @@ keywords = [
 ]
 requires-python = ">=3.8"
 dependencies = [
-    "click",
-    "click_pathlib",
+    "click >= 8.0.4, < 9.0.0",
     "datasets",
     "filelock",
     "loguru",
     "pydantic",
-    "pytorch-lightning >= 1.5.6, < 1.6.0",
+    "pytorch-lightning >= 1.5.6, < 1.7.0",
     "rich",
     "torch > 1.8, < 1.12",
     "torchmetrics",
@@ -44,6 +43,7 @@ content-type = "text/markdown"
 
 [project.optional-dependencies]
 lint = [
+    "black",
     "flakeheaven",
     "flake8-bugbear",
     "flake8-pytest-style",

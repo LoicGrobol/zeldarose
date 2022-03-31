@@ -103,11 +103,9 @@ class TextLoader(torch.utils.data.DataLoader[TextBatch]):
             kwargs["collate_fn"] = self.collate
         super().__init__(dataset, *args, **kwargs)
         self.tokenizer = tokenizer
-        padding_value = getattr(self.tokenizer, "pad_token_id")
+        padding_value = self.tokenizer.pad_token_id
         if padding_value is None:
-            padding_value = self.tokenizer.convert_tokens_to_ids(
-                self.tokenizer.padding_value
-            )
+            raise ValueError("Tokenizers without a padding id are not supported")
         self._padding_value = padding_value
 
     def collate(self, batch: Sequence[EncodedSample]) -> TextBatch:

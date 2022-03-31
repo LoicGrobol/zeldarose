@@ -10,7 +10,6 @@ import warnings
 from typing import Any, Dict, List, Optional, Union, cast
 
 import click
-import click_pathlib
 import pytorch_lightning as pl
 import toml
 import transformers
@@ -58,11 +57,7 @@ def setup_logging(
         logger.add(
             logfile,
             level="DEBUG",
-            format=(
-                f"[{appname}]"
-                " {time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} |"
-                " {message}"
-            ),
+            format=(f"[{appname}] {{time:YYYY-MM-DD HH:mm:ss.SSS}} | {{level: <8}} | {{message}}"),
             colorize=False,
         )
 
@@ -82,9 +77,7 @@ def setup_logging(
                 frame = frame.f_back
                 depth += 1
 
-            logger.opt(depth=depth, exception=record.exc_info).log(
-                level, record.getMessage()
-            )
+            logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
     transformers_logger = logging.getLogger("transformers")
     # FIXME: ugly, but is there a better way?
@@ -99,9 +92,7 @@ def setup_logging(
     # Deal with stdlib.warnings
 
     def showwarning(message, category, filename, lineno, file=None, line=None):
-        logger.warning(
-            warnings.formatwarning(message, category, filename, lineno, None).strip()
-        )
+        logger.warning(warnings.formatwarning(message, category, filename, lineno, None).strip())
 
     if replace_warnings:
         warnings.showwarning = showwarning
@@ -150,25 +141,26 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 @click.argument("raw_text")
 @click.option(
     "--accelerator",
-    default="cpu",
+    default="auto",
+    show_default=True,
     type=str,
-    help="The lightning accelerator to use (see lightning doc)",
+    help="The lightning accelerator to use (see lightning doc).",
 )
 @click.option(
     "--cache-dir",
-    type=click_pathlib.Path(resolve_path=True, file_okay=False),
+    type=click.Path(resolve_path=True, file_okay=False, path_type=pathlib.Path),
     help="Where to cache the input data",
 )
 @click.option(
     "--checkpoint",
     "checkpoint",
-    type=click_pathlib.Path(resolve_path=True, dir_okay=False, exists=True),
+    type=click.Path(resolve_path=True, dir_okay=False, exists=True, path_type=pathlib.Path),
     help="A checkpoint to restore the training state from",
 )
 @click.option(
     "--config",
     "config_path",
-    type=click_pathlib.Path(resolve_path=True, dir_okay=False, exists=True),
+    type=click.Path(resolve_path=True, dir_okay=False, exists=True, path_type=pathlib.Path),
     help="A config file (in TOML format)",
 )
 @click.option(
@@ -234,8 +226,8 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 @click.option(
     "--out-dir",
     default=".",
-    type=click_pathlib.Path(resolve_path=True, file_okay=False),
-    help="Where to save the trained model",
+    type=click.Path(resolve_path=True, file_okay=False, path_type=pathlib.Path),
+    help="Where to save the trained model. (defaults to cwd)",
 )
 @click.option(
     "--pretrained-model",
@@ -265,7 +257,6 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
     "--tokenizer",
     "tokenizer_name",
     type=str,
-    show_default=True,
     metavar="NAME_OR_PATH",
     help=(
         "A pretrained tokenizer model to use"
@@ -346,9 +337,9 @@ def main(
         else:
             raise ValueError("Missing both pretrained tokenizer and pretrained model")
     logger.info(f"Loading pretrained tokenizer {tokenizer_name}")
-    tokenizer: transformers.PreTrainedTokenizerBase = (
-        transformers.AutoTokenizer.from_pretrained(tokenizer_name, use_fast=True)
-    )
+    tokenizer: Union[
+        transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast
+    ] = transformers.AutoTokenizer.from_pretrained(tokenizer_name, use_fast=True)
 
     if config_path is not None:
         with open(config_path) as in_stream:
@@ -396,9 +387,7 @@ def main(
         )
 
     # A pl Trainer batch is in fact one batch per device, so if we use multiple devices
-    accumulate_grad_batches = tuning_config.batch_size // (
-        device_batch_size * total_devices
-    )
+    accumulate_grad_batches = tuning_config.batch_size // (device_batch_size * total_devices)
     logger.info(f"Using {accumulate_grad_batches} steps gradient accumulation.")
 
     # In DP mode, every batch is split between the devices
@@ -453,9 +442,7 @@ def main(
         pl.callbacks.LearningRateMonitor("step"),
     ]
     if epoch_save_period is not None or step_save_period is not None:
-        training_model.save_transformer(
-            out_dir / "partway_models" / "initial", tokenizer
-        )
+        training_model.save_transformer(out_dir / "partway_models" / "initial", tokenizer)
         callbacks.append(
             SavePretrainedModelCallback(
                 out_dir / "partway_models",
@@ -487,7 +474,7 @@ def main(
         accelerator=accelerator,
         auto_select_gpus=accelerator == "gpu",
         callbacks=callbacks,
-        default_root_dir=out_dir,
+        default_root_dir=str(out_dir),
         devices=num_devices,
         gradient_clip_val=tuning_config.gradient_clipping,
         limit_val_batches=1.0 if val_path is not None else 0,

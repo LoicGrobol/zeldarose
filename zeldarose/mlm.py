@@ -1,5 +1,5 @@
 import pathlib
-from typing import Any, Dict, NamedTuple, Optional, Union
+from typing import Any, Dict, NamedTuple, Optional, Union, cast
 
 import pydantic
 import pytorch_lightning as pl
@@ -113,8 +113,7 @@ class MLMTrainingModel(pl.LightningModule):
 
         self.save_hyperparameters("training_config", "task_config")
 
-    # type: ignore[override]
-    def forward(
+    def forward(  # type: ignore[override]
         self,
         tokens: torch.Tensor,
         attention_mask: torch.Tensor,
@@ -131,8 +130,7 @@ class MLMTrainingModel(pl.LightningModule):
 
         return output
 
-    # type: ignore[override]
-    def training_step(
+    def training_step(  # type: ignore[override]
         self, batch: zeldarose.data.TextBatch, batch_idx: int
     ) -> torch.Tensor:
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
@@ -181,8 +179,7 @@ class MLMTrainingModel(pl.LightningModule):
             )
         return loss
 
-    # type: ignore[override]
-    def validation_step(self, batch: zeldarose.data.TextBatch, batch_idx: int):
+    def validation_step(self, batch: zeldarose.data.TextBatch, batch_idx: int):  # type: ignore[override]
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
         with torch.no_grad():
             masked = mask_tokens(
@@ -315,7 +312,7 @@ def get_training_model(
     model_config_path: Optional[Union[str, pathlib.Path]],
     pretrained_model: Optional[Union[str, pathlib.Path]],
     task_config_dict: Optional[Dict[str, Any]],
-    tokenizer: transformers.PreTrainedTokenizerBase,
+    tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
     training_config: TrainConfig,
 ) -> MLMTrainingModel:
     if task_config_dict is not None:
@@ -323,8 +320,10 @@ def get_training_model(
     else:
         task_config = MLMTaskConfig()
 
-    if (mask_token_index := getattr(tokenizer, "mask_token_id", None)) is None:
-        mask_token_index = tokenizer.convert_tokens_to_ids(tokenizer.mask_token)
+    if (
+        mask_token_index := cast(Union[int, None], getattr(tokenizer, "mask_token_id", None))
+    ) is None:
+        mask_token_index = cast(int, tokenizer.convert_tokens_to_ids(tokenizer.mask_token))
     vocabulary_size = tokenizer.vocab_size
 
     if pretrained_model is not None:

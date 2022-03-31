@@ -14,10 +14,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 - `lint` extra that install linting tools and plugins
 - Config for [flakeheaven](https://github.com/flakeheaven/flakeheaven)
+- Support for [`pytorch-lightning
+  1.6`](https://github.com/PyTorchLightning/pytorch-lightning/releases/tag/1.6.0)
 
 ### Changed
 
-- Move packaging config to `pyproject.toml` and require `setuptools>=61".
+- Move packaging config to `pyproject.toml` and require `setuptools>=61`.
+- `click_pathlib` is no longer a dependency and `click` has a minimal version of `8.0.3`
 
 ## [0.4.0] — 2022-03-18
 

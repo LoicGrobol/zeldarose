@@ -2,7 +2,6 @@ import pathlib
 import typing as ty
 
 import click
-import click_pathlib
 import tokenizers
 import tokenizers.models
 import tokenizers.pre_tokenizers
@@ -17,7 +16,7 @@ from loguru import logger
 @click.argument(
     "raw_texts",
     nargs=-1,
-    type=click_pathlib.Path(resolve_path=True, exists=True, dir_okay=False),
+    type=click.Path(resolve_path=True, exists=True, dir_okay=False, path_type=pathlib.Path),
     required=True,
 )
 @click.option(
@@ -37,7 +36,7 @@ from loguru import logger
 @click.option(
     "--out-path",
     default=".",
-    type=click_pathlib.Path(resolve_path=True, file_okay=False),
+    type=click.Path(resolve_path=True, file_okay=False, path_type=pathlib.Path),
     help="Where to save the trained model",
 )
 @click.option(
