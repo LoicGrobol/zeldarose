@@ -127,7 +127,7 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
             pl_module.save_transformer(step_save_dir, self.tokenizer)
 
     @rank_zero_only
-    def on_epoch_end(self, trainer: pl.Trainer, pl_module: mlm.MLMTrainingModel):
+    def on_train_epoch_end(self, trainer: pl.Trainer, pl_module: mlm.MLMTrainingModel):
         epoch = trainer.current_epoch
         if self.epoch_period is not None and epoch % self.epoch_period == 0:
             epoch_save_dir = self.save_dir / f"epoch_{trainer.current_epoch}"
