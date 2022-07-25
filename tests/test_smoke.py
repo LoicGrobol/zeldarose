@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple, Union
 import pytest
 import pytest_console_scripts
 import torch.cuda
-from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE
+from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 
 accelerators_strategies_devices = [
     ("cpu", None, None),
