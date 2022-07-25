@@ -1,4 +1,5 @@
 from typing import Optional, Tuple, Union
+
 import pydantic
 import torch
 import torchmetrics
@@ -16,6 +17,10 @@ class TrainConfig(pydantic.BaseModel):
 
 
 class MaskedAccuracy(torchmetrics.Metric):
+    full_state_update: bool = False
+    higher_is_better: Optional[bool] = True
+    is_differentiable = False
+
     def __init__(self, ignore_index: int = -100, dist_sync_on_step: bool = False):
         super().__init__(compute_on_step=False, dist_sync_on_step=dist_sync_on_step)
 

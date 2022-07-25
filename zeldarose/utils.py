@@ -2,11 +2,10 @@ import pathlib
 from typing import Dict, Optional
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities import rank_zero_only
 import torch
 import transformers
-
 from loguru import logger
+from pytorch_lightning.utilities import rank_zero_only
 
 
 def get_internal_transformer_model(

@@ -31,10 +31,9 @@ dependencies = [
     "rich",
     "sacremoses",
     "torch > 1.8, < 1.12",
-    "torchmetrics",
+    "torchmetrics >= 0.9, < 1.0",
     "tokenizers ~= 0.10",
     "toml",
-    "tqdm",
     "transformers >= 4.0.0, < 5.0.0",
 ]
 
