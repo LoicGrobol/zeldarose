@@ -24,9 +24,7 @@ def encode_dataset(
 ):
     logger.info(f"Loading data from {text_path}")
     try:
-        full_dataset = datasets.load_dataset(
-            "text", data_files=str(text_path), split="train"
-        )
+        full_dataset = datasets.load_dataset("text", data_files=str(text_path), split="train")
     except FileNotFoundError as e:
         if isinstance(text_path, str):
             dataset_name, dataset_config, dataset_split = text_path.split(":")
@@ -38,25 +36,29 @@ def encode_dataset(
         else:
             raise e
 
+    def dataset_filter(example: str) -> bool:
+        return len(example) > 0 and not example.isspace()
+
     raw_dataset = cast(datasets.Dataset, full_dataset,).filter(
-        (lambda example: len(example) > 0 and not example.isspace()),
+        dataset_filter,
         input_columns="text",
     )
+
+    def tokenizer_transform(examples: Sequence[str]):
+        return tokenizer(
+            examples,
+            add_special_tokens=True,
+            max_length=max_length,
+            return_special_tokens_mask=True,
+            truncation=True,
+        )
+
     logger.info("Tokenizing")
     encoded_dataset = raw_dataset.map(
-        (
-            lambda examples: tokenizer(
-                examples,
-                add_special_tokens=True,
-                max_length=max_length,
-                return_special_tokens_mask=True,
-                truncation=True,
-            )
-        ),
+        function=tokenizer_transform,
         batched=True,
         desc="Tokenizing",
         input_columns="text",
-        new_fingerprint=f"{raw_dataset._fingerprint}-{tokenizer_name}-{max_length}",
     )
     logger.info(f"Saving dataset to {save_path}")
     # FIXME: this causes an obscure crash when two instance want to access the same --cache-dir
@@ -123,10 +125,7 @@ class TextLoader(torch.utils.data.DataLoader[TextBatch]):
         attention_mask = padding_mask.logical_not()
 
         special_tokens_mask = pad_sequence(
-            [
-                torch.tensor(sample["special_tokens_mask"], dtype=torch.bool)
-                for sample in batch
-            ],
+            [torch.tensor(sample["special_tokens_mask"], dtype=torch.bool) for sample in batch],
             batch_first=True,
             padding_value=False,
         )
