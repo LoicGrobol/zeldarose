@@ -36,7 +36,7 @@ models](https://huggingface.co/transformers/pretrained_models.html) names or loc
 
 This is somewhat tricky, you have several options
 
-- If you are running in a SLURM cluster use `--accelerator ddp` and invoke via `srun`
+- If you are running in a SLURM cluster use `--strategy ddp` and invoke via `srun`
 - Otherwise you have two options
 
   - Run with `--strategy ddp_spawn`, which uses `multiprocessing.spawn` to start the process
@@ -49,6 +49,7 @@ This is somewhat tricky, you have several options
 - Data management relies on 🤗 datasets and use their cache management system. To run in a clear
   environment, you might have to check the cache directory pointed to by the`HF_DATASETS_CACHE`
   environment variable.
+
 
 ## Inspirations
 
