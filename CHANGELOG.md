@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 - Bumped `torchmetrics` minimal version to 0.9
 - Bumped `datasets` minimal version to 2.4
+- Bumped `torch` max version to 1.12
 
 ### Fixed
 
