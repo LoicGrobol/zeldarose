@@ -9,6 +9,7 @@ import torch
 import torch.utils.data
 import transformers
 
+from datasets.fingerprint import Hasher
 from loguru import logger
 from torch.nn.utils.rnn import pad_sequence
 
@@ -36,29 +37,26 @@ def encode_dataset(
         else:
             raise e
 
-    def dataset_filter(example: str) -> bool:
-        return len(example) > 0 and not example.isspace()
-
-    raw_dataset = cast(datasets.Dataset, full_dataset,).filter(
-        dataset_filter,
+    raw_dataset = cast(datasets.Dataset, full_dataset).filter(
+        (lambda example: len(example) > 0 and not example.isspace()),
         input_columns="text",
+        new_fingerprint=Hasher.hash(f"{full_dataset._fingerprint}-noempty"),
     )
-
-    def tokenizer_transform(examples: Sequence[str]):
-        return tokenizer(
-            examples,
-            add_special_tokens=True,
-            max_length=max_length,
-            return_special_tokens_mask=True,
-            truncation=True,
-        )
-
     logger.info("Tokenizing")
     encoded_dataset = raw_dataset.map(
-        function=tokenizer_transform,
+        (
+            lambda examples: tokenizer(
+                examples,
+                add_special_tokens=True,
+                max_length=max_length,
+                return_special_tokens_mask=True,
+                truncation=True,
+            )
+        ),
         batched=True,
         desc="Tokenizing",
         input_columns="text",
+        new_fingerprint=Hasher.hash(f"{raw_dataset._fingerprint}-{tokenizer_name}-{max_length}"),
     )
     logger.info(f"Saving dataset to {save_path}")
     # FIXME: this causes an obscure crash when two instance want to access the same --cache-dir
