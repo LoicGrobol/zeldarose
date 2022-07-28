@@ -13,6 +13,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 ### Changed
 
 - Bumped `torchmetrics` minimal version to 0.9
+- Bumped `datasets` minimal version to 2.4
+- Bumped `torch` max version to 1.12
+
+### Fixed
+
+- Dataset fingerprinting/caching issues [#31](https://github.com/LoicGrobol/zeldarose/issues/31)
 
 ## [0.5.0] — 2022-03-31
 

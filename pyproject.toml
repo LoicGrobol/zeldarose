@@ -23,14 +23,14 @@ keywords = [
 requires-python = ">=3.8"
 dependencies = [
     "click >= 8.0.4, < 9.0.0",
-    "datasets",
+    "datasets >= 2.2, < 2.5",
     "filelock",
     "loguru",
     "pydantic",
     "pytorch-lightning >= 1.5.6, < 1.7.0",
     "rich",
     "sacremoses",
-    "torch > 1.8, < 1.12",
+    "torch > 1.8, < 1.13",
     "torchmetrics >= 0.9, < 1.0",
     "tokenizers ~= 0.10",
     "toml",

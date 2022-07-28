@@ -9,6 +9,7 @@ import torch
 import torch.utils.data
 import transformers
 
+from datasets.fingerprint import Hasher
 from loguru import logger
 from torch.nn.utils.rnn import pad_sequence
 
@@ -24,9 +25,7 @@ def encode_dataset(
 ):
     logger.info(f"Loading data from {text_path}")
     try:
-        full_dataset = datasets.load_dataset(
-            "text", data_files=str(text_path), split="train"
-        )
+        full_dataset = datasets.load_dataset("text", data_files=str(text_path), split="train")
     except FileNotFoundError as e:
         if isinstance(text_path, str):
             dataset_name, dataset_config, dataset_split = text_path.split(":")
@@ -38,9 +37,10 @@ def encode_dataset(
         else:
             raise e
 
-    raw_dataset = cast(datasets.Dataset, full_dataset,).filter(
+    raw_dataset = cast(datasets.Dataset, full_dataset).filter(
         (lambda example: len(example) > 0 and not example.isspace()),
         input_columns="text",
+        new_fingerprint=Hasher.hash(f"{full_dataset._fingerprint}-noempty"),
     )
     logger.info("Tokenizing")
     encoded_dataset = raw_dataset.map(
@@ -56,7 +56,7 @@ def encode_dataset(
         batched=True,
         desc="Tokenizing",
         input_columns="text",
-        new_fingerprint=f"{raw_dataset._fingerprint}-{tokenizer_name}-{max_length}",
+        new_fingerprint=Hasher.hash(f"{raw_dataset._fingerprint}-{tokenizer_name}-{max_length}"),
     )
     logger.info(f"Saving dataset to {save_path}")
     # FIXME: this causes an obscure crash when two instance want to access the same --cache-dir
@@ -123,10 +123,7 @@ class TextLoader(torch.utils.data.DataLoader[TextBatch]):
         attention_mask = padding_mask.logical_not()
 
         special_tokens_mask = pad_sequence(
-            [
-                torch.tensor(sample["special_tokens_mask"], dtype=torch.bool)
-                for sample in batch
-            ],
+            [torch.tensor(sample["special_tokens_mask"], dtype=torch.bool) for sample in batch],
             batch_first=True,
             padding_value=False,
         )
