@@ -7,12 +7,10 @@ import torch
 import torch.jit
 import torch.utils.data
 import transformers
-
 from loguru import logger
 from pytorch_lightning.utilities import rank_zero_only
 
 import zeldarose.data
-
 from zeldarose.common import MaskedAccuracy, TrainConfig
 
 
