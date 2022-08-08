@@ -249,7 +249,7 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 )
 @click.option(
     "--strategy",
-    type=str,
+    type=click.Choice(pl.strategies.StrategyRegistry.available_strategies()),
     help="The lightning strategy to use (see lightning doc)",
 )
 @click.option("--profile", is_flag=True, help="Run in profiling mode")
