@@ -1,3 +1,4 @@
+import os
 import pathlib
 from typing import List, Optional, Tuple, Union
 
@@ -38,10 +39,7 @@ def test_train_tokenizer(
 
 @pytest.mark.parametrize(
     "accelerators_strategies_devices",
-    [
-        pytest.param(v, id="+".join(map(str, v)))
-        for v in accelerators_strategies_devices
-    ],
+    [pytest.param(v, id="+".join(map(str, v))) for v in accelerators_strategies_devices],
 )
 def test_train_mlm(
     accelerators_strategies_devices: Tuple[str, Optional[str], Optional[int]],
@@ -81,16 +79,14 @@ def test_train_mlm(
         "--max-epochs",
         "2",
         *extra_args,
+        env={"TORCH_DISTRIBUTED_DEBUG": "DETAIL", **os.environ},
     )
     assert ret.success
 
 
 @pytest.mark.parametrize(
     "accelerators_strategies_devices",
-    [
-        pytest.param(v, id="+".join(map(str, v)))
-        for v in accelerators_strategies_devices
-    ],
+    [pytest.param(v, id="+".join(map(str, v))) for v in accelerators_strategies_devices],
 )
 def test_train_rtd(
     accelerators_strategies_devices: Tuple[str, Optional[str], Optional[int]],
@@ -130,6 +126,7 @@ def test_train_rtd(
         "--max-epochs",
         "2",
         *extra_args,
+        env={"TORCH_DISTRIBUTED_DEBUG": "DETAIL", **os.environ},
     )
     assert ret.success
 
