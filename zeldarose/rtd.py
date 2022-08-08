@@ -204,6 +204,7 @@ class RTDTrainingModel(pl.LightningModule):
                 "train/generator_accuracy",
                 self.generator_accuracy,
                 on_epoch=True,
+                sync_dist=True,
             )
 
             self.discriminator_accuracy(outputs.discriminator_predictions, outputs.rtd_labels)
@@ -218,6 +219,7 @@ class RTDTrainingModel(pl.LightningModule):
                 "train/discriminator_accuracy",
                 self.discriminator_accuracy,
                 on_epoch=True,
+                sync_dist=True,
             )
 
             self.log(
@@ -268,6 +270,7 @@ class RTDTrainingModel(pl.LightningModule):
             "validation/generator_accuracy",
             self.generator_accuracy,
             on_epoch=True,
+            sync_dist=True,
         )
 
         self.discriminator_accuracy(outputs.discriminator_predictions, outputs.rtd_labels)
@@ -282,6 +285,7 @@ class RTDTrainingModel(pl.LightningModule):
             "validation/discriminator_accuracy",
             self.discriminator_accuracy,
             on_epoch=True,
+            sync_dist=True,
         )
 
     def configure_callbacks(self):

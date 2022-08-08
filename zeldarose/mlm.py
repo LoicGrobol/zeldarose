@@ -176,6 +176,7 @@ class MLMTrainingModel(pl.LightningModule):
                 "train/accuracy",
                 self.accuracy,
                 on_epoch=True,
+                sync_dist=True,
             )
         return loss
 
@@ -216,6 +217,7 @@ class MLMTrainingModel(pl.LightningModule):
             "validation/accuracy",
             self.accuracy,
             on_epoch=True,
+            sync_dist=True,
         )
 
     def configure_optimizers(self):
