@@ -15,7 +15,7 @@ if torch.cuda.is_available():
     accelerators_strategies_devices.append(("gpu", None, None))
     if torch.cuda.device_count() > 1:
         accelerators_strategies_devices.append(("gpu", "ddp_spawn", 2))
-        accelerators_strategies_devices.append(("gpu", "fsdp_native", 2))
+        # accelerators_strategies_devices.append(("gpu", "fsdp_native", 2))
         if _FAIRSCALE_AVAILABLE:
             accelerators_strategies_devices.append(("gpu", "ddp_sharded_spawn", 2))
 
