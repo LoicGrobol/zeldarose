@@ -451,8 +451,6 @@ def main(
                 step_period=step_save_period,
             )
         )
-    if profile and accelerator == "gpu":
-        callbacks.append(pl.callbacks.GPUStatsMonitor())
 
     if checkpoint is not None:
         additional_kwargs["resume_from_checkpoint"] = checkpoint
