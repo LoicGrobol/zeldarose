@@ -421,7 +421,7 @@ def main(
     additional_kwargs: Dict[str, Any] = dict()
     if profile:
         logger.info("Running in profile mode")
-        profiler = pl.profiler.AdvancedProfiler(dirpath=out_dir, filename="profile.txt")
+        profiler = pl.profilers.AdvancedProfiler(dirpath=out_dir, filename="profile.txt")
         additional_kwargs.update({"profiler": profiler, "overfit_batches": 1024})
 
     if guess_batch_size:
