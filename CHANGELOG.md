@@ -10,6 +10,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 [Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.6.0...HEAD
 
+### Changed
+
+- Bumped the minimal compatible version of Lightning to 1.7.1
+- Remove the GPU stats logging from the profile mode since Lightning stopped supporting it
+
 ## [0.6.0] — 2022-07-28
 
 [0.6.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.5.0...v0.6.0
