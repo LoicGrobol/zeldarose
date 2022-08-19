@@ -83,7 +83,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 [0.3.4]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.3...v0.3.4
 
-## Changed
+### Changed
 
 - Bump lightning to 1.5.x
 
