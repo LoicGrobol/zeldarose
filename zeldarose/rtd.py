@@ -8,12 +8,10 @@ import torch.jit
 import torch.utils.data
 import transformers
 import transformers.modeling_outputs
-
 from loguru import logger
 from pytorch_lightning.utilities import rank_zero_only
 
 import zeldarose.data
-
 from zeldarose.common import MaskedAccuracy, TrainConfig
 from zeldarose.utils import (
     OneWayShareTransformersEmbeddingsCallback,
@@ -204,6 +202,7 @@ class RTDTrainingModel(pl.LightningModule):
                 "train/generator_accuracy",
                 self.generator_accuracy,
                 on_epoch=True,
+                sync_dist=True,
             )
 
             self.discriminator_accuracy(outputs.discriminator_predictions, outputs.rtd_labels)
@@ -218,6 +217,7 @@ class RTDTrainingModel(pl.LightningModule):
                 "train/discriminator_accuracy",
                 self.discriminator_accuracy,
                 on_epoch=True,
+                sync_dist=True,
             )
 
             self.log(
@@ -268,6 +268,7 @@ class RTDTrainingModel(pl.LightningModule):
             "validation/generator_accuracy",
             self.generator_accuracy,
             on_epoch=True,
+            sync_dist=True,
         )
 
         self.discriminator_accuracy(outputs.discriminator_predictions, outputs.rtd_labels)
@@ -282,6 +283,7 @@ class RTDTrainingModel(pl.LightningModule):
             "validation/discriminator_accuracy",
             self.discriminator_accuracy,
             on_epoch=True,
+            sync_dist=True,
         )
 
     def configure_callbacks(self):

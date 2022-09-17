@@ -249,7 +249,7 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 )
 @click.option(
     "--strategy",
-    type=str,
+    type=click.Choice(pl.strategies.StrategyRegistry.available_strategies()),
     help="The lightning strategy to use (see lightning doc)",
 )
 @click.option("--profile", is_flag=True, help="Run in profiling mode")
@@ -421,7 +421,7 @@ def main(
     additional_kwargs: Dict[str, Any] = dict()
     if profile:
         logger.info("Running in profile mode")
-        profiler = pl.profiler.AdvancedProfiler(dirpath=out_dir, filename="profile.txt")
+        profiler = pl.profilers.AdvancedProfiler(dirpath=out_dir, filename="profile.txt")
         additional_kwargs.update({"profiler": profiler, "overfit_batches": 1024})
 
     if guess_batch_size:
@@ -451,8 +451,6 @@ def main(
                 step_period=step_save_period,
             )
         )
-    if profile and accelerator == "gpu":
-        callbacks.append(pl.callbacks.GPUStatsMonitor())
 
     if checkpoint is not None:
         additional_kwargs["resume_from_checkpoint"] = checkpoint

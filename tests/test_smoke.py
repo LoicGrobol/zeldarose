@@ -1,3 +1,4 @@
+import os
 import pathlib
 from typing import List, Optional, Tuple, Union
 
@@ -14,6 +15,7 @@ if torch.cuda.is_available():
     accelerators_strategies_devices.append(("gpu", None, None))
     if torch.cuda.device_count() > 1:
         accelerators_strategies_devices.append(("gpu", "ddp_spawn", 2))
+        # accelerators_strategies_devices.append(("gpu", "fsdp_native", 2))
         if _FAIRSCALE_AVAILABLE:
             accelerators_strategies_devices.append(("gpu", "ddp_sharded_spawn", 2))
 
@@ -38,10 +40,7 @@ def test_train_tokenizer(
 
 @pytest.mark.parametrize(
     "accelerators_strategies_devices",
-    [
-        pytest.param(v, id="+".join(map(str, v)))
-        for v in accelerators_strategies_devices
-    ],
+    [pytest.param(v, id="+".join(map(str, v))) for v in accelerators_strategies_devices],
 )
 def test_train_mlm(
     accelerators_strategies_devices: Tuple[str, Optional[str], Optional[int]],
@@ -81,16 +80,14 @@ def test_train_mlm(
         "--max-epochs",
         "2",
         *extra_args,
+        env={"TORCH_DISTRIBUTED_DEBUG": "DETAIL", **os.environ},
     )
     assert ret.success
 
 
 @pytest.mark.parametrize(
     "accelerators_strategies_devices",
-    [
-        pytest.param(v, id="+".join(map(str, v)))
-        for v in accelerators_strategies_devices
-    ],
+    [pytest.param(v, id="+".join(map(str, v))) for v in accelerators_strategies_devices],
 )
 def test_train_rtd(
     accelerators_strategies_devices: Tuple[str, Optional[str], Optional[int]],
@@ -130,6 +127,7 @@ def test_train_rtd(
         "--max-epochs",
         "2",
         *extra_args,
+        env={"TORCH_DISTRIBUTED_DEBUG": "DETAIL", **os.environ},
     )
     assert ret.success
 
