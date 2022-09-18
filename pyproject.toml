@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61", "wheel"]
+requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -37,15 +37,12 @@ dependencies = [
     "transformers >= 4.0.0, < 5.0.0",
 ]
 
-[project.readme]
-file = "README.md"
-content-type = "text/markdown"
 
 [project.optional-dependencies]
 lint = [
     "black",
-    "flakeheaven",
     "flake8-bugbear",
+    "flake8-pyproject",
     "flake8-pytest-style",
     "mypy",
 ]
@@ -55,19 +52,26 @@ tests = [
     "pytest-lazy-fixture",
 ]
 
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+[tool.setuptools]
+packages = ["zeldarose"]
 
 [project.scripts]
 zeldarose-tokenizer = "zeldarose.train_tokenizer:main"
 zeldarose-transformer = "zeldarose.train_transformer:main"
 
-[tool.flakeheaven]
-max_line_length = 100
+[project.urls]
+"Bug Tracker" = "https://github.com/loicgrobol/zeldarose/issues"
+"Changes" = "https://github.com/loicgrobol/zeldarose/blob/main/CHANGELOG.md"
+"Documentation" = "https://github.com/loicgrobol/zeldarose/blob/main/README.md"
+"Source Code" = "https://github.com/loicgrobol/zeldarose"
 
-[tool.flakeheaven.plugins]
-bugbear = ["+*"]
-pycodestyle = ["+*", "-W503", "-E501"]
-pyflakes = ["+*", "-E203", "-E266"]
-pytest-style = ["+*"]
+[tool.flake8]
+max-line-length = 100
+ignore = ["E203", "E266", "E501", "W503"]
 
 [tool.mypy]
 warn_unreachable = true
@@ -78,3 +82,6 @@ line-length = 100
 
 [tool.isort]
 profile = "black"
+
+[tool.bandit]
+assert_used.skips = ["tests/test_*.py"]
