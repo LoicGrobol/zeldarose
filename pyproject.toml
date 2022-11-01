@@ -30,11 +30,11 @@ dependencies = [
     "pytorch-lightning >= 1.7.1, < 1.8.0",
     "rich",
     "sacremoses",
-    "torch > 1.8, < 1.13",
     "torchmetrics >= 0.9, < 1.0",
     "tokenizers ~= 0.10",
     "toml",
-    "transformers >= 4.0.0, < 5.0.0",
+    "torch >= 1.9.0, != 1.10.0, < 1.14.0",
+    "transformers >= 4.19.0, < 5.0.0, != 4.23.0, != 4.23.1",
 ]
 
 
