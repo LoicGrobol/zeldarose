@@ -27,7 +27,7 @@ dependencies = [
     "filelock",
     "loguru",
     "pydantic",
-    "pytorch-lightning >= 1.7.1, < 1.8.0",
+    "pytorch-lightning >= 1.7.1, < 1.9.0",
     "rich",
     "sacremoses",
     "torchmetrics >= 0.9, < 1.0",
