@@ -5,7 +5,6 @@ from typing import List, Optional, Tuple, Union
 import pytest
 import pytest_console_scripts
 import torch.cuda
-from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 
 accelerators_strategies_devices = [
     ("cpu", None, None),
@@ -16,9 +15,6 @@ if torch.cuda.is_available():
     if torch.cuda.device_count() > 1:
         accelerators_strategies_devices.append(("gpu", "ddp_spawn", 2))
         # accelerators_strategies_devices.append(("gpu", "fsdp_native", 2))
-        if _FAIRSCALE_AVAILABLE:
-            accelerators_strategies_devices.append(("gpu", "ddp_sharded_spawn", 2))
-
 
 def test_train_tokenizer(
     raw_text_path: pathlib.Path,
