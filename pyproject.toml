@@ -6,8 +6,8 @@ build-backend = "setuptools.build_meta"
 name = "zeldarose"
 version = "0.6.0"
 description = "Train transformer-based models"
-license = {text = "MIT"}
-authors = [{name = "Loïc Grobol", email = "loic.grobol@gmail.com"}]
+license = { text = "MIT" }
+authors = [{ name = "Loïc Grobol", email = "loic.grobol@gmail.com" }]
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.8",
@@ -15,11 +15,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Environment :: Console",
 ]
-keywords = [
-    "nlp",
-    "transformers",
-    "language-model",
-]
+keywords = ["nlp", "transformers", "language-model"]
 requires-python = ">=3.8"
 dependencies = [
     "click >= 8.0.4, < 9.0.0",
@@ -46,11 +42,7 @@ lint = [
     "flake8-pytest-style",
     "mypy",
 ]
-tests = [
-    "pytest",
-    "pytest-console-scripts",
-    "pytest-lazy-fixture",
-]
+tests = ["pytest", "pytest-console-scripts", "pytest-lazy-fixture"]
 
 [project.readme]
 file = "README.md"
