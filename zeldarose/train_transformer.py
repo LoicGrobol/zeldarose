@@ -476,7 +476,6 @@ def main(
     trainer = pl.Trainer(
         accumulate_grad_batches=accumulate_grad_batches,
         accelerator=accelerator,
-        auto_select_gpus=accelerator == "gpu",
         callbacks=callbacks,
         default_root_dir=str(out_dir),
         devices=num_devices,
