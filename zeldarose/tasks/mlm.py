@@ -2,7 +2,6 @@ import pathlib
 from typing import Any, cast, Dict, NamedTuple, Optional, TYPE_CHECKING, Union
 
 import pydantic
-import pytorch_lightning as pl
 import torch
 import torch.jit
 import torch.utils.data
@@ -11,7 +10,7 @@ from loguru import logger
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 import zeldarose.data
-from zeldarose.common import MaskedAccuracy, TrainConfig
+from zeldarose.common import MaskedAccuracy, TrainConfig, TrainingModule
 
 
 if TYPE_CHECKING:
@@ -21,6 +20,9 @@ if TYPE_CHECKING:
 class MaskedTokens(NamedTuple):
     inputs: torch.Tensor
     labels: torch.Tensor
+
+
+data_type = zeldarose.data.TextDataModule
 
 
 # TODO: How to do whole-word masking?
@@ -86,7 +88,7 @@ class MLMTaskConfig(pydantic.BaseModel):
     switch_ratio: float = 0.1
 
 
-class MLMTrainingModel(pl.LightningModule):
+class MLMTrainingModel(TrainingModule):
     def __init__(
         self,
         model: transformers.PreTrainedModel,
@@ -296,7 +298,9 @@ class MLMTrainingModel(pl.LightningModule):
     def save_transformer(
         self,
         save_dir: pathlib.Path,
-        tokenizer: Optional[transformers.PreTrainedTokenizer] = None,
+        tokenizer: Optional[
+            Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast]
+        ] = None,
     ):
         """Save the wrapped transformer model."""
         save_dir.mkdir(parents=True, exist_ok=True)

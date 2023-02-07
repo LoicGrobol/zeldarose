@@ -193,7 +193,8 @@ class TextDataModule(pl.LightningDataModule):
                 tokenizer=self.tokenizer,
                 tokenizer_name=self.tokenizer_name,
             )
-            if self.val_dataset_path is not None:
+            if self.val_text is not None:
+                assert self.val_dataset_path is not None
                 encode_dataset(
                     max_length=self.max_length,
                     save_path=self.val_dataset_path,
@@ -210,8 +211,9 @@ class TextDataModule(pl.LightningDataModule):
     def train_dataloader(self):
         if self.train_dataset is None:
             return None
+        # FIXME(2023-02-07): that cast hereunder is wrong, self.train_dataset is **not** a torch Dataset
         return TextLoader(
-            self.train_dataset,
+            cast(torch.utils.data.Dataset[TextBatch], self.train_dataset),
             batch_size=self.loader_batch_size,
             num_workers=self.num_workers,
             shuffle=True,
@@ -221,8 +223,9 @@ class TextDataModule(pl.LightningDataModule):
     def val_dataloader(self):
         if self.val_dataset is None:
             return None
+        # FIXME(2023-02-07): that cast hereunder is wrong, self.val_dataset is **not** a torch Dataset
         return TextLoader(
-            self.val_dataset,
+            cast(torch.utils.data.Dataset[TextBatch], self.val_dataset),
             batch_size=self.loader_batch_size,
             num_workers=self.num_workers,
             shuffle=False,
