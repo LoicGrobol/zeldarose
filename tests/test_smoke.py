@@ -16,6 +16,7 @@ if torch.cuda.is_available():
         accelerators_strategies_devices.append(("gpu", "ddp_spawn", 2))
         # accelerators_strategies_devices.append(("gpu", "fsdp_native", 2))
 
+
 def test_train_tokenizer(
     raw_text_path: pathlib.Path,
     script_runner: pytest_console_scripts.ScriptRunner,

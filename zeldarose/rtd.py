@@ -1,5 +1,5 @@
 import pathlib
-from typing import Any, Dict, List, Literal, NamedTuple, Optional, Union, cast
+from typing import Any, cast, Dict, NamedTuple, List, Literal, Optional, TYPE_CHECKING, Union
 
 import pydantic
 import pytorch_lightning as pl
@@ -7,9 +7,8 @@ import torch
 import torch.jit
 import torch.utils.data
 import transformers
-import transformers.modeling_outputs
 from loguru import logger
-from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 import zeldarose.data
 from zeldarose.common import MaskedAccuracy, TrainConfig
@@ -17,6 +16,10 @@ from zeldarose.utils import (
     OneWayShareTransformersEmbeddingsCallback,
     ShareTransformersEmbeddingsCallback,
 )
+
+
+if TYPE_CHECKING:
+    import transformers.modeling_outputs
 
 
 class MaskedTokens(NamedTuple):
@@ -451,10 +454,10 @@ def get_training_model(
         raise ValueError(
             f"RTD discriminator must have exactly 2 tokens classes, found {discriminator.config.num_labels}"
         )
-    if discriminator.config.vocab_size != generator_config.vocab_size:
+    if discriminator.config.vocab_size != generator.config.vocab_size:
         raise ValueError(
             "Vocabulary size mismatch between discriminator and generator:"
-            f" {discriminator.config.vocab_size} vs {generator_config.vocab_size}"
+            f" {discriminator.config.vocab_size} vs {generator.config.vocab_size}"
         )
 
     logger.info("Creating RTD training model")

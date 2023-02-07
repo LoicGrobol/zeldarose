@@ -1,11 +1,11 @@
 import pathlib
-from typing import Dict, Optional
+from typing import cast, Dict, Optional
 
 import pytorch_lightning as pl
 import torch
 import transformers
 from loguru import logger
-from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 
 def get_internal_transformer_model(
@@ -29,16 +29,12 @@ def reset_transformer_vocab(model: transformers.PreTrainedModel):
         transformer_model.embeddings.reset_parameters()
     # Assume a custom huggingface embedding class
     else:
-        transformer_model.embeddings = type(transformer_model.embeddings)(
-            transformer_model.config
-        )
+        transformer_model.embeddings = type(transformer_model.embeddings)(transformer_model.config)
     logger.info("Reinitializing LM head")
     # There is no consensus in hf transformers as to how the LM head of a MLM model is
     # called so we have to do an ugly song and dance here
     lm_head_name = next(
-        layer_name
-        for layer_name in ("lm_head", "cls", "pred_layer")
-        if hasattr(model, layer_name)
+        layer_name for layer_name in ("lm_head", "cls", "pred_layer") if hasattr(model, layer_name)
     )
     setattr(model, lm_head_name, type(getattr(model, lm_head_name))(model.config))
 
@@ -98,9 +94,9 @@ class ShareTransformersEmbeddingsCallback(pl.Callback):
             self.follower.tie_weights()
 
     def on_train_end(self, trainer, pl_module):
-        self.follower_transformer.embeddings = type(
-            self.follower_transformer.embeddings
-        )(self.follower_transformer.config)
+        self.follower_transformer.embeddings = type(self.follower_transformer.embeddings)(
+            self.follower_transformer.config
+        )
         self.follower_transformer.embeddings.load_state_dict(
             self.leader_transformer.embeddings.state_dict()
         )
@@ -168,9 +164,7 @@ class OneWayShareTransformersEmbeddingsCallback(pl.Callback):
                 self.replaced_layer[layer_name] = combiner
 
         if not self.replaced_layer:
-            logger.warning(
-                "No embeddings actually shared, you should probably check your config."
-            )
+            logger.warning("No embeddings actually shared, you should probably check your config.")
 
     def on_train_end(self, trainer, pl_module):
         for layer_name, combiner in self.replaced_layer.items():
@@ -201,6 +195,4 @@ class TieEmbeddingsCallback(pl.Callback):
         self.follower_embeddings.weight = self.leader_embeddings.weight
 
     def on_train_end(self, trainer, pl_module):
-        self.follower_embeddings.weight = (
-            self.follower_embeddings.weight.detach().clone()
-        )
+        self.follower_embeddings.weight = self.follower_embeddings.weight.detach().clone()
