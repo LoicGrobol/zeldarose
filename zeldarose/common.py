@@ -1,8 +1,25 @@
+from abc import ABC, abstractmethod
+import pathlib
 from typing import Optional, Tuple, Union
 
 import pydantic
 import torch
 import torchmetrics
+import transformers
+
+import pytorch_lightning as pl
+
+
+class TrainingModule(pl.LightningModule, ABC):
+    @abstractmethod
+    def save_transformer(
+        self,
+        save_dir: pathlib.Path,
+        tokenizer: Optional[
+            Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast]
+        ] = None,
+    ):
+        raise NotImplementedError()
 
 
 class TrainConfig(pydantic.BaseModel):

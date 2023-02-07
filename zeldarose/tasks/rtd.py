@@ -11,7 +11,7 @@ from loguru import logger
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 import zeldarose.data
-from zeldarose.common import MaskedAccuracy, TrainConfig
+from zeldarose.common import MaskedAccuracy, TrainConfig, TrainingModule
 from zeldarose.utils import (
     OneWayShareTransformersEmbeddingsCallback,
     ShareTransformersEmbeddingsCallback,
@@ -20,6 +20,9 @@ from zeldarose.utils import (
 
 if TYPE_CHECKING:
     import transformers.modeling_outputs
+
+
+data_type = zeldarose.data.TextDataModule
 
 
 class MaskedTokens(NamedTuple):
@@ -80,7 +83,7 @@ class RTDTaskConfig(pydantic.BaseModel):
     mask_ratio: float = 0.15
 
 
-class RTDTrainingModel(pl.LightningModule):
+class RTDTrainingModel(TrainingModule):
     def __init__(
         self,
         discriminator: transformers.PreTrainedModel,

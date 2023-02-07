@@ -3,6 +3,7 @@ import math
 import os
 import pathlib
 import sys
+from types import ModuleType
 import warnings
 
 from typing import Any, Dict, List, Optional, Union, cast
@@ -20,9 +21,8 @@ import transformers
 
 from loguru import logger
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
-from zeldarose import data
 from zeldarose.tasks import mlm, rtd
-from zeldarose.common import TrainConfig
+from zeldarose.common import TrainConfig, TrainingModule
 
 
 def setup_logging(
@@ -111,7 +111,7 @@ class SavePretrainedModelCallback(pl.Callback):
     def __init__(
         self,
         save_dir: pathlib.Path,
-        tokenizer: transformers.PreTrainedTokenizerBase,
+        tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
         epoch_period: Optional[int] = 1,
         step_period: Optional[int] = None,
     ):
@@ -124,7 +124,7 @@ class SavePretrainedModelCallback(pl.Callback):
     def on_train_batch_end(
         self,
         trainer: pl.Trainer,
-        pl_module: Union[rtd.RTDTrainingModel, mlm.MLMTrainingModel],
+        pl_module: TrainingModule,
         outputs: pl_types.STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
@@ -136,7 +136,7 @@ class SavePretrainedModelCallback(pl.Callback):
             pl_module.save_transformer(step_save_dir, self.tokenizer)
 
     @rank_zero_only
-    def on_train_epoch_end(self, trainer: pl.Trainer, pl_module: mlm.MLMTrainingModel):
+    def on_train_epoch_end(self, trainer: pl.Trainer, pl_module: TrainingModule):
         epoch = trainer.current_epoch
         if self.epoch_period is not None and epoch % self.epoch_period == 0:
             epoch_save_dir = self.save_dir / f"epoch_{trainer.current_epoch}"
@@ -358,25 +358,22 @@ def main(
     tuning_config = TrainConfig.parse_obj(config.get("tuning", dict()))
 
     task_type = config.get("type", "mlm")
-    training_model: Union[mlm.MLMTrainingModel, rtd.RTDTrainingModel]
+
+    task: ModuleType
     if task_type == "mlm":
-        training_model = mlm.get_training_model(
-            model_config_path=model_config_path,
-            pretrained_model=pretrained_model,
-            task_config_dict=config.get("task"),
-            tokenizer=tokenizer,
-            training_config=tuning_config,
-        )
+        task = mlm
     elif task_type == "rtd":
-        training_model = rtd.get_training_model(
-            model_config_path=model_config_path,
-            pretrained_model=pretrained_model,
-            task_config_dict=config.get("task"),
-            tokenizer=tokenizer,
-            training_config=tuning_config,
-        )
+        task = rtd
     else:
         raise ValueError(f"Unknown task type: {task_type!r}")
+
+    training_model: TrainingModule = task.get_training_model(
+        model_config_path=model_config_path,
+        pretrained_model=pretrained_model,
+        task_config_dict=config.get("task"),
+        tokenizer=tokenizer,
+        training_config=tuning_config,
+    )
     training_model.train()
 
     if device_batch_size is None:
@@ -414,7 +411,7 @@ def main(
         max_length = None
     logger.info(f"Training with a maximum sequence length of {max_length} tokens")
     logger.info("Creating data modules")
-    datamodule = data.TextDataModule(
+    datamodule = task.data_type(
         data_dir=cache_dir,
         loader_batch_size=loader_batch_size,
         max_length=cast(Union[int, None], max_length),
