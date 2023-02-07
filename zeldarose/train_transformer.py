@@ -20,8 +20,8 @@ import transformers
 
 from loguru import logger
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
-from zeldarose import data, rtd
-from zeldarose import mlm
+from zeldarose import data
+from zeldarose.tasks import mlm, rtd
 from zeldarose.common import TrainConfig
 
 
