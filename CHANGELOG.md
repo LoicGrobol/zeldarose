@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 - Bumped the minimal compatible version of Lightning to 1.7.1
 - Remove the GPU stats logging from the profile mode since Lightning stopped supporting it
+- Switched TOML library from [toml](https://pypi.org/project/toml/) to
+  [tomli](https://pypi.org/project/tomli/)
 
 ## [0.6.0] — 2022-07-28
 

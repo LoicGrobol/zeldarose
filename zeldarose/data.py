@@ -19,7 +19,7 @@ from torch.nn.utils.rnn import pad_sequence
 def encode_dataset(
     save_path: pathlib.Path,
     text_path: Union[pathlib.Path, str],
-    tokenizer: transformers.PreTrainedTokenizer,
+    tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
     tokenizer_name: str,
     max_length: Optional[int] = None,
 ):
@@ -37,6 +37,7 @@ def encode_dataset(
         else:
             raise e
 
+    # FIXME: why don't we use the default fingerprinting here?
     raw_dataset = cast(datasets.Dataset, full_dataset).filter(
         (lambda example: len(example) > 0 and not example.isspace()),
         input_columns="text",
@@ -60,7 +61,7 @@ def encode_dataset(
     )
     logger.info(f"Saving dataset to {save_path}")
     # FIXME: this causes an obscure crash when two instance want to access the same --cache-dir
-    encoded_dataset.save_to_disk(save_path)
+    encoded_dataset.save_to_disk(str(save_path))
 
 
 class TextBatch(NamedTuple):
@@ -94,7 +95,7 @@ class TextLoader(torch.utils.data.DataLoader[TextBatch]):
     def __init__(
         self,
         dataset: torch.utils.data.Dataset[TextBatch],
-        tokenizer: transformers.PreTrainedTokenizer,
+        tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
         *args,
         **kwargs,
     ):
@@ -141,7 +142,7 @@ class TextDataModule(pl.LightningDataModule):
         self,
         loader_batch_size: int,
         num_workers: int,
-        tokenizer: transformers.PreTrainedTokenizerBase,
+        tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
         tokenizer_name: str,
         train_text: Union[str, pathlib.Path],
         data_dir: Optional[pathlib.Path] = None,
@@ -180,9 +181,10 @@ class TextDataModule(pl.LightningDataModule):
         self.val_dataset = None
 
     def prepare_data(self):
-        # This should'nt be needed since this method should only be called on rank 0, but since it
+        # NOTE (2021-08-12): This should'nt be needed since this method should only be called on rank 0, but since it
         # is called in every process AND before DDP init (at least in SLURM) we have to enforce it
         # ourselves
+        # TODO (2023-01-07): see if the note above is still true
         if os.environ.get("SLURM_PROCID", "0") == "0":
             encode_dataset(
                 max_length=self.max_length,
@@ -201,11 +203,13 @@ class TextDataModule(pl.LightningDataModule):
                 )
 
     def setup(self, stage=None):
-        self.train_dataset = datasets.load_from_disk(self.train_dataset_path)
+        self.train_dataset = datasets.load_from_disk(str(self.train_dataset_path))
         if self.val_dataset_path is not None:
-            self.val_dataset = datasets.load_from_disk(self.val_dataset_path)
+            self.val_dataset = datasets.load_from_disk(str(self.val_dataset_path))
 
     def train_dataloader(self):
+        if self.train_dataset is None:
+            return None
         return TextLoader(
             self.train_dataset,
             batch_size=self.loader_batch_size,

@@ -25,7 +25,9 @@ class MaskedAccuracy(torchmetrics.Metric):
         super().__init__(compute_on_step=False, dist_sync_on_step=dist_sync_on_step)
 
         self.ignore_index = ignore_index
+        self.correct: torch.Tensor
         self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
+        self.total: torch.Tensor
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):  # type: ignore[override]

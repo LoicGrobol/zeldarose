@@ -1,5 +1,5 @@
 import pathlib
-from typing import Any, Dict, NamedTuple, Optional, Union, cast
+from typing import Any, cast, Dict, NamedTuple, Optional, TYPE_CHECKING, Union
 
 import pydantic
 import pytorch_lightning as pl
@@ -8,10 +8,14 @@ import torch.jit
 import torch.utils.data
 import transformers
 from loguru import logger
-from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 import zeldarose.data
 from zeldarose.common import MaskedAccuracy, TrainConfig
+
+
+if TYPE_CHECKING:
+    import transformers.modeling_outputs
 
 
 class MaskedTokens(NamedTuple):
@@ -65,9 +69,9 @@ def mask_tokens(
     inputs.masked_fill_(masked_tokens, input_mask_index)
 
     # Replace masked input tokens with random word
-    switched_tokens = what_to_do.le(
-        change_ratio * (mask_ratio + switch_ratio)
-    ).logical_and(masked_tokens.logical_not())
+    switched_tokens = what_to_do.le(change_ratio * (mask_ratio + switch_ratio)).logical_and(
+        masked_tokens.logical_not()
+    )
     random_words = torch.randint_like(labels, vocabulary_size)
     # FIXME: probably still an unnecessary copy here
     inputs[switched_tokens] = random_words[switched_tokens]
@@ -264,9 +268,7 @@ class MLMTrainingModel(pl.LightningModule):
                     ", this might be an oversight."
                 )
             if self.training_config.lr_decay_steps == -1:
-                num_training_steps = (
-                    self.trainer.max_steps - self.training_config.warmup_steps
-                )
+                num_training_steps = self.trainer.max_steps - self.training_config.warmup_steps
                 logger.info(
                     f"Number of lr decay steps set at {num_training_steps} since -1 was asked"
                 )
@@ -276,8 +278,7 @@ class MLMTrainingModel(pl.LightningModule):
             schedule = transformers.get_linear_schedule_with_warmup(
                 optimizer,
                 num_warmup_steps=self.training_config.warmup_steps,
-                num_training_steps=num_training_steps
-                + self.training_config.warmup_steps,
+                num_training_steps=num_training_steps + self.training_config.warmup_steps,
             )
             schedulers = [{"scheduler": schedule, "interval": "step"}]
         elif self.training_config.warmup_steps > 0:
@@ -303,9 +304,7 @@ class MLMTrainingModel(pl.LightningModule):
         self.model.save_pretrained(str(save_dir))
         if tokenizer is not None:
             logger.info(f"Saving tokenizer to {save_dir}")
-            tokenizer.save_pretrained(
-                str(save_dir), legacy_format=not tokenizer.is_fast
-            )
+            tokenizer.save_pretrained(str(save_dir), legacy_format=not tokenizer.is_fast)
 
 
 def get_training_model(

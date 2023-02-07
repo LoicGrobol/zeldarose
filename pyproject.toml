@@ -28,7 +28,7 @@ dependencies = [
     "sacremoses",
     "torchmetrics >= 0.9, < 1.0",
     "tokenizers ~= 0.10",
-    "toml",
+    "tomli",
     "torch >= 1.9.0, != 1.10.0, < 1.14.0",
     "transformers >= 4.19.0, < 5.0.0, != 4.23.0, != 4.23.1",
 ]

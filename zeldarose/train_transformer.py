@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 import math
 import os
@@ -11,11 +9,17 @@ from typing import Any, Dict, List, Optional, Union, cast
 
 import click
 import pytorch_lightning as pl
-import toml
+from pytorch_lightning import (
+    callbacks as pl_callbacks,
+    profilers as pl_profilers,
+    strategies as pl_strategies,
+)
+from pytorch_lightning.utilities import types as pl_types
+import tomli
 import transformers
 
 from loguru import logger
-from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from zeldarose import data, rtd
 from zeldarose import mlm
 from zeldarose.common import TrainConfig
@@ -73,11 +77,16 @@ def setup_logging(
 
             # Find caller from where originated the logged message
             frame, depth = logging.currentframe(), 2
-            while frame.f_code.co_filename == logging.__file__:
-                frame = frame.f_back
-                depth += 1
+            if frame is None:
+                warnings.warn(
+                    "Catching calls to logging is impossible in stackless environment, logging from external libraries might be lost."
+                )
+            else:
+                while frame.f_code.co_filename == logging.__file__:
+                    frame = frame.f_back
+                    depth += 1
 
-            logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+                logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
     transformers_logger = logging.getLogger("transformers")
     # FIXME: ugly, but is there a better way?
@@ -98,7 +107,7 @@ def setup_logging(
         warnings.showwarning = showwarning
 
 
-class SavePretrainedModelCallback(pl.callbacks.Callback):
+class SavePretrainedModelCallback(pl.Callback):
     def __init__(
         self,
         save_dir: pathlib.Path,
@@ -116,7 +125,7 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
         self,
         trainer: pl.Trainer,
         pl_module: Union[rtd.RTDTrainingModel, mlm.MLMTrainingModel],
-        outputs: pl.utilities.types.STEP_OUTPUT,
+        outputs: pl_types.STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
     ):
@@ -249,7 +258,7 @@ class SavePretrainedModelCallback(pl.callbacks.Callback):
 )
 @click.option(
     "--strategy",
-    type=click.Choice(pl.strategies.StrategyRegistry.available_strategies()),
+    type=click.Choice(pl_strategies.StrategyRegistry.available_strategies()),
     help="The lightning strategy to use (see lightning doc)",
 )
 @click.option("--profile", is_flag=True, help="Run in profiling mode")
@@ -312,7 +321,7 @@ def main(
 ):
     """Train a Transformer model.
 
-     The training dataset should be given with `raw_text` as either a path to a local file or or as a
+    The training dataset should be given with `raw_text` as either a path to a local file or or as a
     `handle:config:split` identifier for 🤗 hub (handle can be a url).
     """
     if (slurm_procid := os.environ.get("SLURM_PROCID")) is not None:
@@ -342,8 +351,8 @@ def main(
     ] = transformers.AutoTokenizer.from_pretrained(tokenizer_name, use_fast=True)
 
     if config_path is not None:
-        with open(config_path) as in_stream:
-            config = toml.load(in_stream)
+        with open(config_path, "rb") as in_stream:
+            config = tomli.load(in_stream)
     else:
         config = dict()
     tuning_config = TrainConfig.parse_obj(config.get("tuning", dict()))
@@ -421,7 +430,7 @@ def main(
     additional_kwargs: Dict[str, Any] = dict()
     if profile:
         logger.info("Running in profile mode")
-        profiler = pl.profilers.AdvancedProfiler(dirpath=out_dir, filename="profile.txt")
+        profiler = pl_profilers.AdvancedProfiler(dirpath=out_dir, filename="profile.txt")
         additional_kwargs.update({"profiler": profiler, "overfit_batches": 1024})
 
     if guess_batch_size:
@@ -437,9 +446,9 @@ def main(
     else:
         logger.info("Training the model on CPU")
 
-    callbacks: List[pl.callbacks.Callback] = [
-        pl.callbacks.RichProgressBar(),
-        pl.callbacks.LearningRateMonitor("step"),
+    callbacks: List[pl.Callback] = [
+        pl_callbacks.RichProgressBar(),
+        pl_callbacks.LearningRateMonitor("step"),
     ]
     if epoch_save_period is not None or step_save_period is not None:
         training_model.save_transformer(out_dir / "partway_models" / "initial", tokenizer)
