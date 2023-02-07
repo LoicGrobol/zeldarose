@@ -278,6 +278,11 @@ class SavePretrainedModelCallback(pl.Callback):
     help="Activate half-precisions mode (only on GPUs)",
 )
 @click.option(
+    "--use-tf43",
+    is_flag=True,
+    help="Activate Ampere matmul optimisation (for supported GPUss)",
+)
+@click.option(
     "--val-check-period",
     type=click.IntRange(0),
     help="The number of steps between validation runs (useful for very long epochs)",
@@ -315,6 +320,7 @@ def main(
     strategy: Optional[str],
     tokenizer_name: Optional[str],
     use_fp16: bool,
+    use_tf32: bool,
     val_check_period: Optional[int],
     val_path: Optional[str],
     verbose: bool,
@@ -438,6 +444,9 @@ def main(
         if use_fp16:
             logger.info(f"Training the model on {num_devices} GPUs with half precision")
             additional_kwargs["precision"] = 16
+        if use_tf32:
+            logger.info(f"Using Ampere matmul optimisations")
+            torch.set_float32_matmul_precision("highest")
     elif accelerator == "cpu":
         logger.info(f"Training the model on CPU in {num_devices} processes")
     else:
