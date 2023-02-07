@@ -10,7 +10,7 @@ import transformers
 from loguru import logger
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
-import zeldarose.data
+import zeldarose.datasets.transform
 from zeldarose.common import MaskedAccuracy, TrainConfig, TrainingModule
 from zeldarose.utils import (
     OneWayShareTransformersEmbeddingsCallback,
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     import transformers.modeling_outputs
 
 
-data_type = zeldarose.data.TextDataModule
+data_type = zeldarose.datasets.transform.TextDataModule
 
 
 class MaskedTokens(NamedTuple):
@@ -162,7 +162,7 @@ class RTDTrainingModel(TrainingModule):
             rtd_labels=rtd_labels,
         )
 
-    def training_step(self, batch: zeldarose.data.TextBatch, batch_idx: int) -> torch.Tensor:  # type: ignore[override]
+    def training_step(self, batch: zeldarose.datasets.transform.TextBatch, batch_idx: int) -> torch.Tensor:  # type: ignore[override]
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
         with torch.no_grad():
             masked = mask_tokens(
@@ -236,7 +236,7 @@ class RTDTrainingModel(TrainingModule):
 
         return combined_loss
 
-    def validation_step(self, batch: zeldarose.data.TextBatch, batch_idx: int):  # type: ignore[override]
+    def validation_step(self, batch: zeldarose.datasets.transform.TextBatch, batch_idx: int):  # type: ignore[override]
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
         with torch.no_grad():
             masked = mask_tokens(

@@ -67,14 +67,13 @@ def encode_dataset(
 class TextBatch(NamedTuple):
     """A batch of text for self-supervised tasks.
 
-    Attributes
-    ==========
+    ## Attributes
 
-    :tokens: A batch of encoded (with special tokens) and padded tokens.
-    :attention_mask: A boolean mask, `True` for content and special tokens, `False` for padding.
-    :internal_tokens_mask: A boolean mask, `True` for content tokens, `False` for padding and
+    - `tokens` A batch of encoded (with special tokens) and padded tokens.
+    - `attention_mask` A boolean mask, `True` for content and special tokens, `False` for padding.
+    - `internal_tokens_mask` A boolean mask, `True` for content tokens, `False` for padding and
       special tokens.
-    :token_type_ids: The `token_type_ids` tensor needed internally for hugginface transformers
+    - `token_type_ids` The `token_type_ids` tensor needed internally for hugginface transformers
       implementations.
     """
 
