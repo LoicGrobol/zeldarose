@@ -9,7 +9,7 @@ import transformers
 from loguru import logger
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
-import zeldarose.data
+import zeldarose.datasets.transform
 from zeldarose.common import MaskedAccuracy, TrainConfig, TrainingModule
 
 
@@ -22,7 +22,7 @@ class MaskedTokens(NamedTuple):
     labels: torch.Tensor
 
 
-data_type = zeldarose.data.TextDataModule
+data_type = zeldarose.datasets.transform.TextDataModule
 
 
 # TODO: How to do whole-word masking?
@@ -135,7 +135,7 @@ class MLMTrainingModel(TrainingModule):
         return output
 
     def training_step(  # type: ignore[override]
-        self, batch: zeldarose.data.TextBatch, batch_idx: int
+        self, batch: zeldarose.datasets.transform.TextBatch, batch_idx: int
     ) -> torch.Tensor:
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
         with torch.no_grad():
@@ -184,7 +184,7 @@ class MLMTrainingModel(TrainingModule):
             )
         return loss
 
-    def validation_step(self, batch: zeldarose.data.TextBatch, batch_idx: int):  # type: ignore[override]
+    def validation_step(self, batch: zeldarose.datasets.transform.TextBatch, batch_idx: int):  # type: ignore[override]
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
         with torch.no_grad():
             masked = mask_tokens(
