@@ -49,7 +49,7 @@ file = "README.md"
 content-type = "text/markdown"
 
 [tool.setuptools]
-packages = ["zeldarose"]
+packages = ["zeldarose", "zeldarose.tasks"]
 
 [project.scripts]
 zeldarose-tokenizer = "zeldarose.train_tokenizer:main"

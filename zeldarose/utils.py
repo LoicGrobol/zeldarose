@@ -1,5 +1,5 @@
 import pathlib
-from typing import cast, Dict, Optional
+from typing import Dict, Optional
 
 import pytorch_lightning as pl
 import torch
