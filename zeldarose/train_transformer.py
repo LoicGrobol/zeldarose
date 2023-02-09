@@ -278,7 +278,7 @@ class SavePretrainedModelCallback(pl.Callback):
     help="Activate half-precisions mode (only on GPUs)",
 )
 @click.option(
-    "--use-tf43",
+    "--use-tf32",
     is_flag=True,
     help="Activate Ampere matmul optimisation (for supported GPUss)",
 )
