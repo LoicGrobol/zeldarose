@@ -17,6 +17,7 @@ from pytorch_lightning import (
 )
 from pytorch_lightning.utilities import types as pl_types
 import tomli
+import torch
 import transformers
 
 from loguru import logger
@@ -280,7 +281,7 @@ class SavePretrainedModelCallback(pl.Callback):
 @click.option(
     "--use-tf32",
     is_flag=True,
-    help="Activate Ampere matmul optimisation (for supported GPUss)",
+    help="Activate Ampere matmul optimisation (for supported GPUs)",
 )
 @click.option(
     "--val-check-period",
