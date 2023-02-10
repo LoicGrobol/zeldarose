@@ -10,8 +10,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 [Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.6.0...HEAD
 
+## Added
+
+- The `--tf32-mode` option allows to select the level of NVidia Ampère matmul otpimisations.
+
 ### Changed
 
+- **BREAKING** `--use-fp16` has been replaced by `--precision`, which allows to also use fp64 and
+  bfloat. Previous behaviour can be emulated with `--precision 16`.
 - Bumped the minimal compatible version of Lightning to 1.7.1
 - Remove the GPU stats logging from the profile mode since Lightning stopped supporting it
 - Switched TOML library from [toml](https://pypi.org/project/toml/) to

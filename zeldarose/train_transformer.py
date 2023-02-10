@@ -6,7 +6,7 @@ import sys
 from types import ModuleType
 import warnings
 
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Literal, Optional, Union, cast
 
 import click
 import pytorch_lightning as pl
@@ -240,6 +240,11 @@ class SavePretrainedModelCallback(pl.Callback):
     help="Where to save the trained model. (defaults to cwd)",
 )
 @click.option(
+    "--precision",
+    type=click.Choice(["64", "32", "16", "bf16"]),
+    help="The precision of float for traingin",
+)
+@click.option(
     "--pretrained-model",
     type=str,
     help="A pretrained model to fine-tune",
@@ -264,6 +269,11 @@ class SavePretrainedModelCallback(pl.Callback):
 )
 @click.option("--profile", is_flag=True, help="Run in profiling mode")
 @click.option(
+    "--tf32-mode",
+    type=click.Choice(["highest", "high", "medium"]),
+    help="Ampere matmul optimisation mode (for supported GPUs)",
+)
+@click.option(
     "--tokenizer",
     "tokenizer_name",
     type=str,
@@ -272,16 +282,6 @@ class SavePretrainedModelCallback(pl.Callback):
         "A pretrained tokenizer model to use"
         " (default to the pretrained transformer model if there is one)"
     ),
-)
-@click.option(
-    "--use-fp16",
-    is_flag=True,
-    help="Activate half-precisions mode (only on GPUs)",
-)
-@click.option(
-    "--use-tf32",
-    is_flag=True,
-    help="Activate Ampere matmul optimisation (for supported GPUs)",
 )
 @click.option(
     "--val-check-period",
@@ -314,14 +314,14 @@ def main(
     num_workers: int,
     num_devices: int,
     out_dir: pathlib.Path,
+    precision: Optional[Literal["64", "32", "16", "bf16"]],
     pretrained_model: Optional[str],
     profile: bool,
     raw_text: str,
     step_save_period: Optional[int],
     strategy: Optional[str],
+    tf32_mode: Optional[Literal["highest", "high", "medium"]],
     tokenizer_name: Optional[str],
-    use_fp16: bool,
-    use_tf32: bool,
     val_check_period: Optional[int],
     val_path: Optional[str],
     verbose: bool,
@@ -441,17 +441,17 @@ def main(
         logger.info("Automatic batch size selection")
         additional_kwargs.update({"auto_scale_batch_size": "binsearch"})
 
+    if precision is not None:
+        logger.info(f"Training the model using {precision} precision")
+        additional_kwargs["precision"] = precision
     if accelerator == "gpu":
-        if use_fp16:
-            logger.info(f"Training the model on {num_devices} GPUs with half precision")
-            additional_kwargs["precision"] = 16
-        if use_tf32:
-            logger.info(f"Using Ampere matmul optimisations")
-            torch.set_float32_matmul_precision("highest")
+        if tf32_mode is not None:
+            logger.info(f"Using Ampere matmul optimisations level {tf32_mode}")
+            torch.set_float32_matmul_precision(tf32_mode)
     elif accelerator == "cpu":
         logger.info(f"Training the model on CPU in {num_devices} processes")
     else:
-        logger.info("Training the model on CPU")
+        logger.info(f"Training the model on {num_devices} devices")
 
     callbacks: List[pl.Callback] = [
         pl_callbacks.RichProgressBar(),
