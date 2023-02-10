@@ -2,7 +2,6 @@ import logging
 import math
 import os
 import pathlib
-import sys
 from types import ModuleType
 import warnings
 
@@ -16,6 +15,7 @@ from pytorch_lightning import (
     strategies as pl_strategies,
 )
 from pytorch_lightning.utilities import types as pl_types
+import rich
 import tomli
 import torch
 import transformers
@@ -27,48 +27,59 @@ from zeldarose.common import TrainConfig, TrainingModule
 
 
 def setup_logging(
-    verbose: bool, logfile: Optional[pathlib.Path] = None, replace_warnings: bool = True
+    console: rich.console.Console,
+    verbose: bool,
+    log_file: Optional[pathlib.Path] = None,
+    replace_warnings: bool = True,
 ):
     logger.remove(0)  # Remove the default logger
     if "SLURM_JOB_ID" in os.environ:
-        appname = f"zeldarose ({os.environ.get('SLURM_PROCID', 'somerank')} [{os.environ.get('SLURM_LOCALID', 'someproc')}@{os.environ.get('SLURMD_NODENAME', 'somenode')}])"
+        local_id = os.environ.get("SLURM_LOCALID", "someproc")
+        node_name = os.environ.get("SLURMD_NODENAME", "somenode")
+        appname = (
+            f"zeldarose ({os.environ.get('SLURM_PROCID', 'somerank')} [{local_id}@{node_name}])"
+        )
     else:
         appname = "zeldarose"
 
     if verbose:
         log_level = "DEBUG"
         log_fmt = (
-            f"[{appname}]"
-            " <green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> |"
-            " <level>{message}</level>"
+            f"\\[{appname}]"
+            " [green]{time:YYYY-MM-DD HH:mm:ss.SSS}[/green] | [blue]{level: <8}[/blue] |"
+            " {message}"
         )
     else:
         logging.getLogger(None).setLevel(logging.CRITICAL)
         log_level = "INFO"
         log_fmt = (
-            f"[{appname}]"
-            " <green>{time:YYYY-MM-DD}T{time:HH:mm:ss}</green> {level}: "
-            " <level>{message}</level>"
+            f"\\[{appname}]"
+            " [green]{time:YYYY-MM-DD}T{time:HH:mm:ss}[/green] {level}: "
+            " {message}"
         )
 
     logger.add(
-        sys.stderr,
-        level=log_level,
-        format=log_fmt,
+        console.print,
         colorize=True,
+        format=log_fmt,
+        level=log_level,
     )
 
-    if logfile:
+    if log_file:
         logger.add(
-            logfile,
-            level="DEBUG",
-            format=(f"[{appname}] {{time:YYYY-MM-DD HH:mm:ss.SSS}} | {{level: <8}} | {{message}}"),
+            log_file,
             colorize=False,
+            format=(f"[{appname}] {{time:YYYY-MM-DD HH:mm:ss.SSS}} | {{level: <8}} | {{message}}"),
+            level="DEBUG",
         )
 
     # Deal with stdlib.logging
 
     class InterceptHandler(logging.Handler):
+        def __init__(self, wrapped_name: Optional[str] = None, *args, **kwargs):
+            self.wrapped_name = wrapped_name
+            super().__init__(*args, **kwargs)
+
         def emit(self, record):
             # Get corresponding Loguru level if it exists
             try:
@@ -87,20 +98,29 @@ def setup_logging(
                     frame = frame.f_back
                     depth += 1
 
-                logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+                if self.name is not None:
+                    logger.opt(depth=depth, exception=record.exc_info).log(
+                        level, f"From {self.name}: {record.getMessage()}"
+                    )
+                else:
+                    logger.opt(depth=depth, exception=record.exc_info).log(
+                        level, record.getMessage()
+                    )
 
-    transformers_logger = logging.getLogger("transformers")
-    # FIXME: ugly, but is there a better way?
-    transformers_logger.handlers.pop()
-    transformers_logger.addHandler(InterceptHandler())
-
-    pl_logger = logging.getLogger("pytorch_lightning")
-    # FIXME: ugly, but is there a better way?
-    pl_logger.handlers.pop()
-    pl_logger.addHandler(InterceptHandler())
+    for libname in (
+        "datasets",
+        "huggingface_hub",
+        "lightning_fabric",
+        "pytorch_lightning",
+        "transformers",
+    ):
+        lib_logger = logging.getLogger(libname)
+        # FIXME: ugly, but is there a better way?
+        if lib_logger.handlers:
+            lib_logger.handlers.pop()
+            lib_logger.addHandler(InterceptHandler(libname))
 
     # Deal with stdlib.warnings
-
     def showwarning(message, category, filename, lineno, file=None, line=None):
         logger.warning(warnings.formatwarning(message, category, filename, lineno, None).strip())
 
@@ -331,11 +351,17 @@ def main(
     The training dataset should be given with `raw_text` as either a path to a local file or or as a
     `handle:config:split` identifier for 🤗 hub (handle can be a url).
     """
+    console = rich.get_console()
+    console.stderr = True
     if (slurm_procid := os.environ.get("SLURM_PROCID")) is not None:
         log_file = out_dir / "logs" / f"train{slurm_procid}.log"
     else:
         log_file = out_dir / "train.log"
-    setup_logging(verbose, log_file)
+    setup_logging(
+        console=console,
+        log_file=log_file,
+        verbose=verbose,
+    )
     logger.debug(f"Current environment: {os.environ}")
 
     # NOTE: this is likely duplicated somewhere in pl codebase but we need it now unless pl rolls
@@ -454,7 +480,7 @@ def main(
         logger.info(f"Training the model on {num_devices} devices")
 
     callbacks: List[pl.Callback] = [
-        pl_callbacks.RichProgressBar(),
+        pl_callbacks.RichProgressBar(console_kwargs={"stderr": True}),
         pl_callbacks.LearningRateMonitor("step"),
     ]
     if epoch_save_period is not None or step_save_period is not None:
