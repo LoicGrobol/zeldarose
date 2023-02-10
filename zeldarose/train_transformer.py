@@ -54,7 +54,7 @@ def setup_logging(
         log_level = "INFO"
         log_fmt = (
             f"\\[{appname}]"
-            " [green]{time:YYYY-MM-DD}T{time:HH:mm:ss}[/green] {level}: "
+            " [green]{time:YYYY-MM-DD}T{time:HH:mm:ss}[/green] {level} "
             " {message}"
         )
 
@@ -98,9 +98,9 @@ def setup_logging(
                     frame = frame.f_back
                     depth += 1
 
-                if self.name is not None:
+                if self.wrapped_name is not None:
                     logger.opt(depth=depth, exception=record.exc_info).log(
-                        level, f"From {self.name}: {record.getMessage()}"
+                        level, f"[bold]{self.wrapped_name} says:[/bold] {record.getMessage()}"
                     )
                 else:
                     logger.opt(depth=depth, exception=record.exc_info).log(
@@ -112,13 +112,16 @@ def setup_logging(
         "huggingface_hub",
         "lightning_fabric",
         "pytorch_lightning",
+        "torch",
+        "torchmetrics",
         "transformers",
     ):
         lib_logger = logging.getLogger(libname)
-        # FIXME: ugly, but is there a better way?
+        # FIXME: ugly, but is there a better way? What if they rely on having other handlers?
         if lib_logger.handlers:
-            lib_logger.handlers.pop()
-            lib_logger.addHandler(InterceptHandler(libname))
+            lib_logger.handlers = []
+        lib_logger.addHandler(InterceptHandler(libname))
+        logger.info(f"Intercepting logging from {libname}")
 
     # Deal with stdlib.warnings
     def showwarning(message, category, filename, lineno, file=None, line=None):
