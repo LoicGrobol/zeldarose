@@ -59,7 +59,7 @@ def setup_logging(
         )
 
     logger.add(
-        console.print,
+        lambda m: console.print(m, end=""),
         colorize=True,
         format=log_fmt,
         level=log_level,
