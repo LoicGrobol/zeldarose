@@ -208,6 +208,7 @@ class RTDTrainingModel(TrainingModule):
                 "train/generator_accuracy",
                 self.generator_accuracy,
                 on_epoch=True,
+                on_step=False,
                 sync_dist=True,
             )
 
@@ -223,6 +224,7 @@ class RTDTrainingModel(TrainingModule):
                 "train/discriminator_accuracy",
                 self.discriminator_accuracy,
                 on_epoch=True,
+                on_step=False,
                 sync_dist=True,
             )
 

@@ -180,6 +180,7 @@ class MLMTrainingModel(TrainingModule):
                 "train/accuracy",
                 self.accuracy,
                 on_epoch=True,
+                on_step=False,
                 sync_dist=True,
             )
         return loss
