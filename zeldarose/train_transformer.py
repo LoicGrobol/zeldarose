@@ -454,8 +454,8 @@ def main(
         num_workers=num_workers,
         tokenizer=tokenizer,
         tokenizer_name=tokenizer_name.replace("/", "_"),
-        train_text=raw_text,
-        val_text=val_path,
+        train_path=raw_text,
+        val_path=val_path,
     )
     datamodule.prepare_data_per_node = False
 
