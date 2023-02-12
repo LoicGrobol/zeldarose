@@ -18,14 +18,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 - **BREAKING** `--use-fp16` has been replaced by `--precision`, which allows to also use fp64 and
   bfloat. Previous behaviour can be emulated with `--precision 16`.
-- Bumped the minimal compatible version of Lightning to 1.7.1
 - Remove the GPU stats logging from the profile mode since Lightning stopped supporting it
 - Switched TOML library from [toml](https://pypi.org/project/toml/) to
   [tomli](https://pypi.org/project/tomli/)
+- **BREAKING** Bumped the min version of several dependency
+  - `pytorch-lightning >= 1.8.0`
+  - `torch >= 1.12`
 - Bumped max version of several dependency
-  - datasets < 2.10
-  - pytorch-lightning < 1.9
-  - tokenizers < 0.14
+  - `datasets < 2.10`
+  - `pytorch-lightning < 1.9`
+  - `tokenizers < 0.14`
 
 
 ## [0.6.0] — 2022-07-28
