@@ -420,6 +420,7 @@ def main(
     logger.debug("Loading tokenizer, model and dataset.")
     task_type = config.get("type", "mlm")
 
+    # TODO: make `task` here an object that will hold the config and be responsible for the rest
     task: ModuleType
     if task_type == "mlm":
         task = mlm

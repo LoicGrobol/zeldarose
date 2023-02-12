@@ -12,6 +12,19 @@ import pytorch_lightning as pl
 
 class TrainingModule(pl.LightningModule, ABC):
     @abstractmethod
+    def get_data_module(
+        self,
+        loader_batch_size: int,
+        num_workers: int,
+        tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
+        tokenizer_name: str,
+        train_path: Union[str, pathlib.Path],
+        data_dir: Optional[pathlib.Path] = None,
+        val_path: Optional[Union[str, pathlib.Path]] = None,
+    ) -> pl.LightningDataModule:
+        raise NotImplementedError()
+
+    @abstractmethod
     def save_transformer(
         self,
         save_dir: pathlib.Path,
