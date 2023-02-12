@@ -88,7 +88,6 @@ class EncodedSample(TypedDict):
     attention_mask: List[int]
     input_ids: List[int]
     special_tokens_mask: List[int]
-    text: str
 
 
 class TextLoader(torch.utils.data.DataLoader[EncodedSample]):
