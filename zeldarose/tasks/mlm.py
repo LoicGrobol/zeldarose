@@ -1,3 +1,4 @@
+import math
 import pathlib
 from typing import Any, cast, Dict, NamedTuple, Optional, TYPE_CHECKING, Union
 
@@ -20,9 +21,6 @@ if TYPE_CHECKING:
 class MaskedTokens(NamedTuple):
     inputs: torch.Tensor
     labels: torch.Tensor
-
-
-data_type = zeldarose.datasets.transform.TextDataModule
 
 
 # TODO: How to do whole-word masking?
@@ -113,7 +111,7 @@ class MLMTrainingModel(TrainingModule):
 
         self.accuracy = MaskedAccuracy()
         self.model = model
-        self.max_len = getattr(model.config, "max_position_embeddings", float("inf"))
+        self.max_length: Optional[int] = getattr(model.config, "max_position_embeddings")
 
         self.save_hyperparameters("training_config", "task_config")
 
@@ -295,6 +293,36 @@ class MLMTrainingModel(TrainingModule):
 
         return [optimizer], schedulers
 
+    def get_data_module(
+        self,
+        loader_batch_size: int,
+        num_workers: int,
+        tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
+        tokenizer_name: str,
+        train_path: Union[str, pathlib.Path],
+        data_dir: Optional[pathlib.Path] = None,
+        val_path: Optional[Union[str, pathlib.Path]] = None,
+    ) -> zeldarose.datasets.transform.TextDataModule:
+        if self.max_length is None:
+            max_length = tokenizer.max_len_single_sentence
+        else:
+            # FIXME: we shouldn't need num_special_tokens_to_add here
+            min(
+                tokenizer.max_len_single_sentence,
+                self.max_length - tokenizer.num_special_tokens_to_add(pair=False),
+            )
+
+        return zeldarose.datasets.transform.TextDataModule(
+            loader_batch_size=loader_batch_size,
+            num_workers=num_workers,
+            tokenizer=tokenizer,
+            tokenizer_name=tokenizer_name,
+            train_path=train_path,
+            data_dir=data_dir,
+            max_length=max_length,
+            val_path=val_path,
+        )
+
     @rank_zero_only
     def save_transformer(
         self,
@@ -313,16 +341,16 @@ class MLMTrainingModel(TrainingModule):
 
 
 def get_training_model(
-    model_config_path: Optional[Union[str, pathlib.Path]],
+    model_config: Optional[Union[str, pathlib.Path]],
     pretrained_model: Optional[Union[str, pathlib.Path]],
-    task_config_dict: Optional[Dict[str, Any]],
+    task_config: Optional[Dict[str, Any]],
     tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
     training_config: TrainConfig,
 ) -> MLMTrainingModel:
-    if task_config_dict is not None:
-        task_config = MLMTaskConfig.parse_obj(task_config_dict)
+    if task_config is not None:
+        _task_config = MLMTaskConfig.parse_obj(task_config)
     else:
-        task_config = MLMTaskConfig()
+        _task_config = MLMTaskConfig()
 
     if (
         mask_token_index := cast(Union[int, None], getattr(tokenizer, "mask_token_id", None))
@@ -333,18 +361,18 @@ def get_training_model(
     if pretrained_model is not None:
         logger.info(f"Loading pretrained model {pretrained_model!r}")
         model = transformers.AutoModelForMaskedLM.from_pretrained(pretrained_model)
-    elif model_config_path is not None:
-        logger.info(f"Loading pretrained config {model_config_path!r}")
-        model_config = transformers.AutoConfig.from_pretrained(model_config_path)
+    elif model_config is not None:
+        logger.info(f"Loading pretrained config {model_config!r}")
+        _model_config = transformers.AutoConfig.from_pretrained(model_config)
         logger.info("Generating model from config")
         # TODO: check the other parameters?
-        if vocabulary_size is not None and model_config.vocab_size != vocabulary_size:
+        if vocabulary_size is not None and _model_config.vocab_size != vocabulary_size:
             logger.warning(
-                f"Vocabulary size mismatch between model config ({model_config.vocab_size})"
+                f"Vocabulary size mismatch between model config ({_model_config.vocab_size})"
                 f" and pretrained tokenizer ({vocabulary_size}), using {vocabulary_size}."
             )
-            model_config.vocab_size = vocabulary_size
-        model = transformers.AutoModelForMaskedLM.from_config(model_config)
+            _model_config.vocab_size = vocabulary_size
+        model = transformers.AutoModelForMaskedLM.from_config(_model_config)
     else:
         raise ValueError("You must provide either a pretrained model or a model config")
 
@@ -355,7 +383,7 @@ def get_training_model(
         model=model,
         mask_token_index=mask_token_index,
         vocabulary_size=vocabulary_size,
-        task_config=task_config,
+        task_config=_task_config,
         training_config=training_config,
     )
 

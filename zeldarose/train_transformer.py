@@ -354,6 +354,8 @@ def main(
     The training dataset should be given with `raw_text` as either a path to a local file or or as a
     `handle:config:split` identifier for 🤗 hub (handle can be a url).
     """
+
+    # ## Logging setup
     console = rich.get_console()
     console.stderr = True
     if (slurm_procid := os.environ.get("SLURM_PROCID")) is not None:
@@ -367,6 +369,17 @@ def main(
     )
     logger.debug(f"Current environment: {os.environ}")
 
+    logger.debug(f"Loading config from {config_path}")
+    if config_path is not None:
+        with open(config_path, "rb") as in_stream:
+            config = tomli.load(in_stream)
+    else:
+        logger.warning(
+            "No config given, we'll use default values but this is probably not what you want."
+        )
+        config = dict()
+
+    logger.debug("Finding out batch size depending on environment and tuning config.")
     # NOTE: this is likely duplicated somewhere in pl codebase but we need it now unless pl rolls
     # out something like `optim_batch_size` that takes into account the number of tasks and the
     # number of samples per gpu
@@ -376,41 +389,7 @@ def main(
         total_devices = num_nodes * num_devices
     logger.info(f"Training on a total of {total_devices} devices.")
 
-    if tokenizer_name is None:
-        if pretrained_model is not None:
-            tokenizer_name = pretrained_model
-        else:
-            raise ValueError("Missing both pretrained tokenizer and pretrained model")
-    logger.info(f"Loading pretrained tokenizer {tokenizer_name}")
-    tokenizer: Union[
-        transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast
-    ] = transformers.AutoTokenizer.from_pretrained(tokenizer_name, use_fast=True)
-
-    if config_path is not None:
-        with open(config_path, "rb") as in_stream:
-            config = tomli.load(in_stream)
-    else:
-        config = dict()
     tuning_config = TrainConfig.parse_obj(config.get("tuning", dict()))
-
-    task_type = config.get("type", "mlm")
-
-    task: ModuleType
-    if task_type == "mlm":
-        task = mlm
-    elif task_type == "rtd":
-        task = rtd
-    else:
-        raise ValueError(f"Unknown task type: {task_type!r}")
-
-    training_model: TrainingModule = task.get_training_model(
-        model_config_path=model_config_path,
-        pretrained_model=pretrained_model,
-        task_config_dict=config.get("task"),
-        tokenizer=tokenizer,
-        training_config=tuning_config,
-    )
-    training_model.train()
 
     if device_batch_size is None:
         device_batch_size = tuning_config.batch_size
@@ -423,7 +402,7 @@ def main(
     elif tuning_config.batch_size % (device_batch_size * total_devices):
         remainder = tuning_config.batch_size % device_batch_size * total_devices
         logger.warning(
-            f"Batch size ({tuning_config.batch_size}) is not a muliple"
+            f"Batch size ({tuning_config.batch_size}) is not a multiple"
             f" of loader batch size({device_batch_size} samples per device × {total_devices} devices)"
             f" the actual tuning batch size used will be {tuning_config.batch_size-remainder}."
         )
@@ -438,19 +417,40 @@ def main(
     else:
         loader_batch_size = device_batch_size
 
-    # FIXME: we shouldn't need num_special_tokens_to_add here
-    max_length = min(
-        tokenizer.max_len_single_sentence,
-        training_model.max_len - tokenizer.num_special_tokens_to_add(pair=False),
+    logger.debug("Loading tokenizer, model and dataset.")
+    task_type = config.get("type", "mlm")
+
+    task: ModuleType
+    if task_type == "mlm":
+        task = mlm
+    elif task_type == "rtd":
+        task = rtd
+    else:
+        raise ValueError(f"Unknown task type: {task_type!r}")
+
+    if tokenizer_name is None:
+        if pretrained_model is not None:
+            tokenizer_name = pretrained_model
+        else:
+            raise ValueError("Missing both pretrained tokenizer and pretrained model")
+    logger.info(f"Loading pretrained tokenizer {tokenizer_name}")
+    tokenizer: Union[
+        transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast
+    ] = transformers.AutoTokenizer.from_pretrained(tokenizer_name, use_fast=True)
+
+    training_model: TrainingModule = task.get_training_model(
+        model_config=model_config_path,
+        pretrained_model=pretrained_model,
+        task_config=config.get("task"),
+        tokenizer=tokenizer,
+        training_config=tuning_config,
     )
-    if max_length == math.inf:
-        max_length = None
-    logger.info(f"Training with a maximum sequence length of {max_length} tokens")
+    training_model.train()
+
     logger.info("Creating data modules")
-    datamodule = task.data_type(
+    datamodule = training_model.get_data_module(
         data_dir=cache_dir,
         loader_batch_size=loader_batch_size,
-        max_length=cast(Union[int, None], max_length),
         num_workers=num_workers,
         tokenizer=tokenizer,
         tokenizer_name=tokenizer_name.replace("/", "_"),
@@ -498,6 +498,7 @@ def main(
         )
 
     if checkpoint is not None:
+        logger.info(f"Restarting training from the checkpoint at {checkpoint}")
         additional_kwargs["resume_from_checkpoint"] = checkpoint
 
     if max_steps is None:
@@ -533,6 +534,7 @@ def main(
     trainer.fit(training_model, datamodule=datamodule)
 
     save_dir = out_dir / model_name
+    logger.info(f"Saving the final model in {save_dir}")
     training_model.save_transformer(save_dir, tokenizer)
 
 
