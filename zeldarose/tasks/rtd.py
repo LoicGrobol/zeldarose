@@ -22,9 +22,6 @@ if TYPE_CHECKING:
     import transformers.modeling_outputs
 
 
-data_type = zeldarose.datasets.transform.TextDataModule
-
-
 class MaskedTokens(NamedTuple):
     inputs: torch.Tensor
     labels: torch.Tensor
@@ -111,7 +108,7 @@ class RTDTrainingModel(TrainingModule):
         self.discriminator_accuracy = MaskedAccuracy()
         self.generator = generator
         self.discriminator = discriminator
-        self.max_len = min(
+        self.max_length = min(
             getattr(generator.config, "max_position_embeddings", float("inf")),
             getattr(discriminator.config, "max_position_embeddings", float("inf")),
         )
@@ -379,6 +376,36 @@ class RTDTrainingModel(TrainingModule):
 
         return [optimizer], schedulers
 
+    def get_data_module(
+        self,
+        loader_batch_size: int,
+        num_workers: int,
+        tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
+        tokenizer_name: str,
+        train_path: Union[str, pathlib.Path],
+        data_dir: Optional[pathlib.Path] = None,
+        val_path: Optional[Union[str, pathlib.Path]] = None,
+    ) -> zeldarose.datasets.transform.TextDataModule:
+        if self.max_length is None:
+            max_length = tokenizer.max_len_single_sentence
+        else:
+            # FIXME: we shouldn't need num_special_tokens_to_add here
+            min(
+                tokenizer.max_len_single_sentence,
+                self.max_length - tokenizer.num_special_tokens_to_add(pair=False),
+            )
+
+        return zeldarose.datasets.transform.TextDataModule(
+            loader_batch_size=loader_batch_size,
+            num_workers=num_workers,
+            tokenizer=tokenizer,
+            tokenizer_name=tokenizer_name,
+            train_path=train_path,
+            data_dir=data_dir,
+            max_length=max_length,
+            val_path=val_path,
+        )
+
     @rank_zero_only
     def save_transformer(
         self,
@@ -400,16 +427,16 @@ class RTDTrainingModel(TrainingModule):
 
 
 def get_training_model(
-    model_config_path: Optional[str],
+    model_config: Optional[str],
     pretrained_model: Optional[str],
-    task_config_dict: Optional[Dict[str, Any]],
+    task_config: Optional[Dict[str, Any]],
     tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
     training_config: TrainConfig,
 ) -> RTDTrainingModel:
-    if task_config_dict is not None:
-        task_config = RTDTaskConfig.parse_obj(task_config_dict)
+    if task_config is not None:
+        _task_config = RTDTaskConfig.parse_obj(task_config)
     else:
-        task_config = RTDTaskConfig()
+        _task_config = RTDTaskConfig()
 
     if (
         mask_token_index := cast(Union[int, None], getattr(tokenizer, "mask_token_id", None))
@@ -425,11 +452,11 @@ def get_training_model(
         )
         logger.info(f"Loading pretrained generator {pretrained_generator!r}")
         generator = transformers.AutoModelForMaskedLM.from_pretrained(pretrained_generator)
-    elif model_config_path is not None:
+    elif model_config is not None:
         (
             discriminator_config_path,
             generator_config_path,
-        ) = model_config_path.split(",")
+        ) = model_config.split(",")
         logger.info(f"Loading discriminator config {discriminator_config_path!r}")
         discriminator_config = transformers.AutoConfig.from_pretrained(discriminator_config_path)
         if vocabulary_size is not None and discriminator_config.vocab_size != vocabulary_size:
@@ -473,7 +500,7 @@ def get_training_model(
         generator=generator,
         mask_token_index=mask_token_index,
         vocabulary_size=vocabulary_size,
-        task_config=task_config,
+        task_config=_task_config,
         training_config=training_config,
     )
 
