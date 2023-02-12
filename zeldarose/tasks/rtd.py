@@ -108,14 +108,6 @@ class RTDTrainingModel(TrainingModule):
         self.discriminator_accuracy = MaskedAccuracy()
         self.generator = generator
         self.discriminator = discriminator
-        max_length = min(
-            getattr(generator.config, "max_position_embeddings", float("inf")),
-            getattr(discriminator.config, "max_position_embeddings", float("inf")),
-        )
-        if max_length == float("inf"):
-            self.max_length = None
-        else:
-            self.max_length = cast(int, max_length)
 
         self.save_hyperparameters("training_config", "task_config")
 
@@ -390,13 +382,18 @@ class RTDTrainingModel(TrainingModule):
         data_dir: Optional[pathlib.Path] = None,
         val_path: Optional[Union[str, pathlib.Path]] = None,
     ) -> zeldarose.datasets.transform.TextDataModule:
-        if self.max_length is None:
+        max_length = min(
+            getattr(self.generator.config, "max_position_embeddings", float("inf")),
+            getattr(self.discriminator.config, "max_position_embeddings", float("inf")),
+        )
+
+        if max_length == float("inf"):
             max_length = tokenizer.max_len_single_sentence
         else:
             # FIXME: we shouldn't need num_special_tokens_to_add here
             max_length = min(
                 tokenizer.max_len_single_sentence,
-                self.max_length - tokenizer.num_special_tokens_to_add(pair=False),
+                cast(int, max_length) - tokenizer.num_special_tokens_to_add(pair=False),
             )
 
         return zeldarose.datasets.transform.TextDataModule(

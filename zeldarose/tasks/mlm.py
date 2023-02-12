@@ -111,7 +111,6 @@ class MLMTrainingModel(TrainingModule):
 
         self.accuracy = MaskedAccuracy()
         self.model = model
-        self.max_length: Optional[int] = getattr(model.config, "max_position_embeddings")
 
         self.save_hyperparameters("training_config", "task_config")
 
@@ -303,13 +302,13 @@ class MLMTrainingModel(TrainingModule):
         data_dir: Optional[pathlib.Path] = None,
         val_path: Optional[Union[str, pathlib.Path]] = None,
     ) -> zeldarose.datasets.transform.TextDataModule:
-        if self.max_length is None:
+        if (max_length := getattr(self.model.config, "max_position_embeddings")) is None:
             max_length = tokenizer.max_len_single_sentence
         else:
             # FIXME: we shouldn't need num_special_tokens_to_add here
             max_length = min(
                 tokenizer.max_len_single_sentence,
-                self.max_length - tokenizer.num_special_tokens_to_add(pair=False),
+                max_length - tokenizer.num_special_tokens_to_add(pair=False),
             )
 
         return zeldarose.datasets.transform.TextDataModule(
