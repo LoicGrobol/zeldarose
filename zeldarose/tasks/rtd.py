@@ -108,10 +108,14 @@ class RTDTrainingModel(TrainingModule):
         self.discriminator_accuracy = MaskedAccuracy()
         self.generator = generator
         self.discriminator = discriminator
-        self.max_length = min(
+        max_length = min(
             getattr(generator.config, "max_position_embeddings", float("inf")),
             getattr(discriminator.config, "max_position_embeddings", float("inf")),
         )
+        if max_length == float("inf"):
+            self.max_length = None
+        else:
+            self.max_length = cast(int, max_length)
 
         self.save_hyperparameters("training_config", "task_config")
 
