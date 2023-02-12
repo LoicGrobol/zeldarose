@@ -57,6 +57,7 @@ def encode_dataset(
         batched=True,
         desc="Tokenizing",
         input_columns="text",
+        remove_columns=["text"],
         new_fingerprint=Hasher.hash(f"{raw_dataset._fingerprint}-{tokenizer_name}-{max_length}"),
     )
     logger.info(f"Saving dataset to {save_path}")
@@ -90,15 +91,15 @@ class EncodedSample(TypedDict):
     text: str
 
 
-class TextLoader(torch.utils.data.DataLoader[TextBatch]):
+class TextLoader(torch.utils.data.DataLoader[EncodedSample]):
     def __init__(
         self,
-        dataset: torch.utils.data.Dataset[TextBatch],
+        dataset: torch.utils.data.Dataset[EncodedSample],
         tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
         *args,
         **kwargs,
     ):
-        self.dataset: torch.utils.data.Dataset[TextBatch]
+        self.dataset: torch.utils.data.Dataset[EncodedSample]
         if "collate_fn" not in kwargs:
             kwargs["collate_fn"] = self.collate
         super().__init__(dataset, *args, **kwargs)
@@ -109,6 +110,7 @@ class TextLoader(torch.utils.data.DataLoader[TextBatch]):
         self._padding_value = padding_value
 
     def collate(self, batch: Sequence[EncodedSample]) -> TextBatch:
+        # FIXME(2023-02-11): the note below might have become inaccurate
         # NOTE: we have to pad/batch manually instead of deferring to huggingface, since the fast
         # tokenizers can't take pre-encoded inputs (yet?)
         padded_batch = pad_sequence(
@@ -212,7 +214,7 @@ class TextDataModule(pl.LightningDataModule):
             return None
         # FIXME(2023-02-07): that cast hereunder is wrong, self.train_dataset is **not** a torch Dataset
         return TextLoader(
-            cast(torch.utils.data.Dataset[TextBatch], self.train_dataset),
+            cast(torch.utils.data.Dataset[EncodedSample], self.train_dataset),
             batch_size=self.loader_batch_size,
             num_workers=self.num_workers,
             shuffle=True,
@@ -224,7 +226,7 @@ class TextDataModule(pl.LightningDataModule):
             return None
         # FIXME(2023-02-07): that cast hereunder is wrong, self.val_dataset is **not** a torch Dataset
         return TextLoader(
-            cast(torch.utils.data.Dataset[TextBatch], self.val_dataset),
+            cast(torch.utils.data.Dataset[EncodedSample], self.val_dataset),
             batch_size=self.loader_batch_size,
             num_workers=self.num_workers,
             shuffle=False,
