@@ -144,10 +144,10 @@ class TextDataModule(pl.LightningDataModule):
         num_workers: int,
         tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
         tokenizer_name: str,
-        train_text: Union[str, pathlib.Path],
+        train_path: Union[str, pathlib.Path],
         data_dir: Optional[pathlib.Path] = None,
         max_length: Optional[int] = None,
-        val_text: Optional[Union[str, pathlib.Path]] = None,
+        val_path: Optional[Union[str, pathlib.Path]] = None,
     ):
         super().__init__()
         self.loader_batch_size = loader_batch_size
@@ -155,8 +155,8 @@ class TextDataModule(pl.LightningDataModule):
         self.num_workers = num_workers
         self.tokenizer = tokenizer
         self.tokenizer_name = tokenizer_name
-        self.train_text = train_text
-        self.val_text = val_text
+        self.train_text = train_path
+        self.val_text = val_path
 
         if data_dir is None:
             self.data_dir = pathlib.Path(self.train_text).parent
