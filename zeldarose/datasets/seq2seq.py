@@ -1,7 +1,7 @@
 import os
 import pathlib
 
-from typing import Union, cast, List, NamedTuple, Optional, Sequence, TypedDict
+from typing import Any, Dict, Mapping, Union, cast, List, NamedTuple, Optional, Sequence, TypedDict
 
 import datasets
 import pytorch_lightning as pl
@@ -20,16 +20,23 @@ def encode_dataset(
     save_path: pathlib.Path,
     text_path: Union[pathlib.Path, str],
     tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
+    source_column: str,
+    target_column: str,
     tokenizer_name: str,
     max_length: Optional[int] = None,
+    decoder_start_token_id: Optional[int] = None,
 ):
+    if decoder_start_token_id is None:
+        logger.info("No decoder start token id provided, the BOS token will be used instead.")
+        decoder_start_token_id = tokenizer.bos_token_id
+        assert decoder_start_token_id is not None
     logger.info(f"Loading data from {text_path}")
     try:
-        full_dataset = datasets.load_dataset("text", data_files=str(text_path), split="train")
+        raw_dataset = datasets.load_dataset("text", data_files=str(text_path), split="train")
     except FileNotFoundError as e:
         if isinstance(text_path, str):
             dataset_name, dataset_config, dataset_split = text_path.split(":")
-            full_dataset = datasets.load_dataset(
+            raw_dataset = datasets.load_dataset(
                 dataset_name,
                 name=dataset_config if dataset_config else None,
                 split=dataset_split if dataset_split else None,
@@ -37,60 +44,51 @@ def encode_dataset(
         else:
             raise e
 
-    # FIXME: why don't we use the default fingerprinting here?
-    raw_dataset = cast(datasets.Dataset, full_dataset).filter(
-        (lambda example: len(example) > 0 and not example.isspace()),
-        input_columns="text",
-        new_fingerprint=Hasher.hash(f"{full_dataset._fingerprint}-noempty"),
-    )
-    logger.info("Tokenizing")
-    encoded_dataset = raw_dataset.map(
-        (
-            lambda examples: tokenizer(
-                examples,
+    def preprocess(batch: Mapping[str, Sequence[Any]]) -> transformers.tokenization_utils.BatchEncoding:
+        tokenized = tokenizer(
+                cast(List[str], batch[source_column]),
+                text_target=cast(List[str], batch[target_column]),
                 add_special_tokens=True,
                 max_length=max_length,
-                return_special_tokens_mask=True,
+                return_attention_mask=True,
                 truncation=True,
             )
-        ),
+        # NOTE(2023-02-12): This is NOT what 🤗 transformers's
+        # `prepare_decoder_input_ids_from_labels`/[`shift_tokens_right`](https://github.com/huggingface/transformers/blob/c836f77266be9ace47bff472f63caf71c0d11333/src/transformers/models/mbart/modeling_mbart.py#L62)
+        # does for mBART, but it seems more correct. See also 🤗 transformers issue
+        # [#19500](https://github.com/huggingface/transformers/issues/19500).
+        tokenized["decoder_input_ids"] = [[decoder_start_token_id, *labels[:-1]] for labels in tokenized["labels"]]
+        return tokenized
+
+    logger.info("Preprocessing dataset")
+    encoded_dataset = cast(datasets.Dataset, raw_dataset).map(
+        preprocess,
         batched=True,
         desc="Tokenizing",
-        input_columns="text",
-        remove_columns=["text"],
-        new_fingerprint=Hasher.hash(f"{raw_dataset._fingerprint}-{tokenizer_name}-{max_length}"),
+        input_columns=[source_column, target_column],
+        remove_columns=[source_column, target_column],
+        new_fingerprint=Hasher.hash(f"{raw_dataset._fingerprint}-{tokenizer_name}-{decoder_start_token_id}-{max_length}"),
     )
     logger.info(f"Saving dataset to {save_path}")
-    # FIXME: this causes an obscure crash when two instance want to access the same --cache-dir
+    # FIXME: this causes an obscure crash when two instances want to access the same --cache-dir
     encoded_dataset.save_to_disk(str(save_path))
 
 
-class TextBatch(NamedTuple):
-    """A batch of text for self-supervised tasks.
-
-    ## Attributes
-
-    - `tokens` A batch of encoded (with special tokens) and padded tokens.
-    - `attention_mask` A boolean mask, `True` for content and special tokens, `False` for padding.
-    - `internal_tokens_mask` A boolean mask, `True` for content tokens, `False` for padding and
-      special tokens.
-    - `token_type_ids` The `token_type_ids` tensor needed internally for hugginface transformers
-      implementations.
-    """
-
-    tokens: torch.Tensor
+class Seq2SeqBatch(NamedTuple):
     attention_mask: torch.Tensor
-    internal_tokens_mask: torch.Tensor
-    token_type_ids: torch.Tensor
+    input_ids: torch.Tensor
+    decoder_input_ids: torch.Tensor
+    labels: torch.Tensor
 
 
 class EncodedSample(TypedDict):
     attention_mask: List[int]
     input_ids: List[int]
-    special_tokens_mask: List[int]
+    decoder_input_ids: List[int]
+    labels: List[int]
 
 
-class TextLoader(torch.utils.data.DataLoader[EncodedSample]):
+class Seq2SeqLoader(torch.utils.data.DataLoader[EncodedSample]):
     def __init__(
         self,
         dataset: torch.utils.data.Dataset[EncodedSample],
@@ -108,32 +106,32 @@ class TextLoader(torch.utils.data.DataLoader[EncodedSample]):
             raise ValueError("Tokenizers without a padding id are not supported")
         self._padding_value = padding_value
 
-    def collate(self, batch: Sequence[EncodedSample]) -> TextBatch:
-        # FIXME(2023-02-11): the note below might have become inaccurate
-        # NOTE: we have to pad/batch manually instead of deferring to huggingface, since the fast
+    # TODO(2023-02-12): this could be made more generic and put in a toolbox
+    def collate(self, batch: Sequence[EncodedSample]) -> Seq2SeqBatch:
+        # NOTE(2021-08-12): we have to pad/batch manually instead of deferring to 🤗, since the fast
         # tokenizers can't take pre-encoded inputs (yet?)
-        padded_batch = pad_sequence(
+        padded_input_ids = pad_sequence(
             [torch.tensor(sample["input_ids"], dtype=torch.long) for sample in batch],
             batch_first=True,
             padding_value=self._padding_value,
         )
-        padding_mask = padded_batch.eq(self._padding_value)
-        # FIXME: Is the next line general enough?
-        token_type_ids = torch.zeros_like(padded_batch)
-        # We only deal with single sequences here
-        attention_mask = padding_mask.logical_not()
-
-        special_tokens_mask = pad_sequence(
-            [torch.tensor(sample["special_tokens_mask"], dtype=torch.bool) for sample in batch],
+        padded_decoder_input_ids = pad_sequence(
+            [torch.tensor(sample["decoder_input_ids"], dtype=torch.long) for sample in batch],
             batch_first=True,
-            padding_value=False,
+            padding_value=self._padding_value,
         )
-        internal_tokens_mask = special_tokens_mask.logical_or(padding_mask)
-        return TextBatch(
-            tokens=padded_batch,
+        padded_labels = pad_sequence(
+            [torch.tensor(sample["labels"], dtype=torch.long) for sample in batch],
+            batch_first=True,
+            padding_value=-100,
+        )
+        attention_mask = padded_input_ids.ne(self._padding_value)
+
+        return Seq2SeqBatch(
             attention_mask=attention_mask,
-            internal_tokens_mask=internal_tokens_mask,
-            token_type_ids=token_type_ids,
+            input_ids=padded_input_ids,
+            decoder_input_ids=padded_decoder_input_ids,
+            labels=padded_labels,
         )
 
 
@@ -144,22 +142,26 @@ class TextDataModule(pl.LightningDataModule):
         num_workers: int,
         tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
         tokenizer_name: str,
-        train_text: Union[str, pathlib.Path],
+        train_path: Union[str, pathlib.Path],
         data_dir: Optional[pathlib.Path] = None,
         max_length: Optional[int] = None,
-        val_text: Optional[Union[str, pathlib.Path]] = None,
+        source_column: str = "source",
+        target_column: str = "target",
+        val_path: Optional[Union[str, pathlib.Path]] = None,
     ):
         super().__init__()
         self.loader_batch_size = loader_batch_size
         self.max_length = max_length
         self.num_workers = num_workers
+        self.source_column = source_column
+        self.target_column = target_column        
         self.tokenizer = tokenizer
         self.tokenizer_name = tokenizer_name
-        self.train_text = train_text
-        self.val_text = val_text
+        self.train_path = train_path
+        self.val_path = val_path
 
         if data_dir is None:
-            self.data_dir = pathlib.Path(self.train_text).parent
+            self.data_dir = pathlib.Path(self.train_path).parent
             if not self.data_dir.exists():
                 raise ValueError(
                     "You must provide a cache path if you are loading a dataset from an url."
@@ -171,7 +173,7 @@ class TextDataModule(pl.LightningDataModule):
         self.train_dataset_path.mkdir(exist_ok=True, parents=True)
 
         self.val_dataset_path: Optional[pathlib.Path]
-        if self.val_text is not None:
+        if self.val_path is not None:
             self.val_dataset_path = self.data_dir / "val_set"
             self.val_dataset_path.mkdir(exist_ok=True, parents=True)
         else:
@@ -181,7 +183,7 @@ class TextDataModule(pl.LightningDataModule):
         self.val_dataset = None
 
     def prepare_data(self):
-        # NOTE(2021-08-12): This should'nt be needed since this method should only be called on rank 0, but since it
+        # NOTE (2021-08-12): This should'nt be needed since this method should only be called on rank 0, but since it
         # is called in every process AND before DDP init (at least in SLURM) we have to enforce it
         # ourselves
         # TODO (2023-01-07): see if the note above is still true
@@ -189,31 +191,39 @@ class TextDataModule(pl.LightningDataModule):
             encode_dataset(
                 max_length=self.max_length,
                 save_path=self.train_dataset_path,
-                text_path=self.train_text,
+                source_column=self.source_column,
+                target_column=self.target_column,
+                text_path=self.train_path,
                 tokenizer=self.tokenizer,
                 tokenizer_name=self.tokenizer_name,
             )
-            if self.val_text is not None:
+            if self.val_path is not None:
                 assert self.val_dataset_path is not None
                 encode_dataset(
                     max_length=self.max_length,
                     save_path=self.val_dataset_path,
-                    text_path=self.val_text,
+                    source_column=self.source_column,
+                    target_column=self.target_column,
+                    text_path=self.val_path,
                     tokenizer=self.tokenizer,
                     tokenizer_name=self.tokenizer_name,
                 )
 
     def setup(self, stage=None):
-        self.train_dataset = datasets.load_from_disk(str(self.train_dataset_path))
+        self.train_dataset = cast(
+            datasets.Dataset, datasets.load_from_disk(str(self.train_dataset_path))
+        )
         if self.val_dataset_path is not None:
-            self.val_dataset = datasets.load_from_disk(str(self.val_dataset_path))
+            self.val_dataset = cast(
+                datasets.Dataset, datasets.load_from_disk(str(self.val_dataset_path))
+            )
 
     def train_dataloader(self):
         if self.train_dataset is None:
             return None
         # FIXME(2023-02-07): that cast hereunder is wrong, self.train_dataset is **not** a torch Dataset
-        return TextLoader(
-            cast(torch.utils.data.Dataset[EncodedSample], self.train_dataset),
+        return Seq2SeqLoader(
+            cast(torch.utils.data.Dataset[TextBatch], self.train_dataset),
             batch_size=self.loader_batch_size,
             num_workers=self.num_workers,
             shuffle=True,
@@ -224,8 +234,8 @@ class TextDataModule(pl.LightningDataModule):
         if self.val_dataset is None:
             return None
         # FIXME(2023-02-07): that cast hereunder is wrong, self.val_dataset is **not** a torch Dataset
-        return TextLoader(
-            cast(torch.utils.data.Dataset[EncodedSample], self.val_dataset),
+        return Seq2SeqLoader(
+            cast(torch.utils.data.Dataset[TextBatch], self.val_dataset),
             batch_size=self.loader_batch_size,
             num_workers=self.num_workers,
             shuffle=False,
