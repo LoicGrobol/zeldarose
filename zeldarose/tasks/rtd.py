@@ -390,7 +390,7 @@ class RTDTrainingModel(TrainingModule):
             max_length = tokenizer.max_len_single_sentence
         else:
             # FIXME: we shouldn't need num_special_tokens_to_add here
-            min(
+            max_length = min(
                 tokenizer.max_len_single_sentence,
                 self.max_length - tokenizer.num_special_tokens_to_add(pair=False),
             )
