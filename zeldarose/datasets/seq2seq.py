@@ -44,20 +44,24 @@ def encode_dataset(
         else:
             raise e
 
-    def preprocess(batch: Mapping[str, Sequence[Any]]) -> transformers.tokenization_utils.BatchEncoding:
+    def preprocess(
+        batch: Mapping[str, Sequence[Any]]
+    ) -> transformers.tokenization_utils.BatchEncoding:
         tokenized = tokenizer(
-                cast(List[str], batch[source_column]),
-                text_target=cast(List[str], batch[target_column]),
-                add_special_tokens=True,
-                max_length=max_length,
-                return_attention_mask=True,
-                truncation=True,
-            )
+            cast(List[str], batch[source_column]),
+            text_target=cast(List[str], batch[target_column]),
+            add_special_tokens=True,
+            max_length=max_length,
+            return_attention_mask=True,
+            truncation=True,
+        )
         # NOTE(2023-02-12): This is NOT what 🤗 transformers's
         # `prepare_decoder_input_ids_from_labels`/[`shift_tokens_right`](https://github.com/huggingface/transformers/blob/c836f77266be9ace47bff472f63caf71c0d11333/src/transformers/models/mbart/modeling_mbart.py#L62)
         # does for mBART, but it seems more correct. See also 🤗 transformers issue
         # [#19500](https://github.com/huggingface/transformers/issues/19500).
-        tokenized["decoder_input_ids"] = [[decoder_start_token_id, *labels[:-1]] for labels in tokenized["labels"]]
+        tokenized["decoder_input_ids"] = [
+            [decoder_start_token_id, *labels[:-1]] for labels in tokenized["labels"]
+        ]
         return tokenized
 
     logger.info("Preprocessing dataset")
@@ -67,7 +71,9 @@ def encode_dataset(
         desc="Tokenizing",
         input_columns=[source_column, target_column],
         remove_columns=[source_column, target_column],
-        new_fingerprint=Hasher.hash(f"{raw_dataset._fingerprint}-{tokenizer_name}-{decoder_start_token_id}-{max_length}"),
+        new_fingerprint=Hasher.hash(
+            f"{raw_dataset._fingerprint}-{tokenizer_name}-{decoder_start_token_id}-{max_length}"
+        ),
     )
     logger.info(f"Saving dataset to {save_path}")
     # FIXME: this causes an obscure crash when two instances want to access the same --cache-dir
@@ -154,7 +160,7 @@ class TextDataModule(pl.LightningDataModule):
         self.max_length = max_length
         self.num_workers = num_workers
         self.source_column = source_column
-        self.target_column = target_column        
+        self.target_column = target_column
         self.tokenizer = tokenizer
         self.tokenizer_name = tokenizer_name
         self.train_path = train_path
@@ -223,7 +229,7 @@ class TextDataModule(pl.LightningDataModule):
             return None
         # FIXME(2023-02-07): that cast hereunder is wrong, self.train_dataset is **not** a torch Dataset
         return Seq2SeqLoader(
-            cast(torch.utils.data.Dataset[TextBatch], self.train_dataset),
+            cast(torch.utils.data.Dataset[Seq2SeqBatch], self.train_dataset),
             batch_size=self.loader_batch_size,
             num_workers=self.num_workers,
             shuffle=True,
@@ -235,7 +241,7 @@ class TextDataModule(pl.LightningDataModule):
             return None
         # FIXME(2023-02-07): that cast hereunder is wrong, self.val_dataset is **not** a torch Dataset
         return Seq2SeqLoader(
-            cast(torch.utils.data.Dataset[TextBatch], self.val_dataset),
+            cast(torch.utils.data.Dataset[Seq2SeqBatch], self.val_dataset),
             batch_size=self.loader_batch_size,
             num_workers=self.num_workers,
             shuffle=False,
