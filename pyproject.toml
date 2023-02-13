@@ -26,6 +26,7 @@ dependencies = [
     "pytorch-lightning >= 1.8.0, < 1.10.0",
     "rich",
     "sacremoses",
+    "sentencepiece",
     "tensorboardx",
     "torchmetrics >= 0.9, < 1.0",
     "tokenizers >= 0.10, < 0.14",
