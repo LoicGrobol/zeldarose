@@ -1,6 +1,6 @@
 import math
 import pathlib
-from typing import Any, cast, Dict, NamedTuple, Optional, TYPE_CHECKING, Union
+from typing import Any, List, cast, Dict, NamedTuple, Optional, TYPE_CHECKING, Union
 
 import pydantic
 import torch
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 class InfilledSent(NamedTuple):
     input_ids: torch.Tensor
-    mask: torch.Tensor
+    attention_mask: torch.Tensor
 
 
 # NOTE(2023-02-14): There's a good chance that this is far from optimal and it should be revisited
@@ -37,7 +37,7 @@ def infill_noise(
 ) -> InfilledSent:
     """BART-like span masking with Poisson jumps
 
-    
+
     ## Notes
 
     This is probably somewhat different from the original BART implementation, e.g. here we can have
@@ -73,7 +73,7 @@ def infill_noise(
                 else:
                     offset = 0
                     # NOTE(2023-02-14): This probably causes our jump distribution to be sub-Poisson (octopus?)
-                    while offset < jump[pos]:
+                    while pos + offset < len(sent) and offset < jump[pos]:
                         if keep[pos + offset]:
                             break
                         offset += 1
@@ -83,16 +83,20 @@ def infill_noise(
                 pos += 1
         res.append(input_ids.new_tensor(current))
     lengths = input_ids.new_tensor([len(t) for t in res])
-    mask = torch.arange(lengths.max().item()).unsqueeze(0).lt(lengths.unsqueeze(1))
+    # Not optimal, but concise
+    attention_mask = torch.arange(lengths.max().item()).unsqueeze(0).lt(lengths.unsqueeze(1))
     return InfilledSent(
         input_ids=pad_sequence(res, batch_first=True, padding_value=padding_id),
-        mask=mask,
+        attention_mask=attention_mask,
     )
 
 
 class MBartTaskConfig(pydantic.BaseModel):
     change_ratio: float = 0.3
+    denoise_langs: Optional[List[str]]
     poisson_lambda: float = 3.0
+    source_langs: Optional[List[str]]
+    target_langs: Optional[List[str]]
 
 
 class MBartTrainingModel(TrainingModule):
@@ -102,18 +106,15 @@ class MBartTrainingModel(TrainingModule):
         mask_token_index: int,
         padding_token_index: int,
         vocabulary_size: int,
+        task_config: MBartTaskConfig,
         training_config: Optional[TrainConfig] = None,
-        task_config: Optional[MBartTaskConfig] = None,
     ):
         super().__init__()
         if training_config is not None:
             self.training_config = training_config
         else:
             self.training_config = TrainConfig()
-        if task_config is not None:
-            self.task_config = task_config
-        else:
-            self.task_config = MBartTaskConfig()
+        self.task_config = task_config
         logger.info(f"mBART trainer config: {self.training_config}")
         logger.info(f"mBART task config: {self.task_config}")
         self.mask_token_index = mask_token_index
@@ -127,16 +128,16 @@ class MBartTrainingModel(TrainingModule):
 
     def forward(  # type: ignore[override]
         self,
-        tokens: torch.Tensor,
         attention_mask: torch.Tensor,
-        token_type_ids: torch.Tensor,
-        mlm_labels: torch.Tensor,
+        decoder_input_ids: torch.Tensor,
+        tokens: torch.Tensor,
+        labels: torch.Tensor,
     ) -> "transformers.modeling_outputs.Seq2SeqLMOutput":
         output = self.model(
-            input_ids=tokens,
             attention_mask=attention_mask,
-            labels=mlm_labels,
-            token_type_ids=token_type_ids,
+            decoder_input_ids=decoder_input_ids,
+            input_ids=tokens,
+            labels=labels,
             return_dict=True,
         )
 
@@ -159,77 +160,127 @@ class MBartTrainingModel(TrainingModule):
                 )
 
             denoise_outputs = self(
-                tokens=noisy.inputs,
-                attention_mask=attention_mask,
-                mlm_labels=masked.labels,
-                token_type_ids=token_type_ids,
+                tokens=noisy.input_ids,
+                decoder_input_ids=denoise.decoder_input_ids,
+                labels=denoise.labels,
+                attention_mask=noisy.attention_mask,
             )
 
-        loss = outputs.loss
-
-        with torch.no_grad():
-            preds = torch.argmax(outputs.logits, dim=-1)
-            perplexity = torch.exp(loss)
-            self.accuracy(preds, masked.labels)
+            denoise_loss = denoise_outputs.loss
+            denoise_batch_size = denoise.input_ids.shape[0]
 
             self.log(
-                "train/loss",
-                loss,
+                "train/denoise_loss",
+                denoise_loss,
+                batch_size=denoise_batch_size,
                 reduce_fx=torch.mean,
                 on_epoch=True,
                 sync_dist=True,
             )
+        else:
+            denoise_loss = torch.zeros(1)
+            denoise_batch_size = 0
+
+        if translate is not None:
+            translate_outputs = self(
+                tokens=translate.input_ids,
+                decoder_input_ids=translate.decoder_input_ids,
+                labels=translate.labels,
+                attention_mask=translate.attention_mask,
+            )
+
+            translate_loss = translate_outputs.loss
+            translate_batch_size = translate.input_ids.shape[0]
             self.log(
-                "train/perplexity",
-                perplexity,
+                "train/translate_loss",
+                denoise_loss,
+                batch_size=translate_batch_size,
+                reduce_fx=torch.mean,
                 on_epoch=True,
                 sync_dist=True,
             )
-            self.log(
-                "train/accuracy",
-                self.accuracy,
-                on_epoch=True,
-                on_step=False,
-                sync_dist=True,
-            )
-        return loss
+        else:
+            translate_loss = torch.zeros(1)
+            translate_batch_size = 0
 
-    def validation_step(self, batch: zeldarose.datasets.transform.TextBatch, batch_idx: int):  # type: ignore[override]
-        tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
-        with torch.no_grad():
-            masked = mask_tokens(
-                inputs=tokens,
-                change_ratio=self.task_config.change_ratio,
-                keep_mask=internal_tokens_mask,
-                mask_ratio=self.task_config.mask_ratio,
-                input_mask_index=self.mask_token_index,
-                switch_ratio=self.task_config.switch_ratio,
-                vocabulary_size=self.vocabulary_size,
-            )
-
-        outputs = self(
-            tokens=masked.inputs,
-            attention_mask=attention_mask,
-            mlm_labels=masked.labels,
-            token_type_ids=token_type_ids,
-        )
-
-        loss = outputs.loss
-        perplexity = torch.exp(loss)
-
-        preds = torch.argmax(outputs.logits, dim=-1)
-        self.accuracy(preds, masked.labels)
-
-        self.log("validation/loss", loss, sync_dist=True)
+        loss = translate_loss + denoise_loss
+        batch_size = denoise_batch_size + translate_batch_size
         self.log(
-            "validation/perplexity",
-            perplexity,
+            "train/loss",
+            loss,
+            batch_size=batch_size,
+            reduce_fx=torch.mean,
             on_epoch=True,
             sync_dist=True,
         )
+
+        return loss
+
+    def validation_step(self, batch: zeldarose.datasets.mbart.TwoMBartBatches, batch_idx: int):  # type: ignore[override]
+        denoise, translate = batch
+
+        if denoise is not None:
+            with torch.no_grad():
+                noisy = infill_noise(
+                    change_ratio=self.task_config.change_ratio,
+                    input_ids=denoise.input_ids,
+                    input_mask_id=self.mask_token_index,
+                    keep_mask=denoise.special_tokens_mask,
+                    padding_id=self.pad_token_index,
+                    poisson_lambda=self.task_config.poisson_lambda,
+                )
+
+            denoise_outputs = self(
+                tokens=noisy.input_ids,
+                decoder_input_ids=denoise.decoder_input_ids,
+                labels=denoise.labels,
+                attention_mask=noisy.attention_mask,
+            )
+
+            denoise_loss = denoise_outputs.loss
+            denoise_batch_size = denoise.input_ids.shape[0]
+
+            self.log(
+                "validation/denoise_loss",
+                denoise_loss,
+                batch_size=denoise_batch_size,
+                reduce_fx=torch.mean,
+                on_epoch=True,
+                sync_dist=True,
+            )
+        else:
+            denoise_loss = torch.zeros(1)
+            denoise_batch_size = 0
+
+        if translate is not None:
+            translate_outputs = self(
+                tokens=translate.input_ids,
+                decoder_input_ids=translate.decoder_input_ids,
+                labels=translate.labels,
+                attention_mask=translate.attention_mask,
+            )
+
+            translate_loss = translate_outputs.loss
+            translate_batch_size = translate.input_ids.shape[0]
+            self.log(
+                "validation/translate_loss",
+                denoise_loss,
+                batch_size=translate_batch_size,
+                reduce_fx=torch.mean,
+                on_epoch=True,
+                sync_dist=True,
+            )
+        else:
+            translate_loss = torch.zeros(1)
+            translate_batch_size = 0
+
+        loss = translate_loss + denoise_loss
+        batch_size = denoise_batch_size + translate_batch_size
         self.log(
-            "validation/accuracy",
-            self.accuracy,
+            "validation/loss",
+            loss,
+            batch_size=batch_size,
+            reduce_fx=torch.mean,
             on_epoch=True,
             sync_dist=True,
         )
@@ -313,7 +364,7 @@ class MBartTrainingModel(TrainingModule):
         train_path: Union[str, pathlib.Path],
         data_dir: Optional[pathlib.Path] = None,
         val_path: Optional[Union[str, pathlib.Path]] = None,
-    ) -> zeldarose.datasets.transform.TextDataModule:
+    ) -> zeldarose.datasets.mbart.MBartDataModule:
         if (max_length := getattr(self.model.config, "max_position_embeddings")) is None:
             max_length = tokenizer.max_len_single_sentence
         else:
@@ -323,14 +374,23 @@ class MBartTrainingModel(TrainingModule):
                 max_length - tokenizer.num_special_tokens_to_add(pair=False),
             )
 
-        return zeldarose.datasets.transform.TextDataModule(
+        return zeldarose.datasets.mbart.MBartDataModule(
+            data_dir=data_dir,
+            denoise_langs=(
+                self.task_config.denoise_langs if self.task_config.denoise_langs is not None else []
+            ),
             loader_batch_size=loader_batch_size,
+            max_length=max_length,
             num_workers=num_workers,
+            source_langs=(
+                self.task_config.source_langs if self.task_config.source_langs is not None else []
+            ),
             tokenizer=tokenizer,
             tokenizer_name=tokenizer_name,
             train_path=train_path,
-            data_dir=data_dir,
-            max_length=max_length,
+            target_langs=(
+                self.task_config.target_langs if self.task_config.target_langs is not None else []
+            ),
             val_path=val_path,
         )
 
@@ -354,14 +414,11 @@ class MBartTrainingModel(TrainingModule):
 def get_training_model(
     model_config: Optional[Union[str, pathlib.Path]],
     pretrained_model: Optional[Union[str, pathlib.Path]],
-    task_config: Optional[Dict[str, Any]],
+    task_config: Dict[str, Any],
     tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
     training_config: TrainConfig,
-) -> MLMTrainingModel:
-    if task_config is not None:
-        _task_config = MLMTaskConfig.parse_obj(task_config)
-    else:
-        _task_config = MLMTaskConfig()
+) -> MBartTrainingModel:
+    _task_config = MBartTaskConfig.parse_obj(task_config)
 
     if (
         mask_token_index := cast(Union[int, None], getattr(tokenizer, "mask_token_id", None))
@@ -390,9 +447,10 @@ def get_training_model(
     logger.info("Creating MLM training model")
 
     logger.debug(f"Mask token index: {mask_token_index}")
-    training_model = MLMTrainingModel(
+    training_model = MBartTrainingModel(
         model=model,
         mask_token_index=mask_token_index,
+        padding_token_index=cast(int, tokenizer.pad_token_id),
         vocabulary_size=vocabulary_size,
         task_config=_task_config,
         training_config=training_config,

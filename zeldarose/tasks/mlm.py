@@ -163,6 +163,7 @@ class MLMTrainingModel(TrainingModule):
             self.log(
                 "train/loss",
                 loss,
+                batch_size=tokens.shape[0],
                 reduce_fx=torch.mean,
                 on_epoch=True,
                 sync_dist=True,
@@ -170,12 +171,14 @@ class MLMTrainingModel(TrainingModule):
             self.log(
                 "train/perplexity",
                 perplexity,
+                batch_size=tokens.shape[0],
                 on_epoch=True,
                 sync_dist=True,
             )
             self.log(
                 "train/accuracy",
                 self.accuracy,
+                batch_size=tokens.shape[0],
                 on_epoch=True,
                 on_step=False,
                 sync_dist=True,
@@ -208,16 +211,18 @@ class MLMTrainingModel(TrainingModule):
         preds = torch.argmax(outputs.logits, dim=-1)
         self.accuracy(preds, masked.labels)
 
-        self.log("validation/loss", loss, sync_dist=True)
+        self.log("validation/loss", loss, batch_size=tokens.shape[0], sync_dist=True)
         self.log(
             "validation/perplexity",
             perplexity,
+            batch_size=tokens.shape[0],
             on_epoch=True,
             sync_dist=True,
         )
         self.log(
             "validation/accuracy",
             self.accuracy,
+            batch_size=tokens.shape[0],
             on_epoch=True,
             sync_dist=True,
         )

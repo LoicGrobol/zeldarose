@@ -22,7 +22,7 @@ import transformers
 
 from loguru import logger
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
-from zeldarose.tasks import mlm, rtd
+from zeldarose.tasks import mbart, mlm, rtd
 from zeldarose.common import TrainConfig, TrainingModule
 
 
@@ -426,6 +426,8 @@ def main(
         task = mlm
     elif task_type == "rtd":
         task = rtd
+    elif task_type == "mbart":
+        task = mbart
     else:
         raise ValueError(f"Unknown task type: {task_type!r}")
 
