@@ -3,7 +3,6 @@ import pathlib
 
 from typing import (
     Collection,
-    Dict,
     Generator,
     Mapping,
     Union,
@@ -11,7 +10,6 @@ from typing import (
     List,
     NamedTuple,
     Optional,
-    Sequence,
     TypedDict,
 )
 
@@ -64,6 +62,7 @@ class EncodedSample(TypedDict):
     input_ids: List[int]
     labels: List[int]
     src_lang: str
+    special_tokens_mask: List[int]
     tgt_lang: str
 
 
@@ -110,6 +109,7 @@ def encode_dataset(
             add_special_tokens=True,
             max_length=max_length,
             return_attention_mask=True,
+            return_special_tokens_mask=True,
             truncation=True,
         )
         # NOTE(2023-02-12): This is NOT what 🤗 transformers's
@@ -122,6 +122,7 @@ def encode_dataset(
             input_ids=tokenized.input_ids,
             labels=cast(List[int], tokenized["labels"])[1:],
             src_lang=example["src_lang"],
+            special_tokens_mask=cast(List[int], tokenized["special_tokens_mask"]),
             tgt_lang=example["tgt_lang"],
         )
 
@@ -147,19 +148,26 @@ class EncodedBatch(TypedDict):
     input_ids: List[List[int]]
     labels: List[List[int]]
     src_lang: List[str]
+    special_tokens_mask: List[List[int]]
     tgt_lang: List[str]
 
 
-class mBARTBatch(NamedTuple):
+class MBARTBatch(NamedTuple):
     attention_mask: torch.Tensor
     decoder_input_ids: torch.Tensor
     input_ids: torch.Tensor
     labels: torch.Tensor
     src_lang: List[str]
+    special_tokens_mask: torch.Tensor
     tgt_lang: List[str]
 
 
-class mBARTLoader(torch.utils.data.DataLoader[EncodedSample]):
+class TwoMBartBatches(NamedTuple):
+    denoise: Optional[MBARTBatch]
+    translate: Optional[MBARTBatch]
+
+
+class MBartLoader(torch.utils.data.DataLoader[EncodedSample]):
     def __init__(
         self,
         dataset: torch.utils.data.Dataset[EncodedSample],
@@ -177,7 +185,7 @@ class mBARTLoader(torch.utils.data.DataLoader[EncodedSample]):
             raise ValueError("Tokenizers without a padding id are not supported")
         self._padding_value = padding_value
 
-    def collate(self, batch: EncodedBatch) -> mBARTBatch:
+    def collate(self, batch: EncodedBatch) -> TwoMBARTBatches:
         # NOTE(2021-08-12): we have to pad/batch manually instead of deferring to 🤗, since the fast
         # tokenizers can't take pre-encoded inputs (yet?)
         padded_input_ids = pad_sequence(
@@ -195,19 +203,49 @@ class mBARTLoader(torch.utils.data.DataLoader[EncodedSample]):
             batch_first=True,
             padding_value=-100,
         )
+        special_tokens_mask = pad_sequence(
+            [torch.tensor(sample, dtype=torch.long) for sample in batch["special_tokens_mask"]],
+            batch_first=True,
+            padding_value=0,
+        )
         attention_mask = padded_input_ids.ne(self._padding_value)
 
-        return mBARTBatch(
-            attention_mask=attention_mask,
-            decoder_input_ids=padded_decoder_input_ids,
-            input_ids=padded_input_ids,
-            labels=padded_labels,
-            src_lang=batch["src_lang"],
-            tgt_lang=batch["tgt_lang"],
-        )
+        # NOTE(2023-02-15): doing it this way probably results in overpadding at some point
+        denoise_indices = [
+            i for i, (s, t) in enumerate(zip(batch["src_lang"], batch["tgt_lang"])) if s == t
+        ]
+        if denoise_indices:
+            denoise_batch = MBARTBatch(
+                attention_mask=attention_mask[denoise_indices],
+                decoder_input_ids=padded_decoder_input_ids[denoise_indices],
+                input_ids=padded_input_ids[denoise_indices],
+                labels=padded_labels[denoise_indices],
+                src_lang=[batch["src_lang"][i] for i in denoise_indices],
+                special_tokens_mask=special_tokens_mask[denoise_indices],
+                tgt_lang=[batch["tgt_lang"][i] for i in denoise_indices],
+            )
+        else:
+            denoise_batch = None
+
+        translate_indices = [
+            i for i, (s, t) in enumerate(zip(batch["src_lang"], batch["tgt_lang"])) if s != t
+        ]
+        if translate_indices:
+            translate_batch = MBARTBatch(
+                attention_mask=attention_mask[translate_indices],
+                decoder_input_ids=padded_decoder_input_ids[translate_indices],
+                input_ids=padded_input_ids[translate_indices],
+                labels=padded_labels[translate_indices],
+                src_lang=[batch["src_lang"][i] for i in translate_indices],
+                special_tokens_mask=special_tokens_mask[translate_indices],
+                tgt_lang=[batch["tgt_lang"][i] for i in translate_indices],
+            )
+        else:
+            translate_batch = None
+        return TwoMBartBatches(denoise=denoise_batch, translate=translate_batch)
 
 
-class mBARTDataModule(pl.LightningDataModule):
+class MBartDataModule(pl.LightningDataModule):
     def __init__(
         self,
         denoise_langs: Collection[str],
@@ -298,7 +336,7 @@ class mBARTDataModule(pl.LightningDataModule):
         if self.train_dataset is None:
             return None
         # FIXME(2023-02-07): that cast hereunder is wrong, self.train_dataset is **not** a torch Dataset
-        return mBARTLoader(
+        return MBartLoader(
             cast(torch.utils.data.Dataset[EncodedSample], self.train_dataset),
             batch_size=self.loader_batch_size,
             num_workers=self.num_workers,
@@ -310,7 +348,7 @@ class mBARTDataModule(pl.LightningDataModule):
         if self.val_dataset is None:
             return None
         # FIXME(2023-02-07): that cast hereunder is wrong, self.val_dataset is **not** a torch Dataset
-        return mBARTLoader(
+        return MBartLoader(
             cast(torch.utils.data.Dataset[EncodedSample], self.val_dataset),
             batch_size=self.loader_batch_size,
             num_workers=self.num_workers,
