@@ -78,9 +78,9 @@ def encode_dataset(
     tokenizer_name: str,
     max_length: Optional[int] = None,
 ):
-    if not hasattr(tokenizer, "src_lang ") or not not hasattr(tokenizer, "tgt_lang "):
+    if not hasattr(tokenizer, "src_lang") or not hasattr(tokenizer, "tgt_lang"):
         raise ValueError(
-            "Tokenizer used in mBART training must have `src_lang` and `tgt_lang` attributes."
+            "The tokenizer used in mBART training must have `src_lang` and `tgt_lang` attributes."
         )
 
     logger.info(f"Loading data from {text_path}")
@@ -141,17 +141,6 @@ def encode_dataset(
     encoded_dataset.save_to_disk(str(save_path))
 
 
-# The stuf we get from slicing a dataset of EncodedSamples such as the one returned by `encode_dataset`
-class EncodedBatch(TypedDict):
-    attention_mask: List[List[int]]
-    decoder_input_ids: List[List[int]]
-    input_ids: List[List[int]]
-    labels: List[List[int]]
-    src_lang: List[str]
-    special_tokens_mask: List[List[int]]
-    tgt_lang: List[str]
-
-
 class MBARTBatch(NamedTuple):
     attention_mask: torch.Tensor
     decoder_input_ids: torch.Tensor
@@ -185,60 +174,56 @@ class MBartLoader(torch.utils.data.DataLoader[EncodedSample]):
             raise ValueError("Tokenizers without a padding id are not supported")
         self._padding_value = padding_value
 
-    def collate(self, batch: EncodedBatch) -> TwoMBARTBatches:
+    def collate(self, batch: List[EncodedSample]) -> TwoMBartBatches:
         # NOTE(2021-08-12): we have to pad/batch manually instead of deferring to 🤗, since the fast
         # tokenizers can't take pre-encoded inputs (yet?)
         padded_input_ids = pad_sequence(
-            [torch.tensor(sample, dtype=torch.long) for sample in batch["input_ids"]],
+            [torch.tensor(sample["input_ids"], dtype=torch.long) for sample in batch],
             batch_first=True,
             padding_value=self._padding_value,
         )
         padded_decoder_input_ids = pad_sequence(
-            [torch.tensor(sample, dtype=torch.long) for sample in batch["decoder_input_ids"]],
+            [torch.tensor(sample["decoder_input_ids"], dtype=torch.long) for sample in batch],
             batch_first=True,
             padding_value=self._padding_value,
         )
         padded_labels = pad_sequence(
-            [torch.tensor(sample, dtype=torch.long) for sample in batch["labels"]],
+            [torch.tensor(sample["labels"], dtype=torch.long) for sample in batch],
             batch_first=True,
             padding_value=-100,
         )
         special_tokens_mask = pad_sequence(
-            [torch.tensor(sample, dtype=torch.long) for sample in batch["special_tokens_mask"]],
+            [torch.tensor(sample["special_tokens_mask"], dtype=torch.long) for sample in batch],
             batch_first=True,
             padding_value=0,
         )
         attention_mask = padded_input_ids.ne(self._padding_value)
 
         # NOTE(2023-02-15): doing it this way probably results in overpadding at some point
-        denoise_indices = [
-            i for i, (s, t) in enumerate(zip(batch["src_lang"], batch["tgt_lang"])) if s == t
-        ]
+        denoise_indices = [i for i, s in enumerate(batch) if s["src_lang"] == s["tgt_lang"]]
         if denoise_indices:
             denoise_batch = MBARTBatch(
                 attention_mask=attention_mask[denoise_indices],
                 decoder_input_ids=padded_decoder_input_ids[denoise_indices],
                 input_ids=padded_input_ids[denoise_indices],
                 labels=padded_labels[denoise_indices],
-                src_lang=[batch["src_lang"][i] for i in denoise_indices],
+                src_lang=[batch[i]["src_lang"] for i in denoise_indices],
                 special_tokens_mask=special_tokens_mask[denoise_indices],
-                tgt_lang=[batch["tgt_lang"][i] for i in denoise_indices],
+                tgt_lang=[batch[i]["tgt_lang"] for i in denoise_indices],
             )
         else:
             denoise_batch = None
 
-        translate_indices = [
-            i for i, (s, t) in enumerate(zip(batch["src_lang"], batch["tgt_lang"])) if s != t
-        ]
+        translate_indices = [i for i, s in enumerate(batch) if s["src_lang"] != s["tgt_lang"]]
         if translate_indices:
             translate_batch = MBARTBatch(
                 attention_mask=attention_mask[translate_indices],
                 decoder_input_ids=padded_decoder_input_ids[translate_indices],
                 input_ids=padded_input_ids[translate_indices],
                 labels=padded_labels[translate_indices],
-                src_lang=[batch["src_lang"][i] for i in translate_indices],
+                src_lang=[batch[i]["src_lang"] for i in translate_indices],
                 special_tokens_mask=special_tokens_mask[translate_indices],
-                tgt_lang=[batch["tgt_lang"][i] for i in translate_indices],
+                tgt_lang=[batch[i]["tgt_lang"] for i in translate_indices],
             )
         else:
             translate_batch = None
