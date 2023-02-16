@@ -19,6 +19,9 @@ def raw_text_path(test_data_dir: pathlib.Path) -> pathlib.Path:
 def remote_raw_text() -> str:
     return "lgrobol/openminuscule:text:train"
 
+@pytest.fixture(scope="session")
+def translation_dataset_path(test_data_dir: pathlib.Path) -> pathlib.Path:
+    return test_data_dir / test_data_dir /"translation.jsonl"
 
 @pytest.fixture(
     params=[
@@ -30,6 +33,21 @@ def remote_raw_text() -> str:
 )
 def tokenizer_name_or_path(request) -> str:
     return request.param
+
+
+@pytest.fixture(
+    params=[
+        "lgrobol/mbart-minuscule",
+    ],
+    scope="session",
+)
+def mbart_model_config(request) -> str:
+    return request.param
+
+
+@pytest.fixture(scope="session")
+def mbart_task_config(test_data_dir: pathlib.Path) -> pathlib.Path:
+    return test_data_dir / "mbart-config.toml"
 
 
 @pytest.fixture(
