@@ -171,7 +171,7 @@ class SavePretrainedModelCallback(pl.Callback):
 # TODO: allow reading all these from a config file (except perhaps for paths)
 # TODO: refactor the api to have a single `zeldarose` entrypoint with subcommands.
 @click.command()
-@click.argument("raw_text")
+@click.argument("train_data")
 @click.option(
     "--accelerator",
     default="auto",
@@ -312,6 +312,7 @@ class SavePretrainedModelCallback(pl.Callback):
     help="The number of steps between validation runs (useful for very long epochs)",
 )
 @click.option(
+    "--val-data",
     "--val-text",
     "val_path",
     help=(
@@ -340,7 +341,7 @@ def main(
     precision: Optional[Literal["64", "32", "16", "bf16"]],
     pretrained_model: Optional[str],
     profile: bool,
-    raw_text: str,
+    train_data: str,
     step_save_period: Optional[int],
     strategy: Optional[str],
     tf32_mode: Optional[Literal["highest", "high", "medium"]],
@@ -457,7 +458,7 @@ def main(
         num_workers=num_workers,
         tokenizer=tokenizer,
         tokenizer_name=tokenizer_name.replace("/", "_"),
-        train_path=raw_text,
+        train_path=train_data,
         val_path=val_path,
     )
     datamodule.prepare_data_per_node = False
