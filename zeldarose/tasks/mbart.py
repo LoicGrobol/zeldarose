@@ -1,4 +1,3 @@
-import math
 import pathlib
 from typing import Any, List, cast, Dict, NamedTuple, Optional, TYPE_CHECKING, Union
 
@@ -169,17 +168,18 @@ class MBartTrainingModel(TrainingModule):
             denoise_loss = denoise_outputs.loss
             denoise_batch_size = denoise.input_ids.shape[0]
 
-            self.log(
-                "train/denoise_loss",
-                denoise_loss,
-                batch_size=denoise_batch_size,
-                reduce_fx=torch.mean,
-                on_epoch=True,
-                sync_dist=True,
-            )
         else:
-            denoise_loss = torch.zeros(1)
+            denoise_loss = torch.zeros(1, device=self.device)
             denoise_batch_size = 0
+
+        self.log(
+            "train/denoise_loss",
+            denoise_loss,
+            batch_size=denoise_batch_size,
+            reduce_fx=torch.mean,
+            on_epoch=True,
+            sync_dist=True,
+        )
 
         if translate is not None:
             translate_outputs = self(
@@ -191,19 +191,22 @@ class MBartTrainingModel(TrainingModule):
 
             translate_loss = translate_outputs.loss
             translate_batch_size = translate.input_ids.shape[0]
-            self.log(
-                "train/translate_loss",
-                denoise_loss,
-                batch_size=translate_batch_size,
-                reduce_fx=torch.mean,
-                on_epoch=True,
-                sync_dist=True,
-            )
         else:
-            translate_loss = torch.zeros(1)
+            translate_loss = torch.zeros(1, device=self.device)
             translate_batch_size = 0
 
+        self.log(
+            "train/translate_loss",
+            translate_loss,
+            batch_size=translate_batch_size,
+            reduce_fx=torch.mean,
+            on_epoch=True,
+            sync_dist=True,
+        )
+
+
         loss = translate_loss + denoise_loss
+
         batch_size = denoise_batch_size + translate_batch_size
         self.log(
             "train/loss",
