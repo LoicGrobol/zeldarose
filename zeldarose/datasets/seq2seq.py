@@ -55,13 +55,14 @@ def encode_dataset(
             return_attention_mask=True,
             truncation=True,
         )
-        # FIXME: probably what we do in mBART would also be appropriate here
+        # FIXME: probably what we do in mBART would also be appropriate here
         # NOTE(2023-02-12): This is NOT what 🤗 transformers's
         # `prepare_decoder_input_ids_from_labels`/[`shift_tokens_right`](https://github.com/huggingface/transformers/blob/c836f77266be9ace47bff472f63caf71c0d11333/src/transformers/models/mbart/modeling_mbart.py#L62)
         # does for mBART, but it seems more correct. See also 🤗 transformers issue
         # [#19500](https://github.com/huggingface/transformers/issues/19500).
         tokenized["decoder_input_ids"] = [
-            [decoder_start_token_id, *labels[:-1]] for labels in tokenized["labels"]
+            [decoder_start_token_id, *labels[:-1]]
+            for labels in cast(List[List[int]], tokenized["labels"])
         ]
         return tokenized
 

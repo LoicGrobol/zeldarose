@@ -8,10 +8,11 @@ import torch.utils.data
 import transformers
 from loguru import logger
 from torch.nn.utils.rnn import pad_sequence
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
+from lightning_utilities.core.rank_zero import rank_zero_only
+from torchmetrics import SacreBLEUScore
 
 import zeldarose.datasets.mbart
-from zeldarose.common import MaskedAccuracy, TrainConfig, TrainingModule
+from zeldarose.common import TrainConfig, TrainingModule
 
 
 if TYPE_CHECKING:
@@ -106,6 +107,7 @@ class MBartTrainingModel(TrainingModule):
         padding_token_index: int,
         vocabulary_size: int,
         task_config: MBartTaskConfig,
+        tokenizer: transformers.PreTrainedTokenizerFast,
         training_config: Optional[TrainConfig] = None,
     ):
         super().__init__()
@@ -118,10 +120,11 @@ class MBartTrainingModel(TrainingModule):
         logger.info(f"mBART task config: {self.task_config}")
         self.mask_token_index = mask_token_index
         self.pad_token_index = padding_token_index
+        self.sacrebleu_score = SacreBLEUScore()
         self.vocabulary_size = vocabulary_size
 
-        self.accuracy = MaskedAccuracy()
         self.model = model
+        self.tokenizers = tokenizer
 
         self.save_hyperparameters("training_config", "task_config")
 
@@ -204,7 +207,6 @@ class MBartTrainingModel(TrainingModule):
             sync_dist=True,
         )
 
-
         loss = translate_loss + denoise_loss
 
         batch_size = denoise_batch_size + translate_batch_size
@@ -243,17 +245,18 @@ class MBartTrainingModel(TrainingModule):
             denoise_loss = denoise_outputs.loss
             denoise_batch_size = denoise.input_ids.shape[0]
 
-            self.log(
-                "validation/denoise_loss",
-                denoise_loss,
-                batch_size=denoise_batch_size,
-                reduce_fx=torch.mean,
-                on_epoch=True,
-                sync_dist=True,
-            )
         else:
-            denoise_loss = torch.zeros(1)
+            denoise_loss = torch.zeros(1, device=self.device)
             denoise_batch_size = 0
+
+        self.log(
+            "validation/denoise_loss",
+            denoise_loss,
+            batch_size=denoise_batch_size,
+            reduce_fx=torch.mean,
+            on_epoch=True,
+            sync_dist=True,
+        )
 
         if translate is not None:
             translate_outputs = self(
@@ -265,17 +268,32 @@ class MBartTrainingModel(TrainingModule):
 
             translate_loss = translate_outputs.loss
             translate_batch_size = translate.input_ids.shape[0]
-            self.log(
-                "validation/translate_loss",
-                denoise_loss,
-                batch_size=translate_batch_size,
-                reduce_fx=torch.mean,
-                on_epoch=True,
-                sync_dist=True,
-            )
+
+            generated_id: List[torch.Tensor] = []
+            for input_ids, decoder_input_ids in zip(
+                translate.input_ids, translate.decoder_input_ids
+            ):
+                generated_id.append(
+                    self.model.generate(
+                        input_ids=input_ids.unsqueeze(0), forced_bos_token_id=decoder_input_ids[0], num_beams=4
+                    )[0]
+                )
+            generated_txt = self.tokenizers.batch_decode(generated_id, skip_special_tokens=True)
+            self.sacrebleu_score(generated_txt, translate.tgt_text)
+
         else:
-            translate_loss = torch.zeros(1)
+            translate_loss = torch.zeros(1, device=self.device)
             translate_batch_size = 0
+
+        self.log(
+            "validation/translate_loss",
+            denoise_loss,
+            batch_size=translate_batch_size,
+            reduce_fx=torch.mean,
+            on_epoch=True,
+            sync_dist=True,
+        )
+        self.log("validation/sacrebleu", self.sacrebleu_score, on_epoch=True, on_step=False)
 
         loss = translate_loss + denoise_loss
         batch_size = denoise_batch_size + translate_batch_size
@@ -418,7 +436,7 @@ def get_training_model(
     model_config: Optional[Union[str, pathlib.Path]],
     pretrained_model: Optional[Union[str, pathlib.Path]],
     task_config: Dict[str, Any],
-    tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
+    tokenizer: transformers.PreTrainedTokenizerFast,
     training_config: TrainConfig,
 ) -> MBartTrainingModel:
     _task_config = MBartTaskConfig.parse_obj(task_config)
@@ -431,7 +449,7 @@ def get_training_model(
 
     if pretrained_model is not None:
         logger.info(f"Loading pretrained model {pretrained_model!r}")
-        model = transformers.AutoModelForMaskedLM.from_pretrained(pretrained_model)
+        model = transformers.AutoModelForSeq2SeqLM.from_pretrained(pretrained_model)
     elif model_config is not None:
         logger.info(f"Loading pretrained config {model_config!r}")
         _model_config = transformers.AutoConfig.from_pretrained(model_config)
@@ -443,7 +461,7 @@ def get_training_model(
                 f" and pretrained tokenizer ({vocabulary_size}), using {vocabulary_size}."
             )
             _model_config.vocab_size = vocabulary_size
-        model = transformers.AutoModelForMaskedLM.from_config(_model_config)
+        model = transformers.AutoModelForSeq2SeqLM.from_config(_model_config)
     else:
         raise ValueError("You must provide either a pretrained model or a model config")
 
@@ -456,6 +474,7 @@ def get_training_model(
         padding_token_index=cast(int, tokenizer.pad_token_id),
         vocabulary_size=vocabulary_size,
         task_config=_task_config,
+        tokenizer=tokenizer,
         training_config=training_config,
     )
 

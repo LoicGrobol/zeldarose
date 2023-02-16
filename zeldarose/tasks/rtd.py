@@ -8,7 +8,7 @@ import torch.jit
 import torch.utils.data
 import transformers
 from loguru import logger
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
+from lightning_utilities.core.rank_zero import rank_zero_only
 
 import zeldarose.datasets.transform
 from zeldarose.common import MaskedAccuracy, TrainConfig, TrainingModule
