@@ -39,6 +39,51 @@ def test_train_tokenizer(
     "accelerators_strategies_devices",
     [pytest.param(v, id="+".join(map(str, v))) for v in accelerators_strategies_devices],
 )
+def test_train_mbart(
+    accelerators_strategies_devices: Tuple[str, Optional[str], Optional[int]],
+    mbart_model_config: Union[pathlib.Path, str],
+    mbart_task_config: pathlib.Path,
+    translation_dataset_path: pathlib.Path,
+    script_runner: pytest_console_scripts.ScriptRunner,
+    tmp_path: pathlib.Path,
+):
+    accelerator, strategy, devices = accelerators_strategies_devices
+    extra_args: List[str] = []
+    if strategy is not None:
+        extra_args.extend(["--strategy", strategy])
+    if devices is not None:
+        extra_args.extend(["--num-devices", str(devices)])
+
+    ret = script_runner.run(
+        "zeldarose-transformer",
+        "--accelerator",
+        accelerator,
+        "--config",
+        str(mbart_task_config),
+        "--tokenizer",
+        str(mbart_model_config),
+        "--model-config",
+        str(mbart_model_config),
+        "--device-batch-size",
+        "2",
+        "--out-dir",
+         str(tmp_path / "train-out"),
+        "--cache-dir",
+         str(tmp_path / "cache"),
+        "--val-text",
+        str(translation_dataset_path),
+        str(translation_dataset_path),
+        "--max-epochs",
+        "2",
+        *extra_args,
+        env={"TORCH_DISTRIBUTED_DEBUG": "DETAIL", **os.environ},
+    )
+    assert ret.success
+
+@pytest.mark.parametrize(
+    "accelerators_strategies_devices",
+    [pytest.param(v, id="+".join(map(str, v))) for v in accelerators_strategies_devices],
+)
 def test_train_mlm(
     accelerators_strategies_devices: Tuple[str, Optional[str], Optional[int]],
     mlm_model_config: Union[pathlib.Path, str],
