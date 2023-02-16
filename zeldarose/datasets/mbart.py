@@ -62,8 +62,10 @@ class EncodedSample(TypedDict):
     input_ids: List[int]
     labels: List[int]
     src_lang: str
+    src_text: str
     special_tokens_mask: List[int]
     tgt_lang: str
+    tgt_text: str
 
 
 # NOTE: this also caches the raw and encoded dataset in HF_DATASETS_CACHE, which is different from OUR cache
@@ -122,8 +124,10 @@ def encode_dataset(
             input_ids=tokenized.input_ids,
             labels=cast(List[int], tokenized["labels"])[1:],
             src_lang=example["src_lang"],
+            src_text=example["source"],
             special_tokens_mask=cast(List[int], tokenized["special_tokens_mask"]),
             tgt_lang=example["tgt_lang"],
+            tgt_text=example["target"],
         )
 
     raw_fingerprint = raw_dataset._fingerprint  # type: ignore
@@ -147,8 +151,10 @@ class MBARTBatch(NamedTuple):
     input_ids: torch.Tensor
     labels: torch.Tensor
     src_lang: List[str]
+    src_text: List[str]
     special_tokens_mask: torch.Tensor
     tgt_lang: List[str]
+    tgt_text: List[str]
 
 
 class TwoMBartBatches(NamedTuple):
@@ -208,8 +214,10 @@ class MBartLoader(torch.utils.data.DataLoader[EncodedSample]):
                 input_ids=padded_input_ids[denoise_indices],
                 labels=padded_labels[denoise_indices],
                 src_lang=[batch[i]["src_lang"] for i in denoise_indices],
+                src_text=[batch[i]["src_text"] for i in denoise_indices],
                 special_tokens_mask=special_tokens_mask[denoise_indices],
                 tgt_lang=[batch[i]["tgt_lang"] for i in denoise_indices],
+                tgt_text=[batch[i]["tgt_text"] for i in denoise_indices],
             )
         else:
             denoise_batch = None
@@ -222,8 +230,10 @@ class MBartLoader(torch.utils.data.DataLoader[EncodedSample]):
                 input_ids=padded_input_ids[translate_indices],
                 labels=padded_labels[translate_indices],
                 src_lang=[batch[i]["src_lang"] for i in translate_indices],
+                src_text=[batch[i]["src_text"] for i in translate_indices],
                 special_tokens_mask=special_tokens_mask[translate_indices],
                 tgt_lang=[batch[i]["tgt_lang"] for i in translate_indices],
+                tgt_text=[batch[i]["tgt_text"] for i in translate_indices],
             )
         else:
             translate_batch = None

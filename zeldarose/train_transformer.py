@@ -21,7 +21,7 @@ import torch
 import transformers
 
 from loguru import logger
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
+from lightning_utilities.core.rank_zero import rank_zero_only
 from zeldarose.tasks import mbart, mlm, rtd
 from zeldarose.common import TrainConfig, TrainingModule
 
@@ -89,15 +89,15 @@ def setup_logging(
 
             # Find caller from where originated the logged message
             frame, depth = logging.currentframe(), 2
+            while frame is not None and frame.f_code.co_filename == logging.__file__:
+                frame = frame.f_back
+                depth += 1
+            
             if frame is None:
                 warnings.warn(
                     "Catching calls to logging is impossible in stackless environment, logging from external libraries might be lost."
                 )
             else:
-                while frame.f_code.co_filename == logging.__file__:
-                    frame = frame.f_back
-                    depth += 1
-
                 if self.wrapped_name is not None:
                     logger.opt(depth=depth, exception=record.exc_info).log(
                         level, f"[bold]{self.wrapped_name} says:[/bold] {record.getMessage()}"
