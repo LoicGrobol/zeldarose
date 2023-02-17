@@ -1,5 +1,5 @@
 import pathlib
-from typing import Any, List, cast, Dict, NamedTuple, Optional, TYPE_CHECKING, Union
+from typing import Any, Collection, List, cast, Dict, NamedTuple, Optional, TYPE_CHECKING, Union
 
 import pydantic
 import torch
@@ -97,6 +97,7 @@ class MBartTaskConfig(pydantic.BaseModel):
     poisson_lambda: float = 3.0
     source_langs: Optional[List[str]]
     target_langs: Optional[List[str]]
+    strict_langs: bool = False
 
 
 class MBartTrainingModel(TrainingModule):
@@ -275,7 +276,9 @@ class MBartTrainingModel(TrainingModule):
             ):
                 generated_id.append(
                     self.model.generate(
-                        input_ids=input_ids.unsqueeze(0), forced_bos_token_id=decoder_input_ids[0], num_beams=4
+                        input_ids=input_ids.unsqueeze(0),
+                        forced_bos_token_id=decoder_input_ids[0],
+                        num_beams=4,
                     )[0]
                 )
             generated_txt = self.tokenizers.batch_decode(generated_id, skip_special_tokens=True)
@@ -439,6 +442,11 @@ def get_training_model(
     tokenizer: transformers.PreTrainedTokenizerFast,
     training_config: TrainConfig,
 ) -> MBartTrainingModel:
+    if not hasattr(tokenizer, "lang_code_to_id"):
+        raise ValueError(
+            "The tokenizer for mBART training must be multilingual and have a `lang_code_to_id` attribute"
+        )
+
     _task_config = MBartTaskConfig.parse_obj(task_config)
 
     if (
@@ -465,7 +473,35 @@ def get_training_model(
     else:
         raise ValueError("You must provide either a pretrained model or a model config")
 
-    logger.info("Creating MLM training model")
+    if not _task_config.strict_langs:
+        logger.debug("Checking match between task and tokenizer langs")
+        all_langs = set().union(
+            *(
+                l
+                for l in (
+                    _task_config.denoise_langs,
+                    _task_config.source_langs,
+                    _task_config.target_langs,
+                )
+                if l is not None
+            )
+        )
+        for lang in all_langs:
+            # FIXME: we need ignores here because (at least) Pyright doesn't take the hasattr into account
+            if (substitute_lang := match_lang(lang, tokenizer.lang_code_to_id)) is None:  # type: ignore
+                logger.warning(
+                    f"Language {lang} is unknown of the tokenizer, adding it and resizing the model vocabulary."
+                )
+                tokenizer.add_tokens(lang, special_tokens=True)
+                lang_id = cast(int, tokenizer.convert_tokens_to_ids(lang))
+                tokenizer.lang_code_to_id[lang] = lang_id  # type: ignore
+                model.resize_token_embeddings(len(tokenizer))
+            else:
+                if substitute_lang != lang:
+                    logger.info(f"Adding {lang} as an alias to {substitute_lang} in the tokenizer.")
+                tokenizer.lang_code_to_id[lang] = tokenizer.lang_code_to_id[substitute_lang]  # type: ignore
+
+    logger.info("Creating mBART training model")
 
     logger.debug(f"Mask token index: {mask_token_index}")
     training_model = MBartTrainingModel(
