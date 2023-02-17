@@ -515,3 +515,21 @@ def get_training_model(
     )
 
     return training_model
+
+
+def match_lang(lang: str, available: Collection[str]) -> Optional[str]:
+    if lang in available:
+        return lang
+    logger.debug(f"{lang} not found in tokenizer langs: {available}. Looking for a substitute.")
+    substitutes = [
+        model_lang
+        for model_lang in available
+        if model_lang.split("_", maxsplit=1)[0] == lang
+        or lang.split("_", maxsplit=1)[0] == model_lang
+    ]
+    if len(substitutes) > 1:
+        raise ValueError(f"Multiple tokenizer langs would fit {lang}: {substitutes}")
+    elif len(substitutes) == 0:
+        return None
+    else:
+        return substitutes[0]
