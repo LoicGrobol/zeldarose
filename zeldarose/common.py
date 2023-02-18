@@ -9,8 +9,24 @@ import transformers
 
 import pytorch_lightning as pl
 
+from loguru import logger
+
+
+class TrainConfig(pydantic.BaseModel):
+    batch_size: int = 64
+    betas: Tuple[float, float] = (0.9, 0.98)
+    epsilon: float = 1e-8
+    gradient_clipping: Optional[Union[float, int]] = None
+    learning_rate: float = 1e-4
+    lr_decay_steps: Optional[int] = None
+    warmup_steps: int = 0
+    weight_decay: Optional[float] = None
+
 
 class TrainingModule(pl.LightningModule, ABC):
+    model: torch.nn.Module
+    training_config: TrainConfig
+
     @abstractmethod
     def get_data_module(
         self,
@@ -33,17 +49,76 @@ class TrainingModule(pl.LightningModule, ABC):
         ] = None,
     ):
         raise NotImplementedError()
+    
+    def configure_optimizers(self):
+        if self.training_config.weight_decay is not None:
+            no_decay = ["bias", "LayerNorm.weight"]
+            decay_rate = self.training_config.weight_decay
+            optimizer_grouped_parameters = [
+                {
+                    "params": [
+                        p
+                        for n, p in self.model.named_parameters()
+                        if not any(nd in n for nd in no_decay)
+                    ],
+                    "weight_decay": decay_rate,
+                },
+                {
+                    "params": [
+                        p
+                        for n, p in self.model.named_parameters()
+                        if any(nd in n for nd in no_decay)
+                    ],
+                    "weight_decay": 0.0,
+                },
+            ]
+        else:
+            decay_rate = 0.0
+            optimizer_grouped_parameters = [
+                {
+                    "params": [p for n, p in self.model.named_parameters()],
+                    "weight_decay": 0.0,
+                },
+            ]
 
+        optimizer = torch.optim.AdamW(
+            optimizer_grouped_parameters,
+            betas=self.training_config.betas,
+            lr=self.training_config.learning_rate,
+            eps=self.training_config.epsilon,
+            weight_decay=decay_rate,
+        )
+        if self.training_config.lr_decay_steps:
+            if self.training_config.lr_decay_steps > 2 * self.trainer.max_steps:
+                logger.warning(
+                    f"Asked for {self.training_config.lr_decay_steps} LR decay steps"
+                    f" but the model will only be trained for {self.trainer.max_steps} steps"
+                    ", this might be an oversight."
+                )
+            if self.training_config.lr_decay_steps == -1:
+                num_training_steps = self.trainer.max_steps - self.training_config.warmup_steps
+                logger.info(
+                    f"Number of lr decay steps set at {num_training_steps} since -1 was asked"
+                )
+            else:
+                num_training_steps = self.training_config.lr_decay_steps
 
-class TrainConfig(pydantic.BaseModel):
-    batch_size: int = 64
-    betas: Tuple[float, float] = (0.9, 0.98)
-    epsilon: float = 1e-8
-    gradient_clipping: Optional[Union[float, int]] = None
-    learning_rate: float = 1e-4
-    lr_decay_steps: Optional[int] = None
-    warmup_steps: int = 0
-    weight_decay: Optional[float] = None
+            schedule = transformers.get_linear_schedule_with_warmup(
+                optimizer,
+                num_warmup_steps=self.training_config.warmup_steps,
+                num_training_steps=num_training_steps + self.training_config.warmup_steps,
+            )
+            schedulers = [{"scheduler": schedule, "interval": "step"}]
+        elif self.training_config.warmup_steps > 0:
+            schedule = transformers.get_constant_schedule_with_warmup(
+                optimizer,
+                num_warmup_steps=self.training_config.warmup_steps,
+            )
+            schedulers = [{"scheduler": schedule, "interval": "step"}]
+        else:
+            schedulers = []
+
+        return [optimizer], schedulers
 
 
 class MaskedAccuracy(torchmetrics.Metric):
