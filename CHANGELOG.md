@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 ## Added
 
 - The `--tf32-mode` option allows to select the level of NVidia Ampère matmul otpimisations.
+- The `mbart` task allows training general seq2seq and translation models.
 
 ### Changed
 
