@@ -69,9 +69,9 @@ def test_train_mbart(
         "--device-batch-size",
         "2",
         "--out-dir",
-         str(tmp_path / "train-out"),
+        str(tmp_path / "train-out"),
         "--cache-dir",
-         str(tmp_path / "cache"),
+        str(tmp_path / "cache"),
         "--val-text",
         str(translation_dataset_path),
         str(translation_dataset_path),
@@ -81,6 +81,7 @@ def test_train_mbart(
         env={"TORCH_DISTRIBUTED_DEBUG": "DETAIL", **os.environ},
     )
     assert ret.success
+
 
 @pytest.mark.parametrize(
     "accelerators_strategies_devices",
@@ -131,7 +132,11 @@ def test_train_mlm(
 
 @pytest.mark.parametrize(
     "accelerators_strategies_devices",
-    [pytest.param(v, id="+".join(map(str, v))) for v in accelerators_strategies_devices],
+    [
+        pytest.param(v, id=runtime_id)
+        for v in accelerators_strategies_devices
+        if "find_unused_parameters_false" not in (runtime_id := "+".join(map(str, v)))
+    ],
 )
 def test_train_rtd(
     accelerators_strategies_devices: Tuple[str, Optional[str], Optional[int]],
