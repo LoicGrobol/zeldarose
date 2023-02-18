@@ -473,6 +473,11 @@ def get_training_model(
     else:
         raise ValueError("You must provide either a pretrained model or a model config")
 
+    if tokenizer.mask_token is None:
+        logger.info("Adding a mask token to the model that's missing one.")
+        tokenizer.add_special_tokens({"mask_token": "<mask>"})
+        model.resize_token_embeddings(len(tokenizer))
+
     if not _task_config.strict_langs:
         logger.debug("Checking match between task and tokenizer langs")
         all_langs = set().union(
