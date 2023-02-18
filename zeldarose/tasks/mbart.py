@@ -84,7 +84,7 @@ def infill_noise(
         res.append(input_ids.new_tensor(current))
     lengths = input_ids.new_tensor([len(t) for t in res])
     # Not optimal, but concise
-    attention_mask = torch.arange(lengths.max().item()).unsqueeze(0).lt(lengths.unsqueeze(1))
+    attention_mask = torch.arange(lengths.max().item(), device=lengths.device).unsqueeze(0).lt(lengths.unsqueeze(1))
     return InfilledSent(
         input_ids=pad_sequence(res, batch_first=True, padding_value=padding_id),
         attention_mask=attention_mask,
