@@ -114,15 +114,18 @@ def encode_dataset(
             return_special_tokens_mask=True,
             truncation=True,
         )
-        # NOTE(2023-02-12): This is NOT what 🤗 transformers's
+        # NOTE(2023-02-12): This stuff with decoder_input_ids is what 🤗 transformers's
         # `prepare_decoder_input_ids_from_labels`/[`shift_tokens_right`](https://github.com/huggingface/transformers/blob/c836f77266be9ace47bff472f63caf71c0d11333/src/transformers/models/mbart/modeling_mbart.py#L62)
-        # does for mBART, but it seems more correct. See also 🤗 transformers issue
+        # does for mBART, but it seems a bit weird See also 🤗 transformers issue
         # [#19500](https://github.com/huggingface/transformers/issues/19500).
         return EncodedSample(
             attention_mask=tokenized.attention_mask,
-            decoder_input_ids=cast(List[int], tokenized["labels"])[:-1],
+            decoder_input_ids=[
+                cast(List[int], tokenized["labels"])[-1],
+                *cast(List[int], tokenized["labels"])[:-1],
+            ],
             input_ids=tokenized.input_ids,
-            labels=cast(List[int], tokenized["labels"])[1:],
+            labels=cast(List[int], tokenized["labels"]),
             src_lang=example["src_lang"],
             src_text=example["source"],
             special_tokens_mask=cast(List[int], tokenized["special_tokens_mask"]),

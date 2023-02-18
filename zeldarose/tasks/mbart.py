@@ -125,7 +125,7 @@ class MBartTrainingModel(TrainingModule):
         self.vocabulary_size = vocabulary_size
 
         self.model = model
-        self.tokenizers = tokenizer
+        self.tokenizer = tokenizer
 
         self.save_hyperparameters("training_config", "task_config")
 
@@ -270,18 +270,18 @@ class MBartTrainingModel(TrainingModule):
             translate_loss = translate_outputs.loss
             translate_batch_size = translate.input_ids.shape[0]
 
-            generated_id: List[torch.Tensor] = []
+            generated_ids: List[torch.Tensor] = []
             for input_ids, decoder_input_ids in zip(
                 translate.input_ids, translate.decoder_input_ids
             ):
-                generated_id.append(
+                generated_ids.append(
                     self.model.generate(
                         input_ids=input_ids.unsqueeze(0),
-                        forced_bos_token_id=decoder_input_ids[0],
+                        forced_bos_token_id=decoder_input_ids[1],
                         num_beams=4,
                     )[0]
                 )
-            generated_txt = self.tokenizers.batch_decode(generated_id, skip_special_tokens=True)
+            generated_txt = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
             self.sacrebleu_score(generated_txt, translate.tgt_text)
 
         else:
