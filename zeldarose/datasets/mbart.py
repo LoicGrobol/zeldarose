@@ -38,11 +38,13 @@ class DataLine(TypedDict):
 
 
 def extract_from_jsonline(
-    example: Mapping[str, str],
+    example: Union[Mapping[str, str], Mapping[str, Mapping[str, str]]],
     denoise_langs: Collection[str],
     source_langs: Collection[str],
     target_langs: Collection[str],
 ) -> Generator[DataLine, None, None]:
+    # We deal with both top-level tranlatikons and 🤗's conventional format for this task
+    example = cast(Mapping[str, str], example.get("translation", example))
     for dns_lang in denoise_langs:
         if (dns_str := example.get(dns_lang)) is None:
             continue
