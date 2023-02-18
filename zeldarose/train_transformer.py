@@ -506,7 +506,7 @@ def main(
         additional_kwargs["resume_from_checkpoint"] = checkpoint
 
     if max_steps is None:
-        if tuning_config.lr_decay_steps is not None:
+        if tuning_config.lr_decay_steps is not None and tuning_config.lr_decay_steps != -1:
             max_steps = tuning_config.lr_decay_steps + tuning_config.warmup_steps
             logger.info(
                 f"Setting the max number of steps at {max_steps} according to the tuning config"

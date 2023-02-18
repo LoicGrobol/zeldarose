@@ -24,7 +24,7 @@ class TrainConfig(pydantic.BaseModel):
 
 
 class TrainingModule(pl.LightningModule, ABC):
-    model: torch.nn.Module
+    model: transformers.PreTrainedModel
     training_config: TrainConfig
 
     @abstractmethod
