@@ -21,7 +21,8 @@ Here is a short example of training first a tokenizer, then a transformer MLM mo
 
 ```console
 TOKENIZERS_PARALLELISM=true zeldarose tokenizer --vocab-size 4096 --out-path local/tokenizer  --model-name "my-muppet" tests/fixtures/raw.txt
-zeldarose transformer --tokenizer local/tokenizer --pretrained-model flaubert/flaubert_small_cased --out-dir local/muppet --val-text tests/fixtures/raw.txt tests/fixtures/raw.txt
+zeldarose 
+transformer --tokenizer local/tokenizer --pretrained-model flaubert/flaubert_small_cased --out-dir local/muppet --val-text tests/fixtures/raw.txt tests/fixtures/raw.txt
 ```
 
 The `.txt` files are meant to be raw text files, with one sample (e.g. sentence) per line.
@@ -40,6 +41,9 @@ models](https://huggingface.co/transformers/pretrained_models.html) names or loc
 This is somewhat tricky, you have several options
 
 - If you are running in a SLURM cluster use `--strategy ddp` and invoke via `srun`
+  - You might want to preprocess your data first outside of the main compute allocation. The
+    `--profile` option might be abused for that purpose, since it won't run a full training, but
+    will run any data preprocessing you ask for.
 - Otherwise you have two options
 
   - Run with `--strategy ddp_spawn`, which uses `multiprocessing.spawn` to start the process
