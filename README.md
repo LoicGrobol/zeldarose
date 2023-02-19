@@ -20,13 +20,13 @@ pip install zeldarose
 Here is a short example of training first a tokenizer, then a transformer MLM model:
 
 ```console
-TOKENIZERS_PARALLELISM=true zeldarose-tokenizer --vocab-size 4096 --out-path local/tokenizer  --model-name "my-muppet" tests/fixtures/raw.txt
-zeldarose-transformer --tokenizer local/tokenizer --pretrained-model flaubert/flaubert_small_cased --out-dir local/muppet --val-text tests/fixtures/raw.txt tests/fixtures/raw.txt
+TOKENIZERS_PARALLELISM=true zeldarose tokenizer --vocab-size 4096 --out-path local/tokenizer  --model-name "my-muppet" tests/fixtures/raw.txt
+zeldarose transformer --tokenizer local/tokenizer --pretrained-model flaubert/flaubert_small_cased --out-dir local/muppet --val-text tests/fixtures/raw.txt tests/fixtures/raw.txt
 ```
 
 The `.txt` files are meant to be raw text files, with one sample (e.g. sentence) per line.
 
-There are other parameters (see `zeldarose-transformer --help` for a comprehensive list), the one
+There are other parameters (see `zeldarose transformer --help` for a comprehensive list), the one
 you are probably mostly interested in is `--config`, giving the path to a training config (for which
 we have [`examples/`](examples)).
 

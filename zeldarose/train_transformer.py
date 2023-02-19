@@ -20,10 +20,10 @@ import tomli
 import torch
 import transformers
 
-from loguru import logger
 from lightning_utilities.core.rank_zero import rank_zero_only
-from zeldarose.tasks import mbart, mlm, rtd
+from loguru import logger
 from zeldarose.common import TrainConfig, TrainingModule
+from zeldarose.tasks import mbart, mlm, rtd
 
 
 def setup_logging(
@@ -169,8 +169,7 @@ class SavePretrainedModelCallback(pl.Callback):
 
 
 # TODO: allow reading all these from a config file (except perhaps for paths)
-# TODO: refactor the api to have a single `zeldarose` entrypoint with subcommands.
-@click.command()
+@click.command("transformer", help="Train a transformer model.")
 @click.argument("train_data")
 @click.option(
     "--accelerator",

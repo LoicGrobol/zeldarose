@@ -55,6 +55,7 @@ content-type = "text/markdown"
 packages = ["zeldarose", "zeldarose.tasks", "zeldarose.datasets"]
 
 [project.scripts]
+zeldarose = "zeldarose.main:cli"
 zeldarose-tokenizer = "zeldarose.train_tokenizer:main"
 zeldarose-transformer = "zeldarose.train_transformer:main"
 

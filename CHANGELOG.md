@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 - The `--tf32-mode` option allows to select the level of NVidia Ampère matmul otpimisations.
 - The `mbart` task allows training general seq2seq and translation models.
+- A `zeldarose` command that serves as entry point for both tokenizer and transformer training.
 
 ### Changed
 

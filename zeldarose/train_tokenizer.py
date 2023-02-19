@@ -12,7 +12,7 @@ import transformers
 from loguru import logger
 
 
-@click.command()
+@click.command("tokenizer", help="Train a tokenizer.")
 @click.argument(
     "raw_texts",
     nargs=-1,
