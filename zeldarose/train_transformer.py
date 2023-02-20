@@ -92,7 +92,7 @@ def setup_logging(
             while frame is not None and frame.f_code.co_filename == logging.__file__:
                 frame = frame.f_back
                 depth += 1
-            
+
             if frame is None:
                 warnings.warn(
                     "Catching calls to logging is impossible in stackless environment, logging from external libraries might be lost."
@@ -279,6 +279,7 @@ class SavePretrainedModelCallback(pl.Callback):
     type=click.IntRange(0),
     help="The number of epoch between intermediate model saving",
 )
+@click.option("--seed", "seed", type=int, default=2713, help="Random seed to set.")
 @click.option(
     "--step-save-period",
     type=click.IntRange(0),
@@ -341,6 +342,7 @@ def main(
     pretrained_model: Optional[str],
     profile: bool,
     train_data: str,
+    seed: int,
     step_save_period: Optional[int],
     strategy: Optional[str],
     tf32_mode: Optional[Literal["highest", "high", "medium"]],
@@ -368,6 +370,10 @@ def main(
         verbose=verbose,
     )
     logger.debug(f"Current environment: {os.environ}")
+
+    logger.info(f"Using random seed {seed}")
+    pl.seed_everything(seed, workers=True)
+    transformers.set_seed(seed)
 
     logger.debug(f"Loading config from {config_path}")
     if config_path is not None:
