@@ -120,14 +120,15 @@ def encode_dataset(
         # `prepare_decoder_input_ids_from_labels`/[`shift_tokens_right`](https://github.com/huggingface/transformers/blob/c836f77266be9ace47bff472f63caf71c0d11333/src/transformers/models/mbart/modeling_mbart.py#L62)
         # does for mBART, but it seems a bit weird See also 🤗 transformers issue
         # [#19500](https://github.com/huggingface/transformers/issues/19500).
+        labels = cast(List[int], tokenized["labels"])
+        decoder_input_ids = [labels[-1], *labels[:-1]]
+        # No loss for the langid token
+        labels[0] = -100
         return EncodedSample(
             attention_mask=tokenized.attention_mask,
-            decoder_input_ids=[
-                cast(List[int], tokenized["labels"])[-1],
-                *cast(List[int], tokenized["labels"])[:-1],
-            ],
+            decoder_input_ids=decoder_input_ids,
             input_ids=tokenized.input_ids,
-            labels=cast(List[int], tokenized["labels"]),
+            labels=labels,
             src_lang=example["src_lang"],
             src_text=example["source"],
             special_tokens_mask=cast(List[int], tokenized["special_tokens_mask"]),
