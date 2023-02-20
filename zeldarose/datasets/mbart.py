@@ -46,14 +46,14 @@ def extract_from_jsonline(
     # We deal with both top-level tranlatikons and 🤗's conventional format for this task
     example = cast(Mapping[str, str], example.get("translation", example))
     for dns_lang in denoise_langs:
-        if (dns_str := example.get(dns_lang)) is None:
+        if not (dns_str := example.get(dns_lang)):
             continue
         yield {"source": dns_str, "target": dns_str, "src_lang": dns_lang, "tgt_lang": dns_lang}
     for src_lang in source_langs:
-        if (src_str := example.get(src_lang)) is None:
+        if not (src_str := example.get(src_lang)):
             continue
         for tgt_lang in target_langs:
-            if (tgt_str := example.get(src_lang)) is None:
+            if not (tgt_str := example.get(src_lang)):
                 continue
             yield {"source": src_str, "target": tgt_str, "src_lang": src_lang, "tgt_lang": tgt_lang}
 
