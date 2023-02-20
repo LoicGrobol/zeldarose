@@ -239,7 +239,7 @@ class SavePretrainedModelCallback(pl.Callback):
 )
 @click.option(
     "--num-devices",
-    default=1,
+    default=os.environ.get("SLURM_NTASKS", 1),
     type=click.IntRange(1),
     help="How many devices to train on. If `accelerator` is `cpu`, this is the number of processes",
 )
