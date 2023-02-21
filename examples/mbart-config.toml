@@ -3,6 +3,7 @@ type = "mbart"
 [task]
 change_ratio = 0.3
 denoise_langs = []
+denoise_loss_ratio = 0.2
 poisson_lambda = 3.0
 source_langs = ["br"]
 target_langs = ["fr"]
@@ -13,7 +14,6 @@ betas = [0.9, 0.999]
 epsilon = 1e-8
 learning_rate = 5e-5
 gradient_clipping = 1.0
-# Uncomment these for a more complex training setup
 lr_decay_steps = -1
 warmup_steps = 1024
 # weight_decay = 1e-5

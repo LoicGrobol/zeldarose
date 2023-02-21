@@ -84,16 +84,41 @@ def infill_noise(
         res.append(input_ids.new_tensor(current))
     lengths = input_ids.new_tensor([len(t) for t in res])
     # Not optimal, but concise
-    attention_mask = torch.arange(lengths.max().item(), device=lengths.device).unsqueeze(0).lt(lengths.unsqueeze(1))
+    attention_mask = (
+        torch.arange(lengths.max().item(), device=lengths.device)
+        .unsqueeze(0)
+        .lt(lengths.unsqueeze(1))
+    )
     return InfilledSent(
         input_ids=pad_sequence(res, batch_first=True, padding_value=padding_id),
         attention_mask=attention_mask,
     )
 
 
+class ForcedBOSTokenLogitsProcessor(transformers.LogitsProcessor):
+    r"""
+    [`LogitsProcessor`] that enforces the specified token as the first generated token.
+    Args:
+        bos_token_id (`list[int]`):
+            The id of the tokens to force as the first generated token. Must be as long as the batch.
+    """
+
+    def __init__(self, bos_token_id: Union[List[int], torch.LongTensor]):
+        self.bos_token_id = bos_token_id
+
+    def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor) -> torch.FloatTensor:
+        cur_len = input_ids.shape[-1]
+        if cur_len == 1:
+            num_tokens = scores.shape[1]
+            scores[:, :] = -float("inf")
+            scores[:, self.bos_token_id] = 0
+        return scores
+
+
 class MBartTaskConfig(pydantic.BaseModel):
     change_ratio: float = 0.3
     denoise_langs: Optional[List[str]]
+    denoise_loss_ratio: float = 0.5
     poisson_lambda: float = 3.0
     source_langs: Optional[List[str]]
     target_langs: Optional[List[str]]
@@ -208,7 +233,11 @@ class MBartTrainingModel(TrainingModule):
             sync_dist=True,
         )
 
-        loss = translate_loss + denoise_loss
+        translate_coef = translate_batch_size * (1 - self.task_config.denoise_loss_ratio)
+        denoise_coef = denoise_batch_size * self.task_config.denoise_loss_ratio
+        loss = (translate_coef * translate_loss + denoise_coef * denoise_loss) / (
+            translate_coef + denoise_coef
+        )
 
         batch_size = denoise_batch_size + translate_batch_size
         self.log(
@@ -226,15 +255,14 @@ class MBartTrainingModel(TrainingModule):
         denoise, translate = batch
 
         if denoise is not None:
-            with torch.no_grad():
-                noisy = infill_noise(
-                    change_ratio=self.task_config.change_ratio,
-                    input_ids=denoise.input_ids,
-                    input_mask_id=self.mask_token_index,
-                    keep_mask=denoise.special_tokens_mask,
-                    padding_id=self.pad_token_index,
-                    poisson_lambda=self.task_config.poisson_lambda,
-                )
+            noisy = infill_noise(
+                change_ratio=self.task_config.change_ratio,
+                input_ids=denoise.input_ids,
+                input_mask_id=self.mask_token_index,
+                keep_mask=denoise.special_tokens_mask,
+                padding_id=self.pad_token_index,
+                poisson_lambda=self.task_config.poisson_lambda,
+            )
 
             denoise_outputs = self(
                 tokens=noisy.input_ids,
@@ -270,17 +298,17 @@ class MBartTrainingModel(TrainingModule):
             translate_loss = translate_outputs.loss
             translate_batch_size = translate.input_ids.shape[0]
 
-            generated_ids: List[torch.Tensor] = []
-            for input_ids, decoder_input_ids in zip(
-                translate.input_ids, translate.decoder_input_ids
-            ):
-                generated_ids.append(
-                    self.model.generate(
-                        input_ids=input_ids.unsqueeze(0),
-                        forced_bos_token_id=decoder_input_ids[1],
-                        num_beams=4,
-                    )[0]
-                )
+            generated_ids = self.model.generate(
+                input_ids=translate.input_ids,
+                logits_processor=transformers.LogitsProcessorList(
+                    [
+                        ForcedBOSTokenLogitsProcessor(
+                            cast(torch.LongTensor, translate.decoder_input_ids[:, 1])
+                        )
+                    ]
+                ),
+                num_beams=4,
+            )
             generated_txt = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
             self.sacrebleu_score(generated_txt, translate.tgt_text)
 
@@ -298,7 +326,12 @@ class MBartTrainingModel(TrainingModule):
         )
         self.log("validation/sacrebleu", self.sacrebleu_score, on_epoch=True, on_step=False)
 
-        loss = translate_loss + denoise_loss
+        translate_coef = translate_batch_size * (1 - self.task_config.denoise_loss_ratio)
+        denoise_coef = denoise_batch_size * self.task_config.denoise_loss_ratio
+        loss = (translate_coef * translate_loss + denoise_coef * denoise_loss) / (
+            translate_coef + denoise_coef
+        )
+
         batch_size = denoise_batch_size + translate_batch_size
         self.log(
             "validation/loss",
