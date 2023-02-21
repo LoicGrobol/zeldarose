@@ -43,7 +43,10 @@ This is somewhat tricky, you have several options
 - If you are running in a SLURM cluster use `--strategy ddp` and invoke via `srun`
   - You might want to preprocess your data first outside of the main compute allocation. The
     `--profile` option might be abused for that purpose, since it won't run a full training, but
-    will run any data preprocessing you ask for.
+    will run any data preprocessing you ask for. It might also be beneficial at this step to load a
+    placeholder model such as
+    [RoBERTa-minuscule](https://huggingface.co/lgrobol/roberta-minuscule/tree/main) to avoid runnin
+    out of memory, since the only thing that matter for this preprocessing is the tokenizer.
 - Otherwise you have two options
 
   - Run with `--strategy ddp_spawn`, which uses `multiprocessing.spawn` to start the process
