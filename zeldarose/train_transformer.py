@@ -473,7 +473,7 @@ def main(
     if profile:
         logger.info("Running in profile mode")
         profiler = pl_profilers.AdvancedProfiler(dirpath=out_dir, filename="profile.txt")
-        additional_kwargs.update({"profiler": profiler, "overfit_batches": 1024})
+        additional_kwargs.update({"profiler": profiler, "overfit_batches": 128})
 
     if guess_batch_size:
         logger.info("Automatic batch size selection")
