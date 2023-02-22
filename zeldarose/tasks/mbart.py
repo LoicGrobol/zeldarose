@@ -324,7 +324,7 @@ class MBartTrainingModel(TrainingModule):
             on_epoch=True,
             sync_dist=True,
         )
-        self.log("validation/sacrebleu", self.sacrebleu_score, on_epoch=True, on_step=False)
+        # self.log("validation/sacrebleu", self.sacrebleu_score, on_epoch=True, on_step=False)
 
         translate_coef = translate_batch_size * (1 - self.task_config.denoise_loss_ratio)
         denoise_coef = denoise_batch_size * self.task_config.denoise_loss_ratio
