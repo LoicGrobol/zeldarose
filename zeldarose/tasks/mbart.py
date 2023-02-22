@@ -1,5 +1,5 @@
 import pathlib
-from typing import Any, Collection, List, cast, Dict, NamedTuple, Optional, TYPE_CHECKING, Union
+from typing import Any, Collection, List, Mapping, cast, Dict, NamedTuple, Optional, TYPE_CHECKING, Union
 
 import pydantic
 import torch
@@ -134,6 +134,7 @@ class MBartTrainingModel(TrainingModule):
         vocabulary_size: int,
         task_config: MBartTaskConfig,
         tokenizer: transformers.PreTrainedTokenizerFast,
+        langcode_sub: Optional[Mapping[str,str]] = None,
         training_config: Optional[TrainConfig] = None,
     ):
         super().__init__()
@@ -144,6 +145,7 @@ class MBartTrainingModel(TrainingModule):
         self.task_config = task_config
         logger.info(f"mBART trainer config: {self.training_config}")
         logger.info(f"mBART task config: {self.task_config}")
+        self.langcode_sub = langcode_sub if langcode_sub is not None else dict()
         self.mask_token_index = mask_token_index
         self.pad_token_index = padding_token_index
         # self.sacrebleu_score = SacreBLEUScore()
@@ -366,6 +368,7 @@ class MBartTrainingModel(TrainingModule):
             denoise_langs=(
                 self.task_config.denoise_langs if self.task_config.denoise_langs is not None else []
             ),
+            langcode_sub=self.langcode_sub,
             loader_batch_size=loader_batch_size,
             max_length=max_length,
             num_workers=num_workers,
@@ -441,6 +444,7 @@ def get_training_model(
         tokenizer.add_special_tokens({"mask_token": "<mask>"})
         model.resize_token_embeddings(len(tokenizer))
 
+    langcode_sub: Dict[str, str] = dict()
     if not _task_config.strict_langs:
         logger.debug("Checking match between task and tokenizer langs")
         all_langs = set().union(
@@ -468,18 +472,20 @@ def get_training_model(
                 if substitute_lang != lang:
                     logger.info(f"Adding {lang} as an alias to {substitute_lang} in the tokenizer.")
                 tokenizer.lang_code_to_id[lang] = tokenizer.lang_code_to_id[substitute_lang]  # type: ignore
+                langcode_sub[lang] = substitute_lang
 
     logger.info("Creating mBART training model")
 
     logger.debug(f"Mask token index: {mask_token_index}")
     training_model = MBartTrainingModel(
+        langcode_sub=langcode_sub,
         model=model,
         mask_token_index=mask_token_index,
         padding_token_index=cast(int, tokenizer.pad_token_id),
-        vocabulary_size=vocabulary_size,
         task_config=_task_config,
         tokenizer=tokenizer,
         training_config=training_config,
+        vocabulary_size=vocabulary_size,
     )
 
     return training_model

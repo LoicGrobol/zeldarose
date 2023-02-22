@@ -39,6 +39,7 @@ class DataLine(TypedDict):
 
 def extract_from_jsonline(
     example: Union[Mapping[str, str], Mapping[str, Mapping[str, str]]],
+    langcode_sub: Mapping[str, str],
     denoise_langs: Collection[str],
     source_langs: Collection[str],
     target_langs: Collection[str],
@@ -48,14 +49,26 @@ def extract_from_jsonline(
     for dns_lang in denoise_langs:
         if not (dns_str := example.get(dns_lang)):
             continue
-        yield {"source": dns_str, "target": dns_str, "src_lang": dns_lang, "tgt_lang": dns_lang}
+        yield {
+            "source": dns_str,
+            "target": dns_str,
+            "src_lang": langcode_sub.get(dns_lang, dns_lang),
+            "tgt_lang": langcode_sub.get(dns_lang, dns_lang),
+        }
     for src_lang in source_langs:
         if not (src_str := example.get(src_lang)):
             continue
         for tgt_lang in target_langs:
-            if not (tgt_str := example.get(src_lang)):
+            if tgt_lang == src_lang:
                 continue
-            yield {"source": src_str, "target": tgt_str, "src_lang": src_lang, "tgt_lang": tgt_lang}
+            if not (tgt_str := example.get(tgt_lang)):
+                continue
+            yield {
+                "source": src_str,
+                "target": tgt_str,
+                "src_lang": langcode_sub.get(src_lang, src_lang),
+                "tgt_lang": langcode_sub.get(tgt_lang, tgt_lang),
+            }
 
 
 class EncodedSample(TypedDict):
@@ -74,6 +87,7 @@ class EncodedSample(TypedDict):
 # end users can still manually set HF_DATASETS_CACHE if e.g. their home has a small quota
 def encode_dataset(
     denoise_langs: Collection[str],
+    langcode_sub: Mapping[str, str],
     save_path: pathlib.Path,
     source_langs: Collection[str],
     target_langs: Collection[str],
@@ -95,6 +109,7 @@ def encode_dataset(
             for example in in_stream:
                 yield from extract_from_jsonline(
                     example=example,
+                    langcode_sub=langcode_sub,
                     denoise_langs=denoise_langs,
                     source_langs=source_langs,
                     target_langs=target_langs,
@@ -251,6 +266,7 @@ class MBartDataModule(pl.LightningDataModule):
     def __init__(
         self,
         denoise_langs: Collection[str],
+        langcode_sub: Mapping[str, str],
         loader_batch_size: int,
         num_workers: int,
         source_langs: Collection[str],
@@ -264,6 +280,7 @@ class MBartDataModule(pl.LightningDataModule):
     ):
         super().__init__()
         self.denoise_langs = sorted(set(denoise_langs))
+        self.langcode_sub = langcode_sub
         self.loader_batch_size = loader_batch_size
         self.max_length = max_length
         self.num_workers = num_workers
@@ -304,6 +321,7 @@ class MBartDataModule(pl.LightningDataModule):
         if os.environ.get("SLURM_PROCID", "0") == "0":
             encode_dataset(
                 denoise_langs=self.denoise_langs,
+                langcode_sub=self.langcode_sub,
                 max_length=self.max_length,
                 save_path=self.train_dataset_path,
                 source_langs=self.source_langs,
@@ -316,6 +334,7 @@ class MBartDataModule(pl.LightningDataModule):
                 assert self.val_dataset_path is not None
                 encode_dataset(
                     denoise_langs=self.denoise_langs,
+                    langcode_sub=self.langcode_sub,
                     max_length=self.max_length,
                     save_path=self.val_dataset_path,
                     source_langs=self.source_langs,
