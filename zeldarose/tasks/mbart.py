@@ -146,7 +146,7 @@ class MBartTrainingModel(TrainingModule):
         logger.info(f"mBART task config: {self.task_config}")
         self.mask_token_index = mask_token_index
         self.pad_token_index = padding_token_index
-        self.sacrebleu_score = SacreBLEUScore()
+        # self.sacrebleu_score = SacreBLEUScore()
         self.vocabulary_size = vocabulary_size
 
         self.model = model
@@ -298,19 +298,19 @@ class MBartTrainingModel(TrainingModule):
             translate_loss = translate_outputs.loss
             translate_batch_size = translate.input_ids.shape[0]
 
-            generated_ids = self.model.generate(
-                input_ids=translate.input_ids,
-                logits_processor=transformers.LogitsProcessorList(
-                    [
-                        ForcedBOSTokenLogitsProcessor(
-                            cast(torch.LongTensor, translate.decoder_input_ids[:, 1])
-                        )
-                    ]
-                ),
-                num_beams=4,
-            )
-            generated_txt = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
-            self.sacrebleu_score(generated_txt, translate.tgt_text)
+            # generated_ids = self.model.generate(
+            #     input_ids=translate.input_ids,
+            #     logits_processor=transformers.LogitsProcessorList(
+            #         [
+            #             ForcedBOSTokenLogitsProcessor(
+            #                 cast(torch.LongTensor, translate.decoder_input_ids[:, 1])
+            #             )
+            #         ]
+            #     ),
+            #     num_beams=4,
+            # )
+            # generated_txt = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
+            # self.sacrebleu_score(generated_txt, translate.tgt_text)
 
         else:
             translate_loss = torch.zeros(1, device=self.device)

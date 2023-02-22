@@ -43,7 +43,7 @@ def extract_from_jsonline(
     source_langs: Collection[str],
     target_langs: Collection[str],
 ) -> Generator[DataLine, None, None]:
-    # We deal with both top-level tranlatikons and 🤗's conventional format for this task
+    # We deal with both top-level tranlatifrdgggggggggggggggggggggggggggggggggggggggggwons and 🤗's conventional format for this task
     example = cast(Mapping[str, str], example.get("translation", example))
     for dns_lang in denoise_langs:
         if not (dns_str := example.get(dns_lang)):
@@ -105,6 +105,7 @@ def encode_dataset(
     logger.info("Preprocessing dataset")
 
     def preprocess(example: DataLine) -> EncodedSample:
+        # FIXME: the following lines seem to bug with extra added langs
         tokenizer.src_lang = example["src_lang"]  # type: ignore
         tokenizer.tgt_lang = example["tgt_lang"]  # type: ignore
         tokenized = tokenizer(
