@@ -30,7 +30,7 @@ from torch.nn.utils.rnn import pad_sequence
 # <https://huggingface.co/docs/datasets/loading#python-generator> comme ça on peut streamer l'entrée
 
 
-class DataLine(TypedDict):
+class DataRow(TypedDict):
     source: str
     target: str
     src_lang: str
@@ -43,18 +43,20 @@ def extract_from_jsonline(
     denoise_langs: Collection[str],
     source_langs: Collection[str],
     target_langs: Collection[str],
-) -> Generator[DataLine, None, None]:
+) -> Generator[DataRow, None, None]:
     # We deal with both top-level tranlatifrdgggggggggggggggggggggggggggggggggggggggggwons and 🤗's conventional format for this task
     example = cast(Mapping[str, str], example.get("translation", example))
     for dns_lang in denoise_langs:
         if not (dns_str := example.get(dns_lang)):
             continue
-        yield {
+        row: DataRow = {
             "source": dns_str,
             "target": dns_str,
             "src_lang": langcode_sub.get(dns_lang, dns_lang),
             "tgt_lang": langcode_sub.get(dns_lang, dns_lang),
         }
+        yield row
+
     for src_lang in source_langs:
         if not (src_str := example.get(src_lang)):
             continue
@@ -63,12 +65,13 @@ def extract_from_jsonline(
                 continue
             if not (tgt_str := example.get(tgt_lang)):
                 continue
-            yield {
+            row  = {
                 "source": src_str,
                 "target": tgt_str,
                 "src_lang": langcode_sub.get(src_lang, src_lang),
                 "tgt_lang": langcode_sub.get(tgt_lang, tgt_lang),
             }
+            yield row
 
 
 class EncodedSample(TypedDict):
@@ -119,7 +122,7 @@ def encode_dataset(
 
     logger.info("Preprocessing dataset")
 
-    def preprocess(example: DataLine) -> EncodedSample:
+    def preprocess(example: DataRow) -> EncodedSample:
         # FIXME: the following lines seem to bug with extra added langs
         tokenizer.src_lang = example["src_lang"]  # type: ignore
         tokenizer.tgt_lang = example["tgt_lang"]  # type: ignore
