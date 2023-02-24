@@ -26,7 +26,6 @@ class InfilledSent(NamedTuple):
 
 # NOTE(2023-02-14): There's a good chance that this is far from optimal and it should be revisited
 # but remember that it is far from trivial and in particular, I don't see a way to avoid loops.
-# FIXME(2023-02-15): we need to transform the special tokens mask too è_é
 def infill_noise(
     change_ratio: float,
     input_ids: torch.Tensor,
@@ -100,7 +99,8 @@ class ForcedBOSTokenLogitsProcessor(transformers.LogitsProcessor):
     [`LogitsProcessor`] that enforces the specified token as the first generated token.
     Args:
         bos_token_id (`list[int]`):
-            The id of the tokens to force as the first generated token. Must be as long as the batch.
+            The ids of the tokens to force as the first generated token. Must be as long as the
+            batch.
     """
 
     def __init__(self, bos_token_id: Union[List[int], torch.LongTensor]):
@@ -309,7 +309,6 @@ class MBartTrainingModel(TrainingModule):
             #             )
             #         ]
             #     ),
-            #     num_beams=4,
             # )
             # generated_txt = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
             # self.sacrebleu_score(generated_txt, translate.tgt_text)
