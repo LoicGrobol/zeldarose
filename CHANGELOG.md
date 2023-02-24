@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ### Added
 
-- The `--tf32-mode` option allows to select the level of NVidia Ampère matmul otpimisations.
+- The `--tf32-mode` option allows to select the level of NVidia Ampère matmul optimisations.
 - The `--seed` option allows to fix a random seed.
 - The `mbart` task allows training general seq2seq and translation models.
 - A `zeldarose` command that serves as entry point for both tokenizer and transformer training.
@@ -28,10 +28,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 - Remove the GPU stats logging from the profile mode since Lightning stopped supporting it
 - Switched TOML library from [toml](https://pypi.org/project/toml/) to
   [tomli](https://pypi.org/project/tomli/)
-- **BREAKING** Bumped the min version of several dependency
+- **BREAKING** Bumped the min version of several dependencies
   - `pytorch-lightning >= 1.8.0`
   - `torch >= 1.12`
-- Bumped max version of several dependency
+- Bumped max version of several dependencies
   - `datasets < 2.10`
   - `pytorch-lightning < 1.9`
   - `tokenizers < 0.14`
