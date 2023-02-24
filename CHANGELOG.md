@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 [Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.6.0...HEAD
 
-## [0.7.0]
+## [0.7.0] 2023-02-25
 
 [0.7.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.6.0...0.7.0
 
