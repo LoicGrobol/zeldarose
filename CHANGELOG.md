@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 [Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.6.0...HEAD
 
+## [0.7.0]
+
+[0.7.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.6.0...0.7.0
+
 ### Added
 
 - The `--tf32-mode` option allows to select the level of NVidia Ampère matmul otpimisations.
