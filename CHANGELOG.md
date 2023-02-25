@@ -8,7 +8,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
+## [0.7.1] - 2023-02-25
+
 [Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.6.0...HEAD
+[0.7.1]: https://github.com/LoicGrobol/zeldarose/compare/v0.6.0...v0.6.0
+
+### Fixed
+
+- Translate loss logging is not always zero anymore.
 
 ## [0.7.0] 2023-02-25
 
