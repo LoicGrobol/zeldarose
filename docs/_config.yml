@@ -3,12 +3,14 @@ author: Loïc Grobol
 logo: logo.png
 repository:
   url: https://github.com/loicgrobol/zeldarose
-  path_to_book: docs 
+  path_to_book: docs
+  branch: main
 
 html:
   use_issues_button: true
   use_repository_button: true
   baseurl: https://zeldarose.readthedocs.io/
+  favicon: "favicon.ico"
 
 execute:
   execute_notebooks: force
