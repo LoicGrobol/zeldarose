@@ -3,7 +3,10 @@ author: Loïc Grobol
 logo: logo.png
 repository:
   url: https://github.com/loicgrobol/zeldarose
+  path_to_book: docs 
+
 html:
+  use_issues_button: true
   use_repository_button: true
 
 execute:
