@@ -63,7 +63,7 @@ zeldarose-transformer = "zeldarose.train_transformer:main"
 [project.urls]
 "Bug Tracker" = "https://github.com/loicgrobol/zeldarose/issues"
 "Changes" = "https://github.com/loicgrobol/zeldarose/blob/main/CHANGELOG.md"
-"Documentation" = "https://github.com/loicgrobol/zeldarose/blob/main/README.md"
+"Documentation" = "https://zeldarose.readthedocs.io"
 "Source Code" = "https://github.com/loicgrobol/zeldarose"
 
 [tool.flake8]
