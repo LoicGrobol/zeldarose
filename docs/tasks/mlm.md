@@ -39,6 +39,12 @@ switch_ratio: float = 0.1
 Note that all of these should be floats between `0.0` and `1.0` and that you should have
 `mask_ratio+switch_ratio <= 1.0` too.
 
+## Inputs and outputs
+
+For this task, the train and dev datasets should be raw text, every line containing a single sample
+(typically a sentence). It can come either from a local text file or from a 🤗 [text
+dataset](https://huggingface.co/docs/datasets/nlp_load).
+
 ## Bibliography
 
 ```{bibliography}

@@ -38,7 +38,7 @@ implementation details.
 - `warmup_steps: int = 0`
 
 These are the number of step in the slanted triangular learning rate schedule
-`cite`{howard2018UniversalLanguageModel}: the base learning rate is made to follow an upward linear
+{cite}`howard2018UniversalLanguageModel`: the base learning rate is made to follow an upward linear
 slope for `warmup_steps` steps up to `learning_rate`, then decayed linearly to $0$ in
 `lr_decay_steps`.
 
