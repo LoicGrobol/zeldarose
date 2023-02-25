@@ -12,3 +12,10 @@ html:
 
 execute:
   execute_notebooks: force
+
+bibtex_bibfiles:
+  - zeldarose.bib
+
+sphinx:
+  config:
+    bibtex_reference_style: author_year
