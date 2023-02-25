@@ -1,0 +1,10 @@
+title: Zelda Rose documentation
+author: Loïc Grobol
+logo: logo.png
+repository:
+  url: https://github.com/loicgrobol/zeldarose
+html:
+  use_repository_button: true
+
+execute:
+  execute_notebooks: force

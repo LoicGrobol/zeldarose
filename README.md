@@ -9,17 +9,17 @@ A straightforward trainer for transformer-based models.
 
 ## Installation
 
-Simply install with pip
+Simply install with pipx
 
-```console
-pip install zeldarose
+```bash
+pipx install zeldarose
 ```
 
 ## Train MLM models
 
 Here is a short example of training first a tokenizer, then a transformer MLM model:
 
-```console
+```bash
 TOKENIZERS_PARALLELISM=true zeldarose tokenizer --vocab-size 4096 --out-path local/tokenizer  --model-name "my-muppet" tests/fixtures/raw.txt
 zeldarose 
 transformer --tokenizer local/tokenizer --pretrained-model flaubert/flaubert_small_cased --out-dir local/muppet --val-text tests/fixtures/raw.txt tests/fixtures/raw.txt

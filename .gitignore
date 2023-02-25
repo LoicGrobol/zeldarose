@@ -2,6 +2,8 @@ local
 .vscode
 *.code-workspace
 
+docs/conf.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -18,7 +20,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+# lib/
 lib64/
 parts/
 sdist/
@@ -145,3 +147,4 @@ cython_debug/
 # static files generated from Django application using `collectstatic`
 media
 static
+docs/conf.py
