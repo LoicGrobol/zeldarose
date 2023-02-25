@@ -1,4 +1,12 @@
 format: jb-book
 root: index
-chapters:
-- file: get_started.md
+parts:
+  - caption: ""
+    numbered: false
+    chapters:
+    - file: get_started.md
+  - caption: Tasks
+    chapters:
+      - file: tasks/mlm.md
+      - file: tasks/mbart.md
+        title: mBART
