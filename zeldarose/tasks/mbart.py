@@ -319,7 +319,7 @@ class MBartTrainingModel(TrainingModule):
 
         self.log(
             "validation/translate_loss",
-            denoise_loss,
+            translate_loss,
             batch_size=translate_batch_size,
             reduce_fx=torch.mean,
             on_epoch=True,
