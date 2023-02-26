@@ -1,5 +1,16 @@
 import pathlib
-from typing import Any, Collection, List, Mapping, cast, Dict, NamedTuple, Optional, TYPE_CHECKING, Union
+from typing import (
+    Any,
+    Collection,
+    List,
+    Mapping,
+    cast,
+    Dict,
+    NamedTuple,
+    Optional,
+    TYPE_CHECKING,
+    Union,
+)
 
 import pydantic
 import torch
@@ -134,7 +145,7 @@ class MBartTrainingModel(TrainingModule):
         vocabulary_size: int,
         task_config: MBartTaskConfig,
         tokenizer: transformers.PreTrainedTokenizerFast,
-        langcode_sub: Optional[Mapping[str,str]] = None,
+        langcode_sub: Optional[Mapping[str, str]] = None,
         training_config: Optional[TrainConfig] = None,
     ):
         super().__init__()
@@ -235,10 +246,9 @@ class MBartTrainingModel(TrainingModule):
             sync_dist=True,
         )
 
-        translate_coef = translate_batch_size * (1 - self.task_config.denoise_loss_ratio)
-        denoise_coef = denoise_batch_size * self.task_config.denoise_loss_ratio
-        loss = (translate_coef * translate_loss + denoise_coef * denoise_loss) / (
-            translate_coef + denoise_coef
+        loss = (
+            self.task_config.denoise_loss_ratio
+            + (1 - self.task_config.denoise_loss_ratio) * translate_loss
         )
 
         batch_size = denoise_batch_size + translate_batch_size
@@ -327,10 +337,9 @@ class MBartTrainingModel(TrainingModule):
         )
         # self.log("validation/sacrebleu", self.sacrebleu_score, on_epoch=True, on_step=False)
 
-        translate_coef = translate_batch_size * (1 - self.task_config.denoise_loss_ratio)
-        denoise_coef = denoise_batch_size * self.task_config.denoise_loss_ratio
-        loss = (translate_coef * translate_loss + denoise_coef * denoise_loss) / (
-            translate_coef + denoise_coef
+        loss = (
+            self.task_config.denoise_loss_ratio
+            + (1 - self.task_config.denoise_loss_ratio) * translate_loss
         )
 
         batch_size = denoise_batch_size + translate_batch_size
