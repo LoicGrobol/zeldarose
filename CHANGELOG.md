@@ -8,9 +8,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
+## [0.7.2] - 2023-02-26
+[Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.6.0...HEAD
+[0.7.2]: https://github.com/LoicGrobol/zeldarose/compare/v0.6.0...v0.6.0
+
+### Fixed
+
+- In mBART training, loss scaling now works as it was supposed to.
+- We have a documentation now! Check it out at <https://zeldarose.readthedocs.io>, it will get
+  better over time (hopefully!).
+
 ## [0.7.1] - 2023-02-25
 
-[Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.6.0...HEAD
 [0.7.1]: https://github.com/LoicGrobol/zeldarose/compare/v0.6.0...v0.6.0
 
 ### Fixed
