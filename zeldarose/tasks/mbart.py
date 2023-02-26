@@ -247,7 +247,7 @@ class MBartTrainingModel(TrainingModule):
         )
 
         loss = (
-            self.task_config.denoise_loss_ratio
+            self.task_config.denoise_loss_ratio * denoise_loss
             + (1 - self.task_config.denoise_loss_ratio) * translate_loss
         )
 
@@ -338,7 +338,7 @@ class MBartTrainingModel(TrainingModule):
         # self.log("validation/sacrebleu", self.sacrebleu_score, on_epoch=True, on_step=False)
 
         loss = (
-            self.task_config.denoise_loss_ratio
+            self.task_config.denoise_loss_ratio * denoise_loss
             + (1 - self.task_config.denoise_loss_ratio) * translate_loss
         )
 

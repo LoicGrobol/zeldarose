@@ -8,7 +8,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
-## [0.7.2] - 2023-02-26
+## [0.7.2] - 2023-02-26$
+
 [Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.6.0...HEAD
 [0.7.2]: https://github.com/LoicGrobol/zeldarose/compare/v0.6.0...v0.6.0
 
