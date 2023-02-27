@@ -423,10 +423,6 @@ def get_training_model(
 
     _task_config = MBartTaskConfig.parse_obj(task_config)
 
-    if (
-        mask_token_index := cast(Union[int, None], getattr(tokenizer, "mask_token_id", None))
-    ) is None:
-        mask_token_index = cast(int, tokenizer.convert_tokens_to_ids(tokenizer.mask_token))
     vocabulary_size = tokenizer.vocab_size
 
     if pretrained_model is not None:
@@ -447,10 +443,14 @@ def get_training_model(
     else:
         raise ValueError("You must provide either a pretrained model or a model config")
 
-    if tokenizer.mask_token is None:
-        logger.info("Adding a mask token to the model that's missing one.")
-        tokenizer.add_special_tokens({"mask_token": "<mask>"})
-        model.resize_token_embeddings(len(tokenizer))
+    if (
+        mask_token_index := cast(Union[int, None], getattr(tokenizer, "mask_token_id", None))
+    ) is None:
+        if tokenizer.mask_token is None:
+            logger.warning("No mask token in pretrained tokenizer, adding one.")
+            tokenizer.add_special_tokens({"mask_token": "<mask>"})
+            model.resize_token_embeddings(len(tokenizer))
+        mask_token_index = cast(int, tokenizer.convert_tokens_to_ids(tokenizer.mask_token))
 
     langcode_sub: Dict[str, str] = dict()
     if not _task_config.strict_langs:
