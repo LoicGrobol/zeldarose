@@ -1,6 +1,11 @@
 Replaced tokens detection
 =========================
 
+**NOTE** Since RTD requires training **two** models, the `--pretrained-model` and `--model-config`
+arguments take two arguments (separated by a comma and no space, lie `--pretrained-model
+lgrobol/deberta-minuscule_gen,lgrobol/deberta-minuscule_dis`). The first one goes to the generator
+and the second one for the discriminator.
+
 The task, proposed by {cite:ts}`clark2019ELECTRAPretrainingText` to train their ELECTRA model,
 consists of training two antagonist neural networks in parallel. One, the *generator* is trained as
 a masked language model, to fill in masked tokens in a sentence. The other, the *discriminator*, is

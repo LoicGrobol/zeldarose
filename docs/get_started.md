@@ -37,7 +37,7 @@ zeldarose transformer --tokenizer /tokenizer/path --pretrained-model flaubert/fl
 
 ### Transformers config
 
-If you want to do train a model on another task, or if you want to configure hyperparameters, you will need to pass a configuration to `zeldarose transformer` via its `--config` option. It takes a path to a local [TOML](https://toml.io) file that provides a [tuning configuration](content:references:training-parameters) (optimizer hyperparameters such as batch size, learning rate, etc.) and a task configuration (masked language modelling, replaced tokens detection, etc.) with its hyperparameters.
+If you want to do train a model on another task, or if you want to configure hyperparameters, you will need to pass a configuration to `zeldarose transformer` via its `--config` option. It takes a path to a local [TOML](https://toml.io) file that provides a [tuning configuration](content:references:tuning-parameters) (optimizer hyperparameters such as batch size, learning rate, etc.) and a task configuration (masked language modelling, replaced tokens detection, etc.) with its hyperparameters.
 
 They look like this 
 
