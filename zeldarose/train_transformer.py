@@ -215,12 +215,12 @@ class SavePretrainedModelCallback(pl.Callback):
 @click.option(
     "--max-epochs",
     type=click.IntRange(0),
-    help="How many epochs to train for",
+    help="DEPRECATED: set this as a tuning config option instead.",
 )
 @click.option(
     "--max-steps",
     type=click.IntRange(0),
-    help="How many steps to train for",
+    help="DEPRECATED: set this as a tuning config option instead.",
 )
 @click.option(
     "--model-config",
@@ -398,6 +398,12 @@ def main(
 
     tuning_config = TrainConfig.parse_obj(config.get("tuning", dict()))
 
+    if tuning_config.max_steps is not None:
+        max_steps = tuning_config.max_steps
+        
+    if tuning_config.max_epochs is not None:
+        max_epochs = tuning_config.max_epochs
+
     if device_batch_size is None:
         device_batch_size = tuning_config.batch_size
     elif tuning_config.batch_size < device_batch_size * total_devices:
@@ -511,14 +517,14 @@ def main(
         logger.info(f"Restarting training from the checkpoint at {checkpoint}")
         additional_kwargs["resume_from_checkpoint"] = checkpoint
 
-    if max_steps is None:
-        if tuning_config.lr_decay_steps is not None and tuning_config.lr_decay_steps != -1:
-            max_steps = tuning_config.lr_decay_steps + tuning_config.warmup_steps
-            logger.info(
-                f"Setting the max number of steps at {max_steps} according to the tuning config"
-            )
-        else:
-            max_steps = -1
+
+    if tuning_config.lr_decay_steps is not None and tuning_config.lr_decay_steps != -1:
+        max_steps = tuning_config.lr_decay_steps + tuning_config.warmup_steps
+        logger.info(
+            f"Setting the max number of steps at {max_steps} according to the tuning config"
+        )
+    else:
+        max_steps = -1
 
     if val_check_period is not None:
         additional_kwargs["val_check_interval"] = val_check_period

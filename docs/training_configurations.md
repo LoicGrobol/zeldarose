@@ -4,6 +4,13 @@ Tuning configurations
 (content:references:tuning-parameters)=
 ## Parameters
 
+### Training duration
+
+- `max_epochs: Optional[int] = None`
+- `max_steps: Optional[int] = None`
+
+Respectively the maximum number of epochs (full pass across the dataset) or \[optimisation\] steps to train for. If both are set, whichever of these two is reached first will stop training.
+
 ### Batch size
 
 - `batch_size: int = 64`.
@@ -23,7 +30,6 @@ These are respectively the $β$ and $ε$ parameters and the base learning rate f
 {cite}`kingma2014AdamMethodStochastic` and the weight decay rate. See the [Pytorch
 documentation](https://pytorch.org/docs/stable/generated/torch.optim.Adam.html) for more details.
 
-
 ### Gradient clipping
 
 - `gradient_clipping: Optional[Union[float, int]] = None`
@@ -42,6 +48,8 @@ These are the number of step in the slanted triangular learning rate schedule
 {cite}`howard2018UniversalLanguageModel`: the base learning rate is made to follow an upward linear
 slope for `warmup_steps` steps up to `learning_rate`, then decayed linearly to $0$ in
 `lr_decay_steps`.
+
+Note that setting `lr_decay_steps` overrides `max_steps`.
 
 ## Bibliography
 

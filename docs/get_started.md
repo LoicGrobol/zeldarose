@@ -35,6 +35,13 @@ zeldarose transformer --tokenizer /tokenizer/path --pretrained-model flaubert/fl
 
 ## Next steps
 
+Now that you know how to train a default model on a default task and with default settings, the next step is to configure all these.
+
+- Parameters that have to do with Zelda Rose behaviour towards the host machine (train on CPU or
+  GPU, the batch size per device…) are set by command line arguments and can be accessed from
+  `zeldarose transformer --help`
+- Other settings are passed via a *config file*, which the next section will tell you about.
+
 ### Transformers config
 
 If you want to do train a model on another task, or if you want to configure hyperparameters, you will need to pass a configuration to `zeldarose transformer` via its `--config` option. It takes a path to a local [TOML](https://toml.io) file that provides a [tuning configuration](content:references:tuning-parameters) (optimizer hyperparameters such as batch size, learning rate, etc.) and a task configuration (masked language modelling, replaced tokens detection, etc.) with its hyperparameters.
@@ -59,8 +66,4 @@ learning_rate = 1e-4
 There are example configurations for every task in the
 [`examples`](https://github.com/LoicGrobol/zeldarose/tree/main/examples) directory in Zelda Rose
 development repository. The options in the `task` section are documented in their respective page in “Tasks” and the tuning options in [“Tuning configurations”](content:references:tuning-parameters).
-
-### Other parameters
-
-See `zeldarose transformer --help` for a comprehensive list with descriptions.
 

@@ -19,6 +19,8 @@ class TrainConfig(pydantic.BaseModel):
     gradient_clipping: Optional[Union[float, int]] = None
     learning_rate: float = 1e-4
     lr_decay_steps: Optional[int] = None
+    max_epochs: Optional[int] = None
+    max_steps: Optional[int] = None
     warmup_steps: int = 0
     weight_decay: Optional[float] = None
 

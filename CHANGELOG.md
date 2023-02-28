@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
+### Changes
+
+- `max_steps` and `max_epochs` can now be set in the tuning config. Setting them via command line
+  options is **deprecated** and will be removed in a future version.
+
 ## [0.7.3] - 2023-02-27
 
 [Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.6.0...HEAD
