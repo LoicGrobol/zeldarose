@@ -1,3 +1,16 @@
+@inproceedings{clark2019ELECTRAPretrainingText,
+  title = {{{ELECTRA}}: {{Pre-training Text Encoders}} as {{Discriminators Rather Than Generators}}},
+  shorttitle = {{{ELECTRA}}},
+  booktitle = {Proceedings of the 8th {{International Conference}} on {{Learning Representations}}},
+  author = {Clark, Kevin and Luong, Minh-Thang and Le, Quoc V. and Manning, Christopher D.},
+  year = {2019},
+  month = sep,
+  url = {https://openreview.net/forum?id=r1xMH1BtvB},
+  urldate = {2020-04-01},
+  abstract = {Masked language modeling (MLM) pre-training methods such as BERT corrupt the input by replacing some tokens with [MASK] and then train a model to reconstruct the original tokens. While they produce...},
+  venue = {አዲስ አበባ, ኢትዮጵያ (Adis Ababa, Ethiopia)}
+}
+
 @article{devlin2018BERTPretrainingDeep,
   title = {{{BERT}}: {{Pre-training}} of {{Deep Bidirectional Transformers}} for {{Language Understanding}}},
   shorttitle = {{{BERT}}},
@@ -8,9 +21,41 @@
   eprint = {1810.04805},
   eprinttype = {arxiv},
   primaryclass = {cs},
+  url = {http://arxiv.org/abs/1810.04805},
+  urldate = {2019-02-16},
   abstract = {We introduce a new language representation model called BERT, which stands for Bidirectional Encoder Representations from Transformers. Unlike recent language representation models, BERT is designed to pre-train deep bidirectional representations by jointly conditioning on both left and right context in all layers. As a result, the pre-trained BERT representations can be fine-tuned with just one additional output layer to create state-of-the-art models for a wide range of tasks, such as question answering and language inference, without substantial task-specific architecture modifications. BERT is conceptually simple and empirically powerful. It obtains new state-of-the-art results on eleven natural language processing tasks, including pushing the GLUE benchmark to 80.4\% (7.6\% absolute improvement), MultiNLI accuracy to 86.7 (5.6\% absolute improvement) and the SQuAD v1.1 question answering Test F1 to 93.2 (1.5\% absolute improvement), outperforming human performance by 2.0\%.},
   archiveprefix = {arXiv},
   keywords = {embeddings,neural network,neural network/architecture,transfer learning,transformer}
+}
+
+@inproceedings{he2020DeBERTaDecodingenhancedBERT,
+  title = {{{DeBERTa}}: {{Decoding-enhanced BERT}} with Disentangled Attention},
+  booktitle = {Proceedings of the 2021 {{International Conference}} on {{Learning Representations}}},
+  author = {He, Pengcheng and Liu, Xiaodong and Gao, Jianfeng and Chen, Weizhu},
+  year = {2020},
+  month = sep,
+  url = {https://openreview.net/forum?id=XPZIaotutsD},
+  urldate = {2021-12-26},
+  abstract = {Recent progress in pre-trained neural language models has significantly improved the performance of many natural language processing (NLP) tasks. In this paper we propose a new model architecture...},
+  langid = {english},
+  venue = {Wien, \"Osterreich}
+}
+
+@article{he2021DeBERTaV3ImprovingDeBERTa,
+  title = {{{DeBERTaV3}}: {{Improving DeBERTa}} Using {{ELECTRA-Style Pre-Training}} with {{Gradient-Disentangled Embedding Sharing}}},
+  shorttitle = {{{DeBERTaV3}}},
+  author = {He, Pengcheng and Gao, Jianfeng and Chen, Weizhu},
+  year = {2021},
+  month = dec,
+  journal = {arXiv:2111.09543 [cs]},
+  eprint = {2111.09543},
+  eprinttype = {arxiv},
+  primaryclass = {cs},
+  url = {http://arxiv.org/abs/2111.09543},
+  urldate = {2021-12-26},
+  abstract = {This paper presents a new pre-trained language model, DeBERTaV3, which improves the original DeBERTa model by replacing mask language modeling (MLM) with replaced token detection (RTD), a more sample-efficient pre-training task. Our analysis shows that vanilla embedding sharing in ELECTRA hurts training efficiency and model performance. This is because the training losses of the discriminator and the generator pull token embeddings in different directions, creating the "tug-of-war" dynamics. We thus propose a new gradient-disentangled embedding sharing method that avoids the tug-of-war dynamics, improving both training efficiency and the quality of the pre-trained model. We have pre-trained DeBERTaV3 using the same settings as DeBERTa to demonstrate its exceptional performance on a wide range of downstream natural language understanding (NLU) tasks. Taking the GLUE benchmark with eight tasks as an example, the DeBERTaV3 Large model achieves a 91.37\% average score, which is 1.37\% over DeBERTa and 1.91\% over ELECTRA, setting a new state-of-the-art (SOTA) among the models with a similar structure. Furthermore, we have pre-trained a multi-lingual model mDeBERTa and observed a larger improvement over strong baselines compared to English models. For example, the mDeBERTa Base achieves a 79.8\% zero-shot cross-lingual accuracy on XNLI and a 3.6\% improvement over XLM-R Base, creating a new SOTA on this benchmark. We have made our pre-trained models and inference code publicly available at https://github.com/microsoft/DeBERTa.},
+  archiveprefix = {arXiv},
+  keywords = {Computer Science - Computation and Language,Computer Science - Machine Learning,cs.CL; cs.GL,I.2,I.7}
 }
 
 @inproceedings{howard2018UniversalLanguageModel,
@@ -35,6 +80,8 @@
   month = dec,
   eprint = {1412.6980},
   eprinttype = {arxiv},
+  url = {http://arxiv.org/abs/1412.6980},
+  urldate = {2019-03-04},
   abstract = {We introduce Adam, an algorithm for first-order gradient-based optimization of stochastic objective functions, based on adaptive estimates of lower-order moments. The method is straightforward to implement, is computationally efficient, has little memory requirements, is invariant to diagonal rescaling of the gradients, and is well suited for problems that are large in terms of data and/or parameters. The method is also appropriate for non-stationary objectives and problems with very noisy and/or sparse gradients. The hyper-parameters have intuitive interpretations and typically require little tuning. Some connections to related algorithms, on which Adam was inspired, are discussed. We also analyze the theoretical convergence properties of the algorithm and provide a regret bound on the convergence rate that is comparable to the best known results under the online convex optimization framework. Empirical results demonstrate that Adam works well in practice and compares favorably to other stochastic optimization methods. Finally, we discuss AdaMax, a variant of Adam based on the infinity norm.},
   archiveprefix = {arXiv},
   copyright = {tex.venue: San Diego, California},
@@ -65,6 +112,8 @@
   eprint = {1907.11692},
   eprinttype = {arxiv},
   primaryclass = {cs},
+  url = {http://arxiv.org/abs/1907.11692},
+  urldate = {2019-09-05},
   abstract = {Language model pretraining has led to significant performance gains but careful comparison between different approaches is challenging. Training is computationally expensive, often done on private datasets of different sizes, and, as we will show, hyperparameter choices have significant impact on the final results. We present a replication study of BERT pretraining (Devlin et al., 2019) that carefully measures the impact of many key hyperparameters and training data size. We find that BERT was significantly undertrained, and can match or exceed the performance of every model published after it. Our best model achieves state-of-the-art results on GLUE, RACE and SQuAD. These results highlight the importance of previously overlooked design choices, and raise questions about the source of recently reported improvements. We release our models and code.},
   archiveprefix = {arXiv},
   keywords = {Computer Science - Computation and Language}
@@ -89,6 +138,8 @@
   year = {2022},
   month = mar,
   journal = {🤗 Blog},
+  url = {https://huggingface.co/blog/bert-101},
+  urldate = {2023-02-25},
   abstract = {We're on a journey to advance and democratize artificial intelligence through open source and open science.},
   langid = {english}
 }
@@ -118,5 +169,7 @@
   pages = {5998--6008},
   publisher = {{Curran Associates, Inc.}},
   address = {{Long Beach, California}},
+  url = {https://proceedings.neurips.cc/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf},
+  urldate = {2019-02-16},
   keywords = {neural network,neural network/architecture}
 }

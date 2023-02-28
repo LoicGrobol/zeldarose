@@ -1,5 +1,0 @@
-Training a transformer model
-============================
-
-## 
-

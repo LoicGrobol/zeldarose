@@ -13,6 +13,8 @@ html:
   baseurl: https://zeldarose.readthedocs.io/
   favicon: "favicon.ico"
 
+pdf: {}
+
 execute:
   execute_notebooks: force
 
