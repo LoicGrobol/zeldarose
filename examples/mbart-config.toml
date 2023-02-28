@@ -6,15 +6,15 @@ denoise_langs = []
 denoise_loss_ratio = 0.2
 poisson_lambda = 3.0
 source_langs = ["br"]
-target_langs = ["fr"]
+target_langs = ["fr_XX"]
 
 [tuning]
 batch_size = 8
 betas = [0.9, 0.999]
 epsilon = 1e-8
 learning_rate = 5e-5
-max_epochs = 16
 gradient_clipping = 1.0
+max_steps = 104856
 lr_decay_steps = -1
 warmup_steps = 1024
 # weight_decay = 1e-5
