@@ -1,6 +1,7 @@
-Training configurations
+Tuning configurations
 =======================
 
+(content:references:tuning-parameters)=
 ## Parameters
 
 ### Batch size

@@ -8,7 +8,3 @@ Zelda Rose
 
 A straightforward trainer for transformer-based models. Why Zelda Rose? Because
 [she](https://muppet.fandom.com/wiki/Zelda_Rose) is a muppet teacher.
-
-## Getting Started
-
-Check out [Get started](get_started.md).

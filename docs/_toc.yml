@@ -6,8 +6,8 @@ parts:
     chapters:
     - file: get_started.md
     - file: training_configurations.md
-  -  caption: Tasks
-     chapters:
+  - caption: Tasks
+    chapters:
       - file: tasks/mlm.md
       - file: tasks/mbart.md
         title: mBART

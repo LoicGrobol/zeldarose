@@ -35,7 +35,32 @@ zeldarose transformer --tokenizer /tokenizer/path --pretrained-model flaubert/fl
 
 ## Next steps
 
-There are other parameters (see `zeldarose transformer --help` for a comprehensive list), the one
-you are probably mostly interested in is `--config`, giving the path to a training config (for which
-we have [`examples`](https://github.com/LoicGrobol/zeldarose/tree/main/examples)).
+### Transformers config
+
+If you want to do train a model on another task, or if you want to configure hyperparameters, you will need to pass a configuration to `zeldarose transformer` via its `--config` option. It takes a path to a local [TOML](https://toml.io) file that provides a [tuning configuration](content:references:training-parameters) (optimizer hyperparameters such as batch size, learning rate, etc.) and a task configuration (masked language modelling, replaced tokens detection, etc.) with its hyperparameters.
+
+They look like this 
+
+```toml
+type = "mlm"  # The name of the task.
+
+[task]
+change_ratio = 0.15  # The proportion of tokens to modify
+mask_ratio = 0.8     # The proportion of modified tokens to mask
+switch_ratio = 0.1   # The proportion of modified tokens to change to a random token
+
+[tuning]
+batch_size = 64
+betas = [0.9, 0.98]
+epsilon = 1e-8
+learning_rate = 1e-4
+```
+
+There are example configurations for every task in the
+[`examples`](https://github.com/LoicGrobol/zeldarose/tree/main/examples) directory in Zelda Rose
+development repository. The options in the `task` section are documented in their respective page in “Tasks” and the tuning options in [“Tuning configurations”](content:references:tuning-parameters).
+
+### Other parameters
+
+See `zeldarose transformer --help` for a comprehensive list with descriptions.
 

@@ -174,6 +174,7 @@ class SavePretrainedModelCallback(pl.Callback):
 @click.option(
     "--accelerator",
     default="auto",
+    metavar="NAME",
     show_default=True,
     type=str,
     help="The lightning accelerator to use (see lightning doc).",
