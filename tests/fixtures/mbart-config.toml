@@ -8,6 +8,7 @@ source_langs = ["br", "fr"]
 target_langs = ["br", "fr"]
 
 [tuning]
+max_epochs = 2
 batch_size = 4
 betas = [0.9, 0.98]
 epsilon = 1e-8

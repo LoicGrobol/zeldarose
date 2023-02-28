@@ -75,8 +75,6 @@ def test_train_mbart(
         "--val-text",
         str(translation_dataset_path),
         str(translation_dataset_path),
-        "--max-epochs",
-        "2",
         *extra_args,
         env={"TORCH_DISTRIBUTED_DEBUG": "DETAIL", **os.environ},
     )
@@ -122,8 +120,6 @@ def test_train_mlm(
         "--val-text",
         str(raw_text_path),
         str(raw_text_path),
-        "--max-epochs",
-        "2",
         *extra_args,
         env={"TORCH_DISTRIBUTED_DEBUG": "DETAIL", **os.environ},
     )
@@ -173,8 +169,6 @@ def test_train_rtd(
         "--val-text",
         str(raw_text_path),
         str(raw_text_path),
-        "--max-epochs",
-        "2",
         *extra_args,
         env={"TORCH_DISTRIBUTED_DEBUG": "DETAIL", **os.environ},
     )
@@ -208,7 +202,5 @@ def test_train_mlm_with_remote_dataset(
         "--val-text",
         remote_raw_text,
         remote_raw_text,
-        "--max-epochs",
-        "2",
     )
     assert ret.success

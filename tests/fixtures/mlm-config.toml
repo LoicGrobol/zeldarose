@@ -7,6 +7,7 @@ mask_ratio = 0.8  # The proportion of modified tokens to mask
 switch_ratio = 0.1  # The proportion of modified tokens to change to a random token
 
 [tuning]
+max_epochs = 2
 # The default MLM fine-tuning config
 batch_size = 64
 betas = [0.9, 0.98]

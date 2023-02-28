@@ -5,6 +5,7 @@ mask_ratio = 0.15  # The proportion of modified tokens to mask
 embeddings_sharing = "electra"
 
 [tuning]
+max_epochs = 2
 # The default MLM fine-tuning config
 batch_size = 64
 betas = [0.9, 0.98]

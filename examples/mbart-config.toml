@@ -13,6 +13,7 @@ batch_size = 8
 betas = [0.9, 0.999]
 epsilon = 1e-8
 learning_rate = 5e-5
+max_epochs = 16
 gradient_clipping = 1.0
 lr_decay_steps = -1
 warmup_steps = 1024
