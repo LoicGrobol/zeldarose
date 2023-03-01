@@ -3,7 +3,7 @@ type = "mbart"
 [task]
 change_ratio = 0.3
 denoise_langs = []
-denoise_loss_ratio = 0.2
+denoise_loss_ratio = 0.125
 poisson_lambda = 3.0
 source_langs = ["br"]
 target_langs = ["fr_XX"]
