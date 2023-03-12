@@ -249,8 +249,8 @@ class SavePretrainedModelCallback(pl.Callback):
     type=click.IntRange(0),
     default=os.environ.get("SLURM_JOB_NUM_NODES", 1),
     help=(
-        "How many nodes to train on (for clusters), defaults",
-        " to $SLURM_JOB_NUM_NODES if on SLURM and 1 otherwise",
+        "How many nodes to train on (for clusters), defaults"
+        " to $SLURM_JOB_NUM_NODES if on SLURM and 1 otherwise"
     ),
 )
 @click.option(
