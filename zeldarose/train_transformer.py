@@ -1,11 +1,10 @@
 import logging
-import math
 import os
 import pathlib
 from types import ModuleType
 import warnings
 
-from typing import Any, Dict, List, Literal, Optional, Union, cast
+from typing import Any, Dict, List, Literal, Optional, Union
 
 import click
 import pytorch_lightning as pl
@@ -95,7 +94,8 @@ def setup_logging(
 
             if frame is None:
                 warnings.warn(
-                    "Catching calls to logging is impossible in stackless environment, logging from external libraries might be lost."
+                    "Catching calls to logging is impossible in stackless environment,"
+                    " logging from external libraries might be lost."
                 )
             else:
                 if self.wrapped_name is not None:
@@ -248,7 +248,10 @@ class SavePretrainedModelCallback(pl.Callback):
     "--num-nodes",
     type=click.IntRange(0),
     default=os.environ.get("SLURM_JOB_NUM_NODES", 1),
-    help="How many nodes to train on (for clusters), defaults to $SLURM_JOB_NUM_NODES if on SLURM and 1 otherwise",
+    help=(
+        "How many nodes to train on (for clusters), defaults",
+        " to $SLURM_JOB_NUM_NODES if on SLURM and 1 otherwise",
+    ),
 )
 @click.option(
     "--num-workers",
@@ -400,7 +403,7 @@ def main(
 
     if tuning_config.max_steps is not None:
         max_steps = tuning_config.max_steps
-        
+
     if tuning_config.max_epochs is not None:
         max_epochs = tuning_config.max_epochs
 
@@ -415,8 +418,8 @@ def main(
     elif tuning_config.batch_size % (device_batch_size * total_devices):
         remainder = tuning_config.batch_size % device_batch_size * total_devices
         logger.warning(
-            f"Batch size ({tuning_config.batch_size}) is not a multiple"
-            f" of loader batch size({device_batch_size} samples per device × {total_devices} devices)"
+            f"Batch size ({tuning_config.batch_size}) is not a multiple of loader batch size"
+            f" ({device_batch_size} samples per device × {total_devices} devices)"
             f" the actual tuning batch size used will be {tuning_config.batch_size-remainder}."
         )
 
@@ -516,7 +519,6 @@ def main(
     if checkpoint is not None:
         logger.info(f"Restarting training from the checkpoint at {checkpoint}")
         additional_kwargs["resume_from_checkpoint"] = checkpoint
-
 
     if tuning_config.lr_decay_steps is not None and tuning_config.lr_decay_steps != -1:
         max_steps = tuning_config.lr_decay_steps + tuning_config.warmup_steps
