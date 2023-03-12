@@ -44,7 +44,8 @@ def extract_from_jsonline(
     source_langs: Collection[str],
     target_langs: Collection[str],
 ) -> Generator[DataRow, None, None]:
-    # We deal with both top-level tranlatifrdgggggggggggggggggggggggggggggggggggggggggwons and 🤗's conventional format for this task
+    # We deal with both top-level tranlatifrdgggggggggggggggggggggggggggggggggggggggggwons and 🤗's
+    # conventional format for this task
     example = cast(Mapping[str, str], example.get("translation", example))
     for dns_lang in denoise_langs:
         if not (dns_str := example.get(dns_lang)):
@@ -86,8 +87,8 @@ class EncodedSample(TypedDict):
     tgt_text: str
 
 
-# NOTE: this also caches the raw and encoded dataset in HF_DATASETS_CACHE, which is different from OUR cache
-# end users can still manually set HF_DATASETS_CACHE if e.g. their home has a small quota
+# NOTE: this also caches the raw and encoded dataset in HF_DATASETS_CACHE, which is different from
+# OUR cache end users can still manually set HF_DATASETS_CACHE if e.g. their home has a small quota
 def encode_dataset(
     denoise_langs: Collection[str],
     langcode_sub: Mapping[str, str],
@@ -317,9 +318,9 @@ class MBartDataModule(pl.LightningDataModule):
         self.val_dataset = None
 
     def prepare_data(self):
-        # NOTE (2021-08-12): This should'nt be needed since this method should only be called on rank 0, but since it
-        # is called in every process AND before DDP init (at least in SLURM) we have to enforce it
-        # ourselves
+        # NOTE (2021-08-12): This should'nt be needed since this method should only be called on
+        # rank 0, but since it is called in every process AND before DDP init (at least in SLURM) we
+        # have to enforce it ourselves
         # TODO (2023-01-07): see if the note above is still true
         if os.environ.get("SLURM_PROCID", "0") == "0":
             encode_dataset(
@@ -359,7 +360,8 @@ class MBartDataModule(pl.LightningDataModule):
     def train_dataloader(self):
         if self.train_dataset is None:
             return None
-        # FIXME(2023-02-07): that cast hereunder is wrong, self.train_dataset is **not** a torch Dataset
+        # FIXME(2023-02-07): that cast hereunder is wrong, self.train_dataset is **not** a torch
+        # Dataset
         return MBartLoader(
             cast(torch.utils.data.Dataset[EncodedSample], self.train_dataset),
             batch_size=self.loader_batch_size,
@@ -371,7 +373,8 @@ class MBartDataModule(pl.LightningDataModule):
     def val_dataloader(self):
         if self.val_dataset is None:
             return None
-        # FIXME(2023-02-07): that cast hereunder is wrong, self.val_dataset is **not** a torch Dataset
+        # FIXME(2023-02-07): that cast hereunder is wrong, self.val_dataset is **not** a torch
+        # Dataset
         return MBartLoader(
             cast(torch.utils.data.Dataset[EncodedSample], self.val_dataset),
             batch_size=self.loader_batch_size,

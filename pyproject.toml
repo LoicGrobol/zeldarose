@@ -65,8 +65,9 @@ zeldarose-transformer = "zeldarose.train_transformer:main"
 "Source Code" = "https://github.com/loicgrobol/zeldarose"
 
 [tool.ruff]
-select = ["A", "B", "C90", "E", "F", "N", "NPY", "PT", "PTH", "PYI", "S", "W"]
 line-length = 100
+select = ["A", "B", "C90", "E", "F", "N", "NPY", "PT", "PTH", "PYI", "S", "W"]
+ignore = ["PTH123"]
 
 [tool.mypy]
 warn_unreachable = true

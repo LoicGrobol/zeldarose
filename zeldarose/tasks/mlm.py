@@ -1,4 +1,3 @@
-import math
 import pathlib
 from typing import Any, cast, Dict, NamedTuple, Optional, TYPE_CHECKING, Union
 

@@ -70,10 +70,12 @@ def infill_noise(
     # TODO(2023-02-14): This is embarassingly parallel: the sentences can be treated independently
     # BIG LOOP OF HELL
     # You might believe this makes unnecessary copies but it actually Does Not!
-    for sent, mask, jump, l, keep in zip(input_ids, replace_mask, all_jumps, lengths, keep_mask):
+    for sent, mask, jump, sent_len, keep in zip(
+        input_ids, replace_mask, all_jumps, lengths, keep_mask
+    ):
         current = []
         pos = 0
-        while pos < l:
+        while pos < sent_len:
             if mask[pos]:
                 current.append(input_mask_id)
                 # If it was a 0-length jump, we have to advance to the next token normally
@@ -82,7 +84,8 @@ def infill_noise(
                     pos += 1
                 else:
                     offset = 0
-                    # NOTE(2023-02-14): This probably causes our jump distribution to be sub-Poisson (octopus?)
+                    # NOTE(2023-02-14): This probably causes our jump distribution to be sub-Poisson
+                    # (octopus?)
                     while pos + offset < len(sent) and offset < jump[pos]:
                         if keep[pos + offset]:
                             break
@@ -263,7 +266,11 @@ class MBartTrainingModel(TrainingModule):
 
         return loss
 
-    def validation_step(self, batch: zeldarose.datasets.mbart.TwoMBartBatches, batch_idx: int):  # type: ignore[override]
+    def validation_step(  # type: ignore[override]
+        self,
+        batch: zeldarose.datasets.mbart.TwoMBartBatches,
+        batch_idx: int,
+    ):
         denoise, translate = batch
 
         if denoise is not None:
@@ -362,7 +369,7 @@ class MBartTrainingModel(TrainingModule):
         data_dir: Optional[pathlib.Path] = None,
         val_path: Optional[Union[str, pathlib.Path]] = None,
     ) -> zeldarose.datasets.mbart.MBartDataModule:
-        if (max_length := getattr(self.model.config, "max_position_embeddings")) is None:
+        if (max_length := getattr(self.model.config, "max_position_embeddings", None)) is None:
             max_length = tokenizer.max_len_single_sentence
         else:
             # FIXME: we shouldn't need num_special_tokens_to_add here
@@ -418,7 +425,8 @@ def get_training_model(
 ) -> MBartTrainingModel:
     if not hasattr(tokenizer, "lang_code_to_id"):
         raise ValueError(
-            "The tokenizer for mBART training must be multilingual and have a `lang_code_to_id` attribute"
+            "The tokenizer for mBART training must be multilingual and"
+            " have a `lang_code_to_id` attribute"
         )
 
     _task_config = MBartTaskConfig.parse_obj(task_config)
@@ -457,20 +465,24 @@ def get_training_model(
         logger.debug("Checking match between task and tokenizer langs")
         all_langs = set().union(
             *(
-                l
-                for l in (
+                lang
+                for lang in (
                     _task_config.denoise_langs,
                     _task_config.source_langs,
                     _task_config.target_langs,
                 )
-                if l is not None
+                if lang is not None
             )
         )
         for lang in all_langs:
-            # FIXME: we need ignores here because (at least) Pyright doesn't take the hasattr into account
-            if (substitute_lang := match_lang(lang, tokenizer.lang_code_to_id)) is None:  # type: ignore
+            # FIXME: we need ignores here because (at least) Pyright doesn't take the hasattr into
+            # account
+            if (
+                substitute_lang := match_lang(lang, tokenizer.lang_code_to_id)  # type: ignore
+            ) is None:
                 logger.warning(
-                    f"Language {lang} is unknown of the tokenizer, adding it and resizing the model vocabulary."
+                    f"Language {lang} is unknown of the tokenizer,"
+                    " adding it and resizing the model vocabulary."
                 )
                 tokenizer.add_tokens(lang, special_tokens=True)
                 lang_id = cast(int, tokenizer.convert_tokens_to_ids(lang))
