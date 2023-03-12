@@ -529,7 +529,6 @@ def main(
     if val_check_period is not None:
         additional_kwargs["val_check_interval"] = val_check_period
 
-    # TODO(2023-02-08): re-evaluate to see if we can deactivate `find_unused_parameters` again
     trainer = pl.Trainer(
         accumulate_grad_batches=accumulate_grad_batches,
         accelerator=accelerator,

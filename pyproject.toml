@@ -41,10 +41,8 @@ dependencies = [
 [project.optional-dependencies]
 lint = [
     "black",
-    "flake8-bugbear",
-    "flake8-pyproject",
-    "flake8-pytest-style",
     "mypy",
+    "ruff",
 ]
 tests = ["pytest", "pytest-console-scripts", "pytest-lazy-fixture"]
 
@@ -66,9 +64,8 @@ zeldarose-transformer = "zeldarose.train_transformer:main"
 "Documentation" = "https://zeldarose.readthedocs.io"
 "Source Code" = "https://github.com/loicgrobol/zeldarose"
 
-[tool.flake8]
-max-line-length = 100
-ignore = ["E203", "E266", "E501", "W503"]
+[tool.ruff]
+line-length = 100
 
 [tool.mypy]
 warn_unreachable = true

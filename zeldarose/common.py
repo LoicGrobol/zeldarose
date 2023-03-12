@@ -51,7 +51,7 @@ class TrainingModule(pl.LightningModule, ABC):
         ] = None,
     ):
         raise NotImplementedError()
-    
+
     def configure_optimizers(self):
         if self.training_config.weight_decay is not None:
             no_decay = ["bias", "LayerNorm.weight"]
@@ -92,16 +92,21 @@ class TrainingModule(pl.LightningModule, ABC):
         )
         if self.training_config.lr_decay_steps:
             if self.training_config.lr_decay_steps == -1:
-                num_training_steps = self.trainer.estimated_stepping_batches - self.training_config.warmup_steps
+                num_training_steps = (
+                    self.trainer.estimated_stepping_batches - self.training_config.warmup_steps
+                )
                 logger.info(
                     f"Number of lr decay steps set at {num_training_steps} since -1 was asked"
                 )
             else:
-                if self.training_config.lr_decay_steps > 2 * self.trainer.estimated_stepping_batches:
+                if (
+                    self.training_config.lr_decay_steps
+                    > 2 * self.trainer.estimated_stepping_batches
+                ):
                     logger.warning(
-                        f"Asked for {self.training_config.lr_decay_steps} LR decay steps"
-                        f" but the model will only be trained for {self.trainer.estimated_stepping_batches} steps"
-                        ", this might be an oversight."
+                        f"Asked for {self.training_config.lr_decay_steps} LR decay steps but the"
+                        f" model will only be trained for {self.trainer.estimated_stepping_batches}"
+                        " steps, this might be an oversight."
                     )
                 num_training_steps = self.training_config.lr_decay_steps
 
