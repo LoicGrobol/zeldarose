@@ -291,8 +291,10 @@ class SavePretrainedModelCallback(pl.Callback):
 )
 @click.option(
     "--strategy",
-    type=click.Choice(pl_strategies.StrategyRegistry.available_strategies()),
+    default="auto",
     help="The lightning strategy to use (see lightning doc)",
+    show_default=True,
+    type=click.Choice(["auto", *pl_strategies.StrategyRegistry.available_strategies()]),
 )
 @click.option("--profile", is_flag=True, help="Run in profiling mode")
 @click.option(
@@ -348,7 +350,7 @@ def main(
     train_data: str,
     seed: int,
     step_save_period: Optional[int],
-    strategy: Optional[str],
+    strategy: str,
     tf32_mode: Optional[Literal["highest", "high", "medium"]],
     tokenizer_name: Optional[str],
     val_check_period: Optional[int],
