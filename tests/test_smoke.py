@@ -8,13 +8,13 @@ import torch.cuda
 
 accelerators_strategies_devices = [
     ("cpu", None, None),
-    ("cpu", "ddp_spawn", 2),
+    ("cpu", "ddp_find_unused_parameters_true", 2),
     ("cpu", "ddp_spawn_find_unused_parameters_false", 2),
 ]
 if torch.cuda.is_available():
     accelerators_strategies_devices.append(("gpu", None, None))
     if torch.cuda.device_count() > 1:
-        accelerators_strategies_devices.append(("gpu", "ddp_spawn", 2))
+        accelerators_strategies_devices.append(("gpu", "ddp_find_unused_parameters_true", 2))
         accelerators_strategies_devices.append(("gpu", "ddp_spawn_find_unused_parameters_false", 2))
         # accelerators_strategies_devices.append(("gpu", "fsdp_native", 2))
 
