@@ -184,7 +184,7 @@ class RTDTrainingModel(TrainingModule):
 
         with torch.no_grad():
             generator_perplexity = torch.exp(cast(torch.Tensor, outputs.generator_output.loss))
-            self.generator__train_accuracy(outputs.generator_predictions, masked.labels)
+            self.generator_train_accuracy(outputs.generator_predictions, masked.labels)
 
             self.log(
                 "train/generator_loss",
