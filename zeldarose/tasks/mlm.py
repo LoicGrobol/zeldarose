@@ -108,7 +108,8 @@ class MLMTrainingModel(TrainingModule):
         self.mask_token_index = mask_token_index
         self.vocabulary_size = vocabulary_size
 
-        self.accuracy = MaskedAccuracy()
+        self.train_accuracy = MaskedAccuracy()
+        self.val_accuracy = MaskedAccuracy()
         self.model = model
 
         self.save_hyperparameters("training_config", "task_config")
@@ -157,7 +158,7 @@ class MLMTrainingModel(TrainingModule):
         with torch.no_grad():
             preds = torch.argmax(outputs.logits, dim=-1)
             perplexity = torch.exp(loss)
-            self.accuracy(preds, masked.labels)
+            self.train_accuracy(preds, masked.labels)
 
             self.log(
                 "train/loss",
@@ -176,7 +177,7 @@ class MLMTrainingModel(TrainingModule):
             )
             self.log(
                 "train/accuracy",
-                self.accuracy,
+                self.train_accuracy,
                 batch_size=tokens.shape[0],
                 on_epoch=True,
                 on_step=False,
@@ -208,7 +209,7 @@ class MLMTrainingModel(TrainingModule):
         perplexity = torch.exp(loss)
 
         preds = torch.argmax(outputs.logits, dim=-1)
-        self.accuracy(preds, masked.labels)
+        self.val_accuracy(preds, masked.labels)
 
         self.log("validation/loss", loss, batch_size=tokens.shape[0], sync_dist=True)
         self.log(
@@ -220,7 +221,7 @@ class MLMTrainingModel(TrainingModule):
         )
         self.log(
             "validation/accuracy",
-            self.accuracy,
+            self.val_accuracy,
             batch_size=tokens.shape[0],
             on_epoch=True,
             sync_dist=True,

@@ -104,8 +104,10 @@ class RTDTrainingModel(TrainingModule):
         self.mask_token_index = mask_token_index
         self.vocabulary_size = vocabulary_size
 
-        self.generator_accuracy = MaskedAccuracy()
-        self.discriminator_accuracy = MaskedAccuracy()
+        self.generator_train_accuracy = MaskedAccuracy()
+        self.discriminator_train_accuracy = MaskedAccuracy()
+        self.generator_val_accuracy = MaskedAccuracy()
+        self.discriminator_val_accuracy = MaskedAccuracy()
         self.generator = generator
         self.discriminator = discriminator
 
@@ -182,7 +184,7 @@ class RTDTrainingModel(TrainingModule):
 
         with torch.no_grad():
             generator_perplexity = torch.exp(cast(torch.Tensor, outputs.generator_output.loss))
-            self.generator_accuracy(outputs.generator_predictions, masked.labels)
+            self.generator__train_accuracy(outputs.generator_predictions, masked.labels)
 
             self.log(
                 "train/generator_loss",
@@ -199,13 +201,13 @@ class RTDTrainingModel(TrainingModule):
             )
             self.log(
                 "train/generator_accuracy",
-                self.generator_accuracy,
+                self.generator_train_accuracy,
                 on_epoch=True,
                 on_step=False,
                 sync_dist=True,
             )
 
-            self.discriminator_accuracy(outputs.discriminator_predictions, outputs.rtd_labels)
+            self.discriminator_train_accuracy(outputs.discriminator_predictions, outputs.rtd_labels)
             self.log(
                 "train/discriminator_loss",
                 cast(torch.Tensor, outputs.discriminator_output.loss),
@@ -215,7 +217,7 @@ class RTDTrainingModel(TrainingModule):
             )
             self.log(
                 "train/discriminator_accuracy",
-                self.discriminator_accuracy,
+                self.discriminator_train_accuracy,
                 on_epoch=True,
                 on_step=False,
                 sync_dist=True,
@@ -250,7 +252,7 @@ class RTDTrainingModel(TrainingModule):
             token_type_ids=token_type_ids,
         )
         generator_perplexity = torch.exp(cast(torch.Tensor, outputs.generator_output.loss))
-        self.generator_accuracy(outputs.generator_predictions, masked.labels)
+        self.generator_val_accuracy(outputs.generator_predictions, masked.labels)
 
         self.log(
             "validation/generator_loss",
@@ -267,12 +269,12 @@ class RTDTrainingModel(TrainingModule):
         )
         self.log(
             "validation/generator_accuracy",
-            self.generator_accuracy,
+            self.generator_val_accuracy,
             on_epoch=True,
             sync_dist=True,
         )
 
-        self.discriminator_accuracy(outputs.discriminator_predictions, outputs.rtd_labels)
+        self.discriminator_val_accuracy(outputs.discriminator_predictions, outputs.rtd_labels)
         self.log(
             "validation/discriminator_loss",
             cast(torch.Tensor, outputs.discriminator_output.loss),
@@ -282,7 +284,7 @@ class RTDTrainingModel(TrainingModule):
         )
         self.log(
             "validation/discriminator_accuracy",
-            self.discriminator_accuracy,
+            self.discriminator_val_accuracy,
             on_epoch=True,
             sync_dist=True,
         )
