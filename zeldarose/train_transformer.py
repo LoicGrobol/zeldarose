@@ -518,10 +518,6 @@ def main(
             )
         )
 
-    if checkpoint is not None:
-        logger.info(f"Restarting training from the checkpoint at {checkpoint}")
-        additional_kwargs["resume_from_checkpoint"] = checkpoint
-
     if tuning_config.lr_decay_steps is not None and tuning_config.lr_decay_steps != -1:
         max_steps = tuning_config.lr_decay_steps + tuning_config.warmup_steps
         logger.info(
@@ -550,7 +546,7 @@ def main(
 
     logger.info("Start training")
 
-    trainer.fit(training_model, datamodule=datamodule)
+    trainer.fit(training_model, datamodule=datamodule, ckpt_path=checkpoint)
 
     save_dir = out_dir / model_name
     logger.info(f"Saving the final model in {save_dir}")
