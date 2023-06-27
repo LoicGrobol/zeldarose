@@ -237,7 +237,7 @@ class MLMTrainingModel(TrainingModule):
         data_dir: Optional[pathlib.Path] = None,
         val_path: Optional[Union[str, pathlib.Path]] = None,
     ) -> zeldarose.datasets.transform.TextDataModule:
-        if (max_length := getattr(self.model.config, "max_position_embeddings")) is None:
+        if (max_length := getattr(self.model.config, "max_position_embeddings", None)) is None:
             max_length = tokenizer.max_len_single_sentence
         else:
             # FIXME: we shouldn't need num_special_tokens_to_add here

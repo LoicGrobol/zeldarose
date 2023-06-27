@@ -108,6 +108,7 @@ def infill_noise(
     )
 
 
+# FIXME: make this work
 class ForcedBOSTokenLogitsProcessor(transformers.LogitsProcessor):
     r"""
     [`LogitsProcessor`] that enforces the specified token as the first generated token.
@@ -125,7 +126,7 @@ class ForcedBOSTokenLogitsProcessor(transformers.LogitsProcessor):
         if cur_len == 1:
             num_tokens = scores.shape[1]
             scores[:, :] = -float("inf")
-            scores[:, self.bos_token_id] = 0
+            scores[:, 0] = self.bos_token_id[0]
         return scores
 
 
@@ -317,6 +318,7 @@ class MBartTrainingModel(TrainingModule):
             translate_loss = translate_outputs.loss
             translate_batch_size = translate.input_ids.shape[0]
 
+            # NOTE: can't be made to work until ForcedBOSTokenLogitsProcessor does
             # generated_ids = self.model.generate(
             #     input_ids=translate.input_ids,
             #     logits_processor=transformers.LogitsProcessorList(

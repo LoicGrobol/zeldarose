@@ -147,7 +147,7 @@ class MaskedAccuracy(torchmetrics.Metric):
         mask = target.ne(self.ignore_index)
         if mask.any():
             self.correct += preds.eq(target).logical_and(mask).int().sum()
-            self.total += mask.sum()
+            self.total += mask.int().sum()
 
     def compute(self):
         return self.correct.true_divide(self.total)
