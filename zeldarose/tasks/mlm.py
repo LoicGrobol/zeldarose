@@ -158,7 +158,7 @@ class MLMTrainingModel(TrainingModule):
         with torch.no_grad():
             preds = torch.argmax(outputs.logits, dim=-1)
             perplexity = torch.exp(loss)
-            self.train_accuracy(preds, masked.labels)
+            self.train_accuracy.update(preds, masked.labels)
 
             self.log(
                 "train/loss",
@@ -209,7 +209,7 @@ class MLMTrainingModel(TrainingModule):
         perplexity = torch.exp(loss)
 
         preds = torch.argmax(outputs.logits, dim=-1)
-        self.val_accuracy(preds, masked.labels)
+        self.val_accuracy.update(preds, masked.labels)
 
         self.log("validation/loss", loss, batch_size=tokens.shape[0], sync_dist=True)
         self.log(
