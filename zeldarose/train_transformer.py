@@ -95,7 +95,8 @@ def setup_logging(
             if frame is None:
                 warnings.warn(
                     "Catching calls to logging is impossible in stackless environment,"
-                    " logging from external libraries might be lost."
+                    " logging from external libraries might be lost.",
+                    stacklevel=2,
                 )
             else:
                 if self.wrapped_name is not None:
@@ -268,7 +269,7 @@ class SavePretrainedModelCallback(pl.Callback):
 @click.option(
     "--precision",
     type=click.Choice(["64", "32", "16", "bf16"]),
-    help="The precision of float for traingin",
+    help="The precision of float for training",
 )
 @click.option(
     "--pretrained-model",
@@ -401,7 +402,7 @@ def main(
         total_devices = num_nodes * num_devices
     logger.info(f"Training on a total of {total_devices} devices.")
 
-    tuning_config = TrainConfig.parse_obj(config.get("tuning", dict()))
+    tuning_config = TrainConfig.model_validate(config.get("tuning", dict()))
 
     if tuning_config.max_steps is not None:
         max_steps = tuning_config.max_steps
