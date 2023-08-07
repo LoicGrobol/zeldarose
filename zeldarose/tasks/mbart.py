@@ -433,7 +433,7 @@ def get_training_model(
             " have a `lang_code_to_id` attribute"
         )
 
-    _task_config = MBartTaskConfig.parse_obj(task_config)
+    _task_config = MBartTaskConfig.model_validate(task_config)
 
     vocabulary_size = tokenizer.vocab_size
 

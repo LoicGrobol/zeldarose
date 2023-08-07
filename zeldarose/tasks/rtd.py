@@ -445,7 +445,7 @@ def get_training_model(
     training_config: TrainConfig,
 ) -> RTDTrainingModel:
     if task_config is not None:
-        _task_config = RTDTaskConfig.parse_obj(task_config)
+        _task_config = RTDTaskConfig.model_validate(task_config)
     else:
         _task_config = RTDTaskConfig()
 

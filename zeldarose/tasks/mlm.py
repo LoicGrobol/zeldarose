@@ -285,7 +285,7 @@ def get_training_model(
     training_config: TrainConfig,
 ) -> MLMTrainingModel:
     if task_config is not None:
-        _task_config = MLMTaskConfig.parse_obj(task_config)
+        _task_config = MLMTaskConfig.model_validate(task_config)
     else:
         _task_config = MLMTaskConfig()
 
