@@ -76,6 +76,7 @@ select = ["A", "B", "C90", "E", "F", "N", "NPY", "PT", "PTH", "PYI", "S", "W"]
 
 
 [tool.mypy]
+check_untyped_defs = true
 warn_unreachable = true
 plugins = ["pydantic.mypy"]
 

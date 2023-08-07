@@ -67,7 +67,9 @@ def infill_noise(
         torch.full_like(input_ids, fill_value=poisson_lambda, dtype=torch.float)
     ).to(torch.long)
     res = []
-    # TODO(2023-02-14): This is embarassingly parallel: the sentences can be treated independently
+    # TODO(2023-02-14): This is embarassingly parallel: the sentences can be treated independently.
+    # NOTE(2023-08-04): But making it parallel requires sharing tensors (hard) or making copies
+    # (slow). Eh.
     # BIG LOOP OF HELL
     # You might believe this makes unnecessary copies but it actually Does Not!
     for sent, mask, jump, sent_len, keep in zip(

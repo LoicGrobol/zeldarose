@@ -49,7 +49,8 @@ def mask_tokens(
     # Tells us what to do with each token according to its value `v` in `what_to_do`
     # - `v <= change_ratio` change the token and use it in the loss
     #   - `v <= change_ratio * mask_ratio`: replace with [MASK] ('s id)
-    #   - `change_ratio * mask_ratio < v <= change_ratio * (mask_ratio + switch_ratio)`: replace with a random word
+    #   - `change_ratio * mask_ratio < v <= change_ratio * (mask_ratio + switch_ratio)`: replace
+    #     with a random word
     #   - `change_ratio * (mask_ratio + switch_ratio) < v <= change_ratio`: keep as is
     # - `change_ratio < v`: keep as is and don't use in the loss
     # FIXME: layout and device should be inferred here, file an issue
@@ -185,7 +186,9 @@ class MLMTrainingModel(TrainingModule):
             )
         return loss
 
-    def validation_step(self, batch: zeldarose.datasets.transform.TextBatch, batch_idx: int):  # type: ignore[override]
+    def validation_step(
+        self, batch: zeldarose.datasets.transform.TextBatch, batch_idx: int
+    ):  # type: ignore[override]
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
         with torch.no_grad():
             masked = mask_tokens(
