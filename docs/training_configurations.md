@@ -16,8 +16,7 @@ Respectively the maximum number of epochs (full pass across the dataset) or \[op
 - `batch_size: int = 64`.
 
 This is the number of sample in a forward-backward pass. If you use several devices and/or have
-device batches of a size bigger than $1$, this **must** be a multiple of `device_batch_size*
-total_devices`
+device batches of a size bigger than $1$, this **must** be a multiple of `device_batch_size*total_devices`
 
 ### Adam parameters
 

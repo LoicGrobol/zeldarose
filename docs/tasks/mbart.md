@@ -4,8 +4,8 @@ mBART translation
 **NOTE** given the specific nature of the task, only models and tokenizers of the mBART/m2M100 family are allowed.
 
 The task proposed by {cite:ts}`lewis2020BARTDenoisingSequencetoSequence`,
-{cite}`liu2020MultilingualDenoisingPretraining` and
-{cite}`tang2020MultilingualTranslationExtensible` for training text-to-text models. In our case, we
+{cite:ts}`liu2020MultilingualDenoisingPretraining` and
+{cite:ts}`tang2020MultilingualTranslationExtensible` for training text-to-text models. In our case, we
 will mostly think of it as a translation task, but it could easily be adapted for other tasks such
 as summarization. It consists of a pretraining an encoder-decoder for a self-supervised
 **denoising** task, then fine-tuning it on a translation task, allowing to use non-parallel corpora
@@ -21,10 +21,10 @@ each:
 - **After infilling**: “The little \<MASK\> happy”
 
 The masked sentence serves as input and the expected output of the model is the original. Since the
-length of the target can not be easily be deduces from input, the models used for this task are
+length of the target can not be easily be deduced from input, the models used for this task are
 *encoder-decoders*, such as the original transformer model {cite}`vaswani2017AttentionAllYou`.
 
-Translation is, as in {cite}`vaswani2017AttentionAllYou`, also treated as a text-to-text task.
+Translation is, as in {cite:ts}`vaswani2017AttentionAllYou`, also treated as a text-to-text task.
 
 One innovation of Zelda Rose is that the models can also be trained *simultaneously* on denoising
 and translation, with a weight hyperparameter that controls each task's contribution to the
