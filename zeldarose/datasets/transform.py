@@ -180,8 +180,8 @@ class TextDataModule(pl.LightningDataModule):
         else:
             self.val_dataset_path = None
 
-        self.train_dataset = None
-        self.val_dataset = None
+        self.train_dataset: Optional[datasets.Dataset] = None
+        self.val_dataset: Optional[datasets.Dataset] = None
 
     def prepare_data(self):
         # NOTE(2021-08-12): This should'nt be needed since this method should only be called on rank

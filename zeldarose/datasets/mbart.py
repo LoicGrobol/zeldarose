@@ -24,9 +24,7 @@ from datasets.fingerprint import Hasher
 from loguru import logger
 from torch.nn.utils.rnn import pad_sequence
 
-# Nouvo plan : un lecteur de jsonlines custom qui prédécoupe en source/target avec attribut src et
-# tgt, on charge ça dans dataset pour le système de cache, puis dans le dataloader on sample et
-# quelque part dans le trainmodule on ajoute le bruit utiliser
+# utiliser
 # <https://huggingface.co/docs/datasets/loading#python-generator> comme ça on peut streamer l'entrée
 
 
@@ -44,8 +42,9 @@ def extract_from_jsonline(
     source_langs: Collection[str],
     target_langs: Collection[str],
 ) -> Generator[DataRow, None, None]:
-    # We deal with both top-level tranlatifrdgggggggggggggggggggggggggggggggggggggggggwons and 🤗's
-    # conventional format for this task
+    # We deal with both top-level (`{fr: "J'ai chanté", "br": "Me m'eus kanet."}`) and 🤗's
+    # conventional format (`{"translation": {fr: "J'ai chanté", "br": "Me m'eus kanet."}}`) for this
+    # task.
     example = cast(Mapping[str, str], example.get("translation", example))
     for dns_lang in denoise_langs:
         if not (dns_str := example.get(dns_lang)):
@@ -314,8 +313,8 @@ class MBartDataModule(pl.LightningDataModule):
         else:
             self.val_dataset_path = None
 
-        self.train_dataset = None
-        self.val_dataset = None
+        self.train_dataset: Optional[datasets.Dataset] = None
+        self.val_dataset: Optional[datasets.Dataset] = None
 
     def prepare_data(self):
         # NOTE (2021-08-12): This should'nt be needed since this method should only be called on

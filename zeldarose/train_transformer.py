@@ -418,7 +418,7 @@ def main(
             f" loader batch size({device_batch_size} samples per device × {total_devices} devices)"
             " try using fewer devices"
         )
-    elif tuning_config.batch_size % (device_batch_size * total_devices):
+    elif tuning_config.batch_size % (device_batch_size * total_devices) != 0:
         remainder = tuning_config.batch_size % device_batch_size * total_devices
         logger.warning(
             f"Batch size ({tuning_config.batch_size}) is not a multiple of loader batch size"
