@@ -150,9 +150,7 @@ class SavePretrainedModelCallback(pl.Callback):
         self,
         trainer: pl.Trainer,
         pl_module: TrainingModule,
-        outputs: pl_types.STEP_OUTPUT,
-        batch: Any,
-        batch_idx: int,
+        optimizer: torch.optim.Optimizer,
     ):
         step = trainer.global_step
         if self.step_period is not None and step % self.step_period == 0:
