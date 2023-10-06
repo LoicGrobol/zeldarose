@@ -153,7 +153,7 @@ class SavePretrainedModelCallback(pl.Callback):
         optimizer: torch.optim.Optimizer,
     ):
         step = trainer.global_step
-        if self.step_period is not None and step % self.step_period == 0:
+        if self.step_period is not None and step % self.step_period == 0 and step != 0:
             step_save_dir = self.save_dir / f"step_{step}"
             logger.info(f"Saving intermediate model to {step_save_dir}")
             pl_module.save_transformer(step_save_dir, self.tokenizer)
