@@ -146,7 +146,7 @@ class SavePretrainedModelCallback(pl.Callback):
         self.tokenizer = tokenizer
 
     @rank_zero_only
-    def on_train_batch_end(
+    def on_before_zero_grad(
         self,
         trainer: pl.Trainer,
         pl_module: TrainingModule,

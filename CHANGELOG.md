@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed multiple save when using step-save-period in conjunction with bach accumulation (close issue
+  [#30](https://github.com/LoicGrobol/zeldarose/issues/30))
+
 ### Changed
 
 - Maximum Pyorch compatibility bumped to 2.1
