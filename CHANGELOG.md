@@ -7,6 +7,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+[Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.8.0...HEAD
+
+## [0.8.0] - 2023-10-06
+[0.8.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.7.3...v0.8.0
 
 ### Fixed
 
@@ -20,9 +24,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
   options is **deprecated** and will be removed in a future version.
 
 ## [0.7.3] - 2023-02-27
-
-[Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.6.0...HEAD
-[0.7.3]: https://github.com/LoicGrobol/zeldarose/compare/v0.6.0...v0.6.0
+[0.7.3]: https://github.com/LoicGrobol/zeldarose/compare/v0.7.2...v0.7.3
 
 ### Fixed
 
@@ -30,7 +32,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [0.7.2] - 2023-02-26
 
-[0.7.2]: https://github.com/LoicGrobol/zeldarose/compare/v0.6.0...v0.6.0
+[0.7.2]: https://github.com/LoicGrobol/zeldarose/compare/v0.7.1...v0.7.2
 
 ### Fixed
 
@@ -40,7 +42,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [0.7.1] - 2023-02-25
 
-[0.7.1]: https://github.com/LoicGrobol/zeldarose/compare/v0.6.0...v0.6.0
+[0.7.1]: https://github.com/LoicGrobol/zeldarose/compare/v0.7.0...v0.7.1
 
 ### Fixed
 
