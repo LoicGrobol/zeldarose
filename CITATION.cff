@@ -1,0 +1,37 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: Zelda Rose
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Loïc
+    family-names: Grobol
+    email: loic.grobol@gmail.com
+    affiliation: Université Paris Nanterre
+    orcid: 'https://orcid.org/0000-0002-4619-7836'
+repository-code: 'https://github.com/LoicGrobol/zeldarose'
+url: 'https://zeldarose.readthedocs.io'
+abstract: >-
+  Zelda Rose is a command line interface for pretraining
+  transformer-based models. Its purpose is to enable an easy
+  start for users interested in training these ubiquitous
+  models, but unable or unwilling to engage with more
+  comprehensive --- but more complex --- frameworks and the
+  complex interactions between libraries for managing
+  models, datasets and computations. Training a model
+  requires no code on the user's part and produce models
+  directly compatible with the HuggingFace ecosystem,
+  allowing quick and easy distribution and reuse. A
+  particular care is given to lowering the cost of
+  maintainability and future-proofing, by making the code as
+  modular as possible and taking advantage of third-party
+  libraries to limit ad-hoc code to the strict minimum.
+keywords:
+  - transformers
+  - nlp
+  - neural networks
+license: MIT
