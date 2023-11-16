@@ -480,7 +480,10 @@ def get_training_model(
         )
         for lang in all_langs:
             # FIXME: we need ignores here because (at least) Pyright doesn't take the hasattr into
-            # account
+            # account. We COULD use a typeguard and a MultilingTokenizer Protocol and that woud be
+            # verbose but clean BUT mypy doesn't want to generate intersections based on typeguards
+            # (https://github.com/python/typing/issues/1351) so this is the best we can do until
+            # [PEP 24](https://peps.python.org/pep-0724/) lands in mypy :)))))
             if (
                 substitute_lang := match_lang(lang, tokenizer.lang_code_to_id)  # type: ignore
             ) is None:

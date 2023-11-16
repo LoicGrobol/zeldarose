@@ -65,3 +65,20 @@ This is somewhat tricky, you have several options
 
 - <https://github.com/shoarora/lmtuners>
 - <https://github.com/huggingface/transformers/blob/243e687be6cd701722cce050005a2181e78a08a8/examples/run_language_modeling.py>
+
+## Citation
+
+```bibtex
+@inproceedings{grobol:hal-04262806,
+    TITLE = {{Zelda Rose: a tool for hassle-free training of transformer models}},
+    AUTHOR = {Grobol, Lo{\"i}c},
+    URL = {https://hal.science/hal-04262806},
+    BOOKTITLE = {{3rd Workshop for Natural Language Processing Open Source Software (NLP-OSS)}},
+    ADDRESS = {Singapore, Indonesia},
+    YEAR = {2023},
+    MONTH = Dec,
+    PDF = {https://hal.science/hal-04262806/file/Zeldarose_OSS_EMNLP23.pdf},
+    HAL_ID = {hal-04262806},
+    HAL_VERSION = {v1},
+}
+```
