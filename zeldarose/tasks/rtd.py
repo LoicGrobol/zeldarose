@@ -35,7 +35,7 @@ class RTDOutput(NamedTuple):
     rtd_labels: torch.Tensor
 
 
-@torch.jit.script
+@torch.compile
 def mask_tokens(
     tokens: torch.Tensor,
     input_mask_index: int,

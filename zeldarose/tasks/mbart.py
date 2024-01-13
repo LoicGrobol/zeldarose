@@ -72,6 +72,10 @@ def infill_noise(
     # (slow). Eh.
     # BIG LOOP OF HELL
     # You might believe this makes unnecessary copies but it actually Does Not!
+    # The idea here: instead of doing the fairseq thing of trying to generate spans to mask then
+    # trying to cram them into the sentence, we instead walk along the sentence one token at a time,
+    # and at each step, with probability `change_ratio` we make a jump whose length is sampled from
+    # a Poisson distribution.
     for sent, mask, jump, sent_len, keep in zip(
         input_ids, replace_mask, all_jumps, lengths, keep_mask
     ):
