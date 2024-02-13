@@ -9,6 +9,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 ## [Unreleased]
 [Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.8.0...HEAD
 
+### Changed
+
+- Pytorch compatibility changed to `>= 2.0, < 2.3`
+
 ## [0.8.0] - 2023-10-06
 [0.8.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.7.3...v0.8.0
 
