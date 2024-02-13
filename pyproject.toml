@@ -45,7 +45,7 @@ lint = [
     "mypy",
     "ruff",
 ]
-tests = ["pytest", "pytest-console-scripts", "pytest-lazy-fixture"]
+tests = ["pytest", "pytest-console-scripts"]
 
 [project.readme]
 file = "README.md"
