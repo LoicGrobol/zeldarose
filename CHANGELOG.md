@@ -9,9 +9,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 ## [Unreleased]
 [Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.8.0...HEAD
 
+### Fixed
+
+- Training a m2m100 model on a language (code) not originally included in its tokenizer now works.
+
 ### Changed
 
 - Pytorch compatibility changed to `>= 2.0, < 2.3`
+- 🤗 datasets compatibility changed to `>= 2.18, < 2.19`
 
 ## [0.8.0] - 2023-10-06
 [0.8.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.7.3...v0.8.0
