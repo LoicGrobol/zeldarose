@@ -323,7 +323,7 @@ class SavePretrainedModelCallback(pl.Callback):
     help=(
         "A raw corpus for validation."
         " Either as a path or as a `handle:config:split` identifier for 🤗 hub."
-        " (handle can be a url), e.g. `lgrobol/openminuscule:text:train`"
+        " (handle can be a url), e.g. `lgrobol/openminuscule:default:train`"
     ),
 )
 @click.option("--verbose", is_flag=True, help="More detailed logs")
