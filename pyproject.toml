@@ -41,7 +41,6 @@ dependencies = [
 
 [project.optional-dependencies]
 lint = [
-    "black",
     "mypy",
     "ruff",
 ]

@@ -494,6 +494,13 @@ def get_training_model(
                 tokenizer.add_tokens(lang, special_tokens=True)
                 lang_id = cast(int, tokenizer.convert_tokens_to_ids(lang))
                 tokenizer.lang_code_to_id[lang] = lang_id  # type: ignore
+                # For
+                # [m2m100](https://github.com/huggingface/transformers/blob/51bcadc10a569847b93a30dbe3a077037ae63bad/src/transformers/models/m2m_100/tokenization_m2m_100.py#L131)
+                # :)
+                if hasattr(tokenizer, "lang_code_to_token"):
+                    # m2m100 originally uses f"__{lang}__" as a lang token but let's not do that
+                    tokenizer.lang_code_to_token[lang] = lang
+                    tokenizer.lang_token_to_id[lang] = lang_id
                 model.resize_token_embeddings(len(tokenizer))
             else:
                 if substitute_lang != lang:
