@@ -7,7 +7,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
-[Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.8.0...HEAD
+
+## [0.9.0] - 2024-04-17
+[Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.8.0...v0.9.0
 
 ### Fixed
 
