@@ -8,7 +8,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
-## Changed
+## [0.10.0] - 2024-06-06
+
+### Changed
 
 - Bumped minimal (Pytorch) Lightning version to `2.0.0`
 - Pytorch compatibility changed to `>= 2.0, < 2.4`
@@ -17,7 +19,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
   lightning precision plugins.
 
 ## [0.9.0] - 2024-04-17
-[Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.8.0...v0.9.0
 
 ### Fixed
