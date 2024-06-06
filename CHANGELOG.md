@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
+## Changed
+
+- Bumped minimal (Pytorch) Lightning version to `2.0.0`
+- Pytorch compatibility changed to `>= 2.0, < 2.4`
+- 🤗 datasets compatibility changed to `>= 2.18, < 2.20`
+- Added support for the [new](https://github.com/Lightning-AI/pytorch-lightning/pull/16767)
+  lightning precision plugins.
+
 ## [0.9.0] - 2024-04-17
 [Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.9.0...HEAD
 [0.9.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.8.0...v0.9.0

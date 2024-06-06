@@ -1,26 +1,33 @@
 import logging
 import os
 import pathlib
-from types import ModuleType
 import warnings
-
-from typing import Any, Dict, List, Literal, Optional, Union
+from types import ModuleType
+from typing import Any, Dict, get_args, List, Literal, Optional, Union
 
 import click
 import pytorch_lightning as pl
-from pytorch_lightning import (
-    callbacks as pl_callbacks,
-    profilers as pl_profilers,
-    strategies as pl_strategies,
-)
-from pytorch_lightning.utilities import types as pl_types
 import rich
 import tomli
 import torch
 import transformers
-
+import lightning
+from lightning.fabric.plugins.precision.precision import (
+    _PRECISION_INPUT_STR,
+    _PRECISION_INPUT_STR_ALIAS,
+)
 from lightning_utilities.core.rank_zero import rank_zero_only
 from loguru import logger
+from pytorch_lightning import (
+    callbacks as pl_callbacks,
+)
+from pytorch_lightning import (
+    profilers as pl_profilers,
+)
+from pytorch_lightning import (
+    strategies as pl_strategies,
+)
+
 from zeldarose.common import TrainConfig, TrainingModule
 from zeldarose.tasks import mbart, mlm, rtd
 
@@ -266,7 +273,7 @@ class SavePretrainedModelCallback(pl.Callback):
 )
 @click.option(
     "--precision",
-    type=click.Choice(["64", "32", "16", "bf16"]),
+    type=click.Choice([*get_args(_PRECISION_INPUT_STR), *get_args(_PRECISION_INPUT_STR_ALIAS)]),
     help="The precision of float for training",
 )
 @click.option(
@@ -454,9 +461,9 @@ def main(
         else:
             raise ValueError("Missing both pretrained tokenizer and pretrained model")
     logger.info(f"Loading pretrained tokenizer {tokenizer_name}")
-    tokenizer: Union[
-        transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast
-    ] = transformers.AutoTokenizer.from_pretrained(tokenizer_name, use_fast=True)
+    tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast] = (
+        transformers.AutoTokenizer.from_pretrained(tokenizer_name, use_fast=True)
+    )
 
     training_model: TrainingModule = task.get_training_model(
         model_config=model_config_path,
