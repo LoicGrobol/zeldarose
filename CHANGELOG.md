@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
+### Fixed
+
+- Correctly load validation data for mBART training
+
 ## [0.10.0] - 2024-06-06
 
 ### Changed

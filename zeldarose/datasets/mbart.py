@@ -342,7 +342,7 @@ class MBartDataModule(pl.LightningDataModule):
                     save_path=self.val_dataset_path,
                     source_langs=self.source_langs,
                     target_langs=self.target_langs,
-                    text_path=self.train_path,
+                    text_path=self.val_path,
                     tokenizer=self.tokenizer,
                     tokenizer_name=self.tokenizer_name,
                 )
