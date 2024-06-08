@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
+### Changed
+
+- Pin transformers to `< 0.41`, see [#85](https://github.com/LoicGrobol/zeldarose/issues/85).
+
 ### Fixed
 
 - Correctly load validation data for mBART training
