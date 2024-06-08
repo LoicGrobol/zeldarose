@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
+## [0.10.1] - 2024-06-08
+
 ### Changed
 
 - Pin transformers to `< 0.41`, see [#85](https://github.com/LoicGrobol/zeldarose/issues/85).
@@ -28,6 +30,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [0.9.0] - 2024-04-17
 [Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.10.0...HEAD
+[0.10.1]: https://github.com/LoicGrobol/zeldarose/compare/v0.10.0...v0.10.0
 [0.10.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.8.0...v0.9.0
 

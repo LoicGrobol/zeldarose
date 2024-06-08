@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "zeldarose"
-version = "0.10.0"
+version = "0.10.1"
 description = "Train transformer-based models"
 license = { text = "MIT" }
 authors = [{ name = "Loïc Grobol", email = "loic.grobol@gmail.com" }]
