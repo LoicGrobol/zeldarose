@@ -1,11 +1,36 @@
 import pathlib
+import subprocess
+import sys
 from typing import Dict, Optional
 
 import pytorch_lightning as pl
+import system_info
 import torch
 import transformers
 from loguru import logger
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
+
+
+def dump_environment(output_dir: pathlib.Path):
+    logger.info(f"Saving environement info in {output_dir}.")
+    with open(output_dir / "frozen_requirements.txt", "w") as out_stream:
+        try:
+            subprocess.run(["python", "-m", "pip", "freeze"], stdout=out_stream, check=True)
+        except subprocess.CalledProcessError as e:
+            logger.warning(f"Running pip exited with code {e.returncode}")
+    with open(output_dir / "command.txt") as out_stream:
+        out_stream.write(str(sys.argv))
+    with open(output_dir / "platform.txt") as out_stream:
+        out_stream.write(str(system_info.sysInfo))
+        out_stream.write("\n")
+        if torch.cuda.is_available():
+            for i in range(torch.cuda.device_count()):
+                out_stream.write(f"gpu #{i}: {torch.cuda.get_device_name(i)}")
+                out_stream.write("\n")
+        else:
+            out_stream.write("No GPU available\n")
+    with open(output_dir / "env.txt") as out_stream:
+        out_stream.write(str(os.environ))
 
 
 def get_internal_transformer_model(

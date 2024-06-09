@@ -11,7 +11,6 @@ import rich
 import tomli
 import torch
 import transformers
-import lightning
 from lightning.fabric.plugins.precision.precision import (
     _PRECISION_INPUT_STR,
     _PRECISION_INPUT_STR_ALIAS,
@@ -30,6 +29,7 @@ from pytorch_lightning import (
 
 from zeldarose.common import TrainConfig, TrainingModule
 from zeldarose.tasks import mbart, mlm, rtd
+from zeldarose.utils import dump_environment
 
 
 def setup_logging(
@@ -381,7 +381,7 @@ def main(
         log_file=log_file,
         verbose=verbose,
     )
-    logger.debug(f"Current environment: {os.environ}")
+    dump_environment(output_dir=out_dir)
 
     logger.info(f"Using random seed {seed}")
     pl.seed_everything(seed, workers=True)
