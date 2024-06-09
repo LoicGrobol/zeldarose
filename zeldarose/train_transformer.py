@@ -381,6 +381,7 @@ def main(
         log_file=log_file,
         verbose=verbose,
     )
+    out_dir.mkdir(exist_ok=True, parents=True)
     dump_environment(output_dir=out_dir)
 
     logger.info(f"Using random seed {seed}")
