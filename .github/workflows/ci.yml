@@ -30,9 +30,9 @@ jobs:
               run: |
                   pip install --upgrade ruff
                   # stop the build if there are Python syntax errors or undefined names
-                  ruff . --select=E9,F63,F7,F82 --show-source
+                  ruff check . --select=E9,F63,F7,F82 --output-format=full
                   # exit-zero treats all errors as warnings.
-                  ruff . --exit-zero --statistics
+                  ruff check . --exit-zero --statistics
     test:
         needs: lint
         runs-on: ubuntu-latest

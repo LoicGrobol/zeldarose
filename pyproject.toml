@@ -68,9 +68,9 @@ zeldarose-transformer = "zeldarose.train_transformer:main"
 
 [tool.ruff]
 line-length = 100
-select = ["A", "B", "C90", "E", "F", "N", "NPY", "PT", "PTH", "PYI", "S", "W"]
+lint.select = ["A", "B", "C90", "E", "F", "N", "NPY", "PT", "PTH", "PYI", "S", "W"]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = [
     "S101", # asserts allowed in tests
     "ARG", # Unused function args -> fixtures nevertheless are functionally relevant
