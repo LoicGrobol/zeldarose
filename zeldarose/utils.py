@@ -19,9 +19,9 @@ def dump_environment(output_dir: pathlib.Path):
             subprocess.run(["python", "-m", "pip", "freeze"], stdout=out_stream, check=True)
         except subprocess.CalledProcessError as e:
             logger.warning(f"Running pip exited with code {e.returncode}")
-    with open(output_dir / "command.txt") as out_stream:
+    with open(output_dir / "command.txt", "w") as out_stream:
         out_stream.write(str(sys.argv))
-    with open(output_dir / "platform.txt") as out_stream:
+    with open(output_dir / "platform.txt", "w") as out_stream:
         out_stream.write(str(system_info.sysInfo))
         out_stream.write("\n")
         if torch.cuda.is_available():
