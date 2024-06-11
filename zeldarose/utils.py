@@ -30,7 +30,7 @@ def dump_environment(output_dir: pathlib.Path):
                 out_stream.write("\n")
         else:
             out_stream.write("No GPU available\n")
-    with open(output_dir / "env.txt") as out_stream:
+    with open(output_dir / "env.txt", "w") as out_stream:
         out_stream.write(str(os.environ))
 
 
