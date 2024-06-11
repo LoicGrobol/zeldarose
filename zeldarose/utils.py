@@ -5,7 +5,7 @@ import sys
 from typing import Dict, Optional
 
 import pytorch_lightning as pl
-import system_info
+from system_info import sysinfo
 import torch
 import transformers
 from loguru import logger
@@ -22,7 +22,7 @@ def dump_environment(output_dir: pathlib.Path):
     with open(output_dir / "command.txt", "w") as out_stream:
         out_stream.write(str(sys.argv))
     with open(output_dir / "platform.txt", "w") as out_stream:
-        out_stream.write(str(system_info.sysInfo))
+        out_stream.write(str(sysinfo.sysInfo))
         out_stream.write("\n")
         if torch.cuda.is_available():
             for i in range(torch.cuda.device_count()):
