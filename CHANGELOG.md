@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
+### Changed
+
+- Several dumps of environments added to the output dir of transformer training to help with
+  reproducibility and bug reporting.
+
 ## [0.10.1] - 2024-06-08
 
 ### Changed
