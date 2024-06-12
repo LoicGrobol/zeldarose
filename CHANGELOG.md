@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
+## [0.11.0] - 2024-06-12
+
 ### Changed
 
 - Several dumps of environments added to the output dir of transformer training to help with
@@ -35,6 +37,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [0.9.0] - 2024-04-17
 [Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.10.0...HEAD
+[0.11.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.10.0...v0.10.0
 [0.10.1]: https://github.com/LoicGrobol/zeldarose/compare/v0.10.0...v0.10.0
 [0.10.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.8.0...v0.9.0
