@@ -222,7 +222,7 @@ class MBartTrainingModel(TrainingModule):
 
         self.log(
             "train/denoise_loss",
-            denoise_loss,
+            denoise_loss.item(),
             batch_size=denoise_batch_size,
             reduce_fx=torch.mean,
             on_epoch=True,
@@ -245,7 +245,7 @@ class MBartTrainingModel(TrainingModule):
 
         self.log(
             "train/translate_loss",
-            translate_loss,
+            translate_loss.item(),
             batch_size=translate_batch_size,
             reduce_fx=torch.mean,
             on_epoch=True,
@@ -260,7 +260,7 @@ class MBartTrainingModel(TrainingModule):
         batch_size = denoise_batch_size + translate_batch_size
         self.log(
             "train/loss",
-            loss,
+            loss.item(),
             batch_size=batch_size,
             reduce_fx=torch.mean,
             on_epoch=True,
@@ -302,7 +302,7 @@ class MBartTrainingModel(TrainingModule):
 
         self.log(
             "validation/denoise_loss",
-            denoise_loss,
+            denoise_loss.item(),
             batch_size=denoise_batch_size,
             reduce_fx=torch.mean,
             on_epoch=True,
@@ -320,11 +320,11 @@ class MBartTrainingModel(TrainingModule):
             translate_loss = translate_outputs.loss
             translate_batch_size = translate.input_ids.shape[0]
 
-            # NOTE: can't be made to work until ForcedBOSTokenLogitsProcessor does
+            # NOTE: can't be made to work until  does
             # generated_ids = self.model.generate(
             #     input_ids=translate.input_ids,
             #     logits_processor=transformers.LogitsProcessorList(
-            #         [
+            #         [ForcedBOSTokenLogitsProcessor
             #             ForcedBOSTokenLogitsProcessor(
             #                 cast(torch.LongTensor, translate.decoder_input_ids[:, 1])
             #             )
@@ -340,7 +340,7 @@ class MBartTrainingModel(TrainingModule):
 
         self.log(
             "validation/translate_loss",
-            translate_loss,
+            translate_loss.item(),
             batch_size=translate_batch_size,
             reduce_fx=torch.mean,
             on_epoch=True,
@@ -356,7 +356,7 @@ class MBartTrainingModel(TrainingModule):
         batch_size = denoise_batch_size + translate_batch_size
         self.log(
             "validation/loss",
-            loss,
+            loss.item(),
             batch_size=batch_size,
             reduce_fx=torch.mean,
             on_epoch=True,
