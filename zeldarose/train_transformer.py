@@ -511,8 +511,9 @@ def main(
         logger.info(f"Training the model on {num_devices} devices")
 
     callbacks: List[pl.Callback] = [
-        pl_callbacks.RichProgressBar(console_kwargs={"stderr": True}),
+        pl_callbacks.DeviceStatsMonitor(),
         pl_callbacks.LearningRateMonitor("step"),
+        pl_callbacks.RichProgressBar(console_kwargs={"stderr": True}),
     ]
     if epoch_save_period is not None or step_save_period is not None:
         training_model.save_transformer(out_dir / "partway_models" / "initial", tokenizer)
