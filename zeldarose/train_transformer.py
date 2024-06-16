@@ -474,6 +474,9 @@ def main(
         training_config=tuning_config,
     )
     training_model.train()
+    if hasattr(training_model.model.config, "use_cache"):
+        logging.debug("Disabling model generation cache to save up memory.")
+        training_model.model.model.config.use_cache = False
 
     logger.info("Creating data modules")
     datamodule = training_model.get_data_module(

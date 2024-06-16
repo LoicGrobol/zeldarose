@@ -222,7 +222,7 @@ class MBartTrainingModel(TrainingModule):
 
         self.log(
             "train/denoise_loss",
-            denoise_loss.item(),
+            denoise_loss.detach(),
             batch_size=denoise_batch_size,
             reduce_fx=torch.mean,
             on_epoch=True,
@@ -245,7 +245,7 @@ class MBartTrainingModel(TrainingModule):
 
         self.log(
             "train/translate_loss",
-            translate_loss.item(),
+            translate_loss.detach(),
             batch_size=translate_batch_size,
             reduce_fx=torch.mean,
             on_epoch=True,
@@ -260,7 +260,7 @@ class MBartTrainingModel(TrainingModule):
         batch_size = denoise_batch_size + translate_batch_size
         self.log(
             "train/loss",
-            loss.item(),
+            loss.detach(),
             batch_size=batch_size,
             reduce_fx=torch.mean,
             on_epoch=True,
@@ -302,7 +302,7 @@ class MBartTrainingModel(TrainingModule):
 
         self.log(
             "validation/denoise_loss",
-            denoise_loss.item(),
+            denoise_loss.detach(),
             batch_size=denoise_batch_size,
             reduce_fx=torch.mean,
             on_epoch=True,
@@ -340,7 +340,7 @@ class MBartTrainingModel(TrainingModule):
 
         self.log(
             "validation/translate_loss",
-            translate_loss.item(),
+            translate_loss.detach(),
             batch_size=translate_batch_size,
             reduce_fx=torch.mean,
             on_epoch=True,
@@ -356,7 +356,7 @@ class MBartTrainingModel(TrainingModule):
         batch_size = denoise_batch_size + translate_batch_size
         self.log(
             "validation/loss",
-            loss.item(),
+            loss.detach(),
             batch_size=batch_size,
             reduce_fx=torch.mean,
             on_epoch=True,
