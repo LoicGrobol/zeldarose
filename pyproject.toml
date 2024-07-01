@@ -37,7 +37,7 @@ dependencies = [
     "tokenizers >= 0.10, < 0.20",
     "tomli",
     "torch >= 2.0, < 2.4",
-    "transformers >= 4.19.0, < 4.41.0, != 4.23.0, != 4.23.1",
+    "transformers != 4.23.0, != 4.23.1, >= 4.42.3, < 4.43.0",
 ]
 
 
