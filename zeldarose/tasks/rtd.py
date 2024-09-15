@@ -111,6 +111,9 @@ class RTDTrainingModel(TrainingModule):
         self.generator = generator
         self.discriminator = discriminator
 
+        # FIXME: Alias for uniformity
+        self.model = self.discriminator
+
         self.save_hyperparameters("training_config", "task_config")
 
     def forward(  # type: ignore[override]
