@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
+### Changed
+
+- Bumped datasets to `>= 3.0, < 3.1`
+- Bumped lightning to `< 2.5`
+- Bumped torch to `< 2.5`
+
 ## [0.11.0] - 2024-06-12
 
 ### Changed
