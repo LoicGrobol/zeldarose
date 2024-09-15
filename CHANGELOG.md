@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 - Bumped datasets to `>= 3.0, < 3.1`
 - Bumped lightning to `< 2.5`
 - Bumped torch to `< 2.5`
+- Bumped transformers to allow `4.44`, skipping versions from `4.41` to `4.43`
 
 ## [0.11.0] - 2024-06-12
 
