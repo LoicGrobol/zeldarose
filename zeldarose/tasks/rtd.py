@@ -406,7 +406,8 @@ class RTDTrainingModel(TrainingModule):
                 tokenizer.max_len_single_sentence,
                 cast(int, max_length) - tokenizer.num_special_tokens_to_add(pair=False),
             )
-        max_length = min(max_length, self.training_config.max_input_length)
+        if self.training_config.max_input_length is not None:
+            max_length = min(max_length, self.training_config.max_input_length)
 
         return zeldarose.datasets.transform.TextDataModule(
             loader_batch_size=loader_batch_size,
