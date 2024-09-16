@@ -381,6 +381,7 @@ class MBartTrainingModel(TrainingModule):
                 tokenizer.max_len_single_sentence,
                 max_length - tokenizer.num_special_tokens_to_add(pair=False),
             )
+        max_length = min(max_length, self.training_config.max_input_length)
 
         return zeldarose.datasets.mbart.MBartDataModule(
             data_dir=data_dir,
@@ -538,6 +539,8 @@ def match_lang(lang: str, available: Collection[str]) -> Optional[str]:
     if len(substitutes) > 1:
         raise ValueError(f"Multiple tokenizer langs would fit {lang}: {substitutes}")
     elif len(substitutes) == 0:
+        logger.debug(f"No substitute found for {lang}.")
         return None
     else:
+        logger.debug(f"Using {substitutes[0]} as a substitute for {lang}.")
         return substitutes[0]

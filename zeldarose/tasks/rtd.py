@@ -240,9 +240,7 @@ class RTDTrainingModel(TrainingModule):
 
         return combined_loss
 
-    def validation_step(
-        self, batch: zeldarose.datasets.transform.TextBatch, batch_idx: int
-    ):  # type: ignore[override]
+    def validation_step(self, batch: zeldarose.datasets.transform.TextBatch, batch_idx: int):  # type: ignore[override]
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
         with torch.no_grad():
             masked = mask_tokens(
@@ -408,6 +406,7 @@ class RTDTrainingModel(TrainingModule):
                 tokenizer.max_len_single_sentence,
                 cast(int, max_length) - tokenizer.num_special_tokens_to_add(pair=False),
             )
+        max_length = min(max_length, self.training_config.max_input_length)
 
         return zeldarose.datasets.transform.TextDataModule(
             loader_batch_size=loader_batch_size,
