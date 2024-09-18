@@ -43,11 +43,11 @@ jobs:
               with:
                 enable-cache: true
             - name: Install Python  ${{ matrix.python-version }}
-              run: uv python install  ${{ matrix.python-version }}
+              run: uv python install ${{ matrix.python-version }}
             - name: Get transformers and cache
               id: transfo-install
               run: |
-                uv pip install --upgrade transformers
+                uv pip install --system --upgrade transformers
                 python -c "from transformers.file_utils import TRANSFORMERS_CACHE; print(f'dir={TRANSFORMERS_CACHE}')" >> $GITHUB_OUTPUT
                 echo "version=$(pip show transformers | grep Version)" >> $GITHUB_OUTPUT
             - uses: actions/cache@v4
