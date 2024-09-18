@@ -60,8 +60,10 @@ jobs:
                 key: ${{ runner.os }}-transformers-${{ steps.transfo-install.outputs.version }}
                 restore-keys: |
                   ${{ runner.os }}-transformers-
-            - name: Run tox with tox-gh-actions
-              uses: ymyzk/run-tox-gh-actions@main
+            - name: Run tox
+              run: |
+                uv pip install tox tox-gh-actions tox-uv
+                tox
     build_wheels:
         name: Build wheels on ${{ matrix.os }}
         runs-on: ${{ matrix.os }}
