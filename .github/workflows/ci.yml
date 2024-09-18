@@ -48,7 +48,7 @@ jobs:
         uses: astral-sh/setup-uv@v3
         with:
           cache-dependency-glob: "**/pyproject.toml"
-          cache-suffix: ${{ github.job }}
+          cache-suffix: main-py${{ matrix.python-version }}
           enable-cache: true
       - name: Create base venv
         run: uv venv --python ${{ matrix.python-version }}
@@ -85,9 +85,10 @@ jobs:
         uses: astral-sh/setup-uv@v3
         with:
           cache-dependency-glob: "**/pyproject.toml"
+          cache-suffix: main-py${{ matrix.python-version }}
           enable-cache: true
       - name: Build wheels
-        run: uv build --python ${{ matrix.python-version }} --wheel
+        run: uv build --python ${{ matrix.python-version }}· --wheel
       - uses: actions/upload-artifact@v4
         with:
           name: dist-wheel-py${{ matrix.python-version }}-${{ matrix.os }}
