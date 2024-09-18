@@ -76,7 +76,8 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: [env.main-python-version]
+        python-version:
+          - 3.12
     needs: test
     steps:
       - uses: actions/checkout@v4
