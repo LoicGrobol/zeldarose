@@ -79,7 +79,7 @@ jobs:
                 enable-cache: true
                 cache-dependency-glob: "**/pyproject.toml"
             - name: Build wheels
-              run: uvx --python ${{ env.main-python-version }} build --wheel
+              run: uvx --python ${{ env.main-python-version }} --from build pyproject-build --wheel
             - uses: actions/upload-artifact@v4
               with:
                   name: dist-wheel-${{ matrix.os }}
@@ -96,7 +96,7 @@ jobs:
                 enable-cache: true
                 cache-dependency-glob: "**/pyproject.toml"
             - name: Build wheels
-              run: uvx --python ${{ env.main-python-version }} build --sdist
+              run: uvx --python ${{ env.main-python-version }} --from build pyproject-build --sdist
             - uses: actions/upload-artifact@v4
               with:
                   name: dist-sdist
