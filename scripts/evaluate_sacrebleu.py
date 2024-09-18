@@ -11,15 +11,16 @@ from sacrebleu.metrics import bleu, chrf, ter
 
 
 @click.command(
-    help="Apply a mBART translation model to a series of testcases for quantitative and eyeballing purposes"
+    help=(
+        "Apply a mBART translation model to a series of testcases for quantitative and eyeballing"
+        " purposes"
+    )
 )
 @click.argument("model")
 @click.argument("testcases", type=click.File("r"))
 @click.argument(
     "output_dir",
-    type=click.Path(
-        file_okay=False, dir_okay=True, writable=True, path_type=pathlib.Path
-    ),
+    type=click.Path(file_okay=False, dir_okay=True, writable=True, path_type=pathlib.Path),
 )
 @click.option("--model-src-langcode", show_default=True)
 @click.option("--model-tgt-langcode", show_default=True)
@@ -42,8 +43,8 @@ def main(
     pipeline = transformers.pipeline("translation", model=model)
     with jsonlines.Reader(testcases) as in_stream:
         samples = [
-            l.get("translation", l)
-            for l in track(in_stream, description="Reading corpus…")
+            line.get("translation", line)
+            for line in track(in_stream, description="Reading corpus…")
         ]
     predictions = pipeline(
         track([s[src_langcode] for s in samples], description="Translating…"),
@@ -71,7 +72,7 @@ def main(
             "value": m.corpus_score(predictions, [references]).score,
             "signature": str(m.get_signature()),
         }
-    with open(output_dir / "metrics.json", "w") as out_stream:
+    with (output_dir / "metrics.json").open("w") as out_stream:
         json.dump(metrics, out_stream, indent=4)
 
 
