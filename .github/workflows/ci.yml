@@ -84,7 +84,6 @@ jobs:
         uses: astral-sh/setup-uv@v3
         with:
           cache-dependency-glob: "**/pyproject.toml"
-          cache-suffix: ${{ github.job }}
           enable-cache: true
       - name: Build wheels
         run: uv build --python ${{ matrix.python-version }} --wheel
@@ -102,7 +101,6 @@ jobs:
         uses: astral-sh/setup-uv@v3
         with:
           cache-dependency-glob: "**/pyproject.toml"
-          cache-suffix: ${{ github.job }}
           enable-cache: true
       - name: Build wheels
         run: uv build --python ${{ env.main-python-version }} --sdist
