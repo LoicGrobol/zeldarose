@@ -12,8 +12,6 @@ on:
         required: true
 env:
   main-python-version: "3.12"
-  UV_SYSTEM_PYTHON: 1
-  
 
 jobs:
     lint:
@@ -29,9 +27,9 @@ jobs:
             - name: Lint with ruff
               run: |
                   # stop the build if there are Python syntax errors or undefined names
-                  uvx ruff check . --select=E9,F63,F7,F82 --output-format=github
+                  uvx --python ${{ env.main-python-version }} ruff check . --select=E9,F63,F7,F82 --output-format=github
                   # exit-zero treats all errors as warnings.
-                  uvx ruff check . --exit-zero --output-format=github
+                  uvx --python ${{ env.main-python-version }} ruff check . --exit-zero --output-format=github
     test:
         needs: lint
         runs-on: ubuntu-latest
@@ -46,11 +44,10 @@ jobs:
               with:
                 enable-cache: true
                 cache-dependency-glob: "**/pyproject.toml"
-            - name: Install Python  ${{ matrix.python-version }}
-              run: uv python install ${{ matrix.python-version }}
             - name: Get transformers and cache
               id: transfo-install
               run: |
+                uv venv --python ${{ matrix.python-version }}
                 uv pip install --upgrade transformers
                 python -c "from transformers.file_utils import TRANSFORMERS_CACHE; print(f'dir={TRANSFORMERS_CACHE}')" >> $GITHUB_OUTPUT
                 echo "version=$(pip show transformers | grep Version)" >> $GITHUB_OUTPUT
@@ -78,12 +75,8 @@ jobs:
               with:
                 enable-cache: true
                 cache-dependency-glob: "**/pyproject.toml"
-            - name: Install Python  ${{ env.main-python-version }}
-              run: uv python install  ${{ env.main-python-version }}
-            - name: Install dependencies
-              run: uv pip install --upgrade pip setuptools wheel build
             - name: Build wheels
-              run: python -m build --wheel
+              run: uvx --python ${{ env.main-python-version }} build --wheel
             - uses: actions/upload-artifact@v4
               with:
                   name: dist-wheel-${{ matrix.os }}
@@ -99,12 +92,8 @@ jobs:
               with:
                 enable-cache: true
                 cache-dependency-glob: "**/pyproject.toml"
-            - name: Install Python  ${{ env.main-python-version }}
-              run: uv python install  ${{ env.main-python-version }}
-            - name: Install dependencies
-              run: uv pip install --upgrade pip setuptools wheel build
             - name: Build wheels
-              run: python -m build --sdist
+              run: uvx --python ${{ env.main-python-version }} build --sdist
             - uses: actions/upload-artifact@v4
               with:
                   name: dist-sdist
