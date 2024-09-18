@@ -320,7 +320,7 @@ class MBartTrainingModel(TrainingModule):
             translate_loss = translate_outputs.loss
             translate_batch_size = translate.input_ids.shape[0]
 
-            # NOTE: can't be made to work until  does
+            # NOTE: can't be made to work until ForcedBOSTokenLogitsProcessor does
             # generated_ids = self.model.generate(
             #     input_ids=translate.input_ids,
             #     logits_processor=transformers.LogitsProcessorList(

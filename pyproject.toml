@@ -46,7 +46,11 @@ lint = [
     "mypy",
     "ruff",
 ]
-tests = ["pytest", "pytest-console-scripts"]
+tests = [
+    "pytest", 
+    "pytest-console-scripts",
+    "pytest-github-actions-annotate-failures",
+]
 
 [project.readme]
 file = "README.md"
