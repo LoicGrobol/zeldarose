@@ -69,11 +69,12 @@ jobs:
           uv pip install tox tox-gh-actions tox-uv
           tox
   build_wheels:
-    name: Build wheels on ${{ matrix.os }}
+    name: Build wheels for Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest]
+        python-version: [env.main-python-version]
     needs: test
     steps:
       - uses: actions/checkout@v4
@@ -83,10 +84,10 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "**/pyproject.toml"
       - name: Build wheels
-        run: uvx --python ${{ env.main-python-version }} --from build pyproject-build --wheel
+        run: uv build --python ${{ matrix.python-version }} --wheel
       - uses: actions/upload-artifact@v4
         with:
-          name: dist-wheel-${{ matrix.os }}
+          name: dist-wheel-py${{ matrix.python-version }}-${{ matrix.os }}
           path: ./dist/*.whl
   build_sdist:
     name: Build source distribution
@@ -100,7 +101,7 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "**/pyproject.toml"
       - name: Build wheels
-        run: uvx --python ${{ env.main-python-version }} --from build pyproject-build --sdist
+        run: uv build --python ${{ env.main-python-version }} --sdist
       - uses: actions/upload-artifact@v4
         with:
           name: dist-sdist
