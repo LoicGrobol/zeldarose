@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 - Bumped lightning to `< 2.5`
 - Bumped torch to `< 2.5`
 - Bumped tokenizers to `< 0.21`
-- Bumped transformers to allow `4.44`, skipping versions from `4.41` to `4.43`
+- Bumped transformers to allow `4.44+`, skipping versions from `4.41` to `4.43`
 
 ## [0.11.0] - 2024-06-12
 
