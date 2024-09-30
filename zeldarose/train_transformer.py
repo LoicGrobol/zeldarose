@@ -474,6 +474,9 @@ def main(
         training_config=tuning_config,
     )
     training_model.train()
+    if hasattr(training_model.model.config, "use_cache"):
+        logging.debug("Disabling model generation cache to save up memory.")
+        training_model.model.config.use_cache = False
 
     logger.info("Creating data modules")
     datamodule = training_model.get_data_module(
@@ -511,8 +514,9 @@ def main(
         logger.info(f"Training the model on {num_devices} devices")
 
     callbacks: List[pl.Callback] = [
-        pl_callbacks.RichProgressBar(console_kwargs={"stderr": True}),
+        pl_callbacks.DeviceStatsMonitor(),
         pl_callbacks.LearningRateMonitor("step"),
+        pl_callbacks.RichProgressBar(console_kwargs={"stderr": True}),
     ]
     if epoch_save_period is not None or step_save_period is not None:
         training_model.save_transformer(out_dir / "partway_models" / "initial", tokenizer)
