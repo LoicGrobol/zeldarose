@@ -110,6 +110,7 @@ jobs:
                   name: dist-sdist
                   path: dist/*.tar.gz
     upload_pypi:
+        environment: release
         needs: [build_wheels, build_sdist]
         runs-on: ubuntu-latest
         if: >
