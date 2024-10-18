@@ -30,7 +30,6 @@ dependencies = [
     "rich",
     "sacrebleu",
     "sacremoses",
-    "sentencepiece",
     "system_info",
     "tensorboardx",
     "torchmetrics >= 0.9, < 2.0",

@@ -12,6 +12,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 - Bumped datasets to `>= 3.0, < 3.1`
 - Bumped lightning to `< 2.5`
+- Remove hard dependency on `sentencepiece`. Users can still install it if the tokenizer they use
+  needs it, but their release policy is too brittle to allow them to block us, especially since it's
+  only a quality of life dependency for us.
 - Bumped torch to `< 2.6`
 - Bumped tokenizers to `< 0.21`
 - Bumped transformers to allow `4.44+`, skipping versions from `4.41` to `4.43`
