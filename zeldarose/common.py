@@ -87,6 +87,7 @@ class TrainingModule(pl.LightningModule, ABC):
         optimizer = torch.optim.AdamW(
             optimizer_grouped_parameters,
             betas=self.training_config.betas,
+            fused=True,
             lr=self.training_config.learning_rate,
             eps=self.training_config.epsilon,
             weight_decay=decay_rate,
