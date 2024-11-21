@@ -306,7 +306,7 @@ class SavePretrainedModelCallback(pl.Callback):
 @click.option(
     "--tf32-mode",
     type=click.Choice(["highest", "high", "medium"]),
-    help="Ampere matmul optimisation mode (for supported GPUs)",
+    help="Ampere matmul optimisation precision (for supported GPUs)",
 )
 @click.option(
     "--tokenizer",
@@ -506,7 +506,7 @@ def main(
         additional_kwargs["precision"] = precision
     if accelerator == "gpu":
         if tf32_mode is not None:
-            logger.info(f"Using Ampere matmul optimisations level {tf32_mode}")
+            logger.info(f"Using Ampere matmul optimisations with precision {tf32_mode}")
             torch.set_float32_matmul_precision(tf32_mode)
     elif accelerator == "cpu":
         logger.info(f"Training the model on CPU in {num_devices} processes")
