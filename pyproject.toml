@@ -20,23 +20,23 @@ keywords = ["nlp", "transformers", "language-model"]
 requires-python = ">=3.8"
 dependencies = [
     "click >= 8.0.4, < 9.0",
-    "datasets >= 3.0, < 3.1",
+    "datasets >= 3.0, < 3.2",
     "filelock",
     "jsonlines",
-    "lightning >= 2.0, < 2.5",
+    "lightning >= 2.0, < 2.6",
     "loguru",
     "pydantic",
-    "pytorch-lightning >= 2.0, < 2.5",
+    "pytorch-lightning >= 2.0, < 2.6",
     "rich",
     "sacrebleu",
     "sacremoses",
     "system_info",
     "tensorboardx",
-    "torchmetrics >= 0.9, < 2.0",
-    "tokenizers >= 0.10, < 0.21",
+    "torchmetrics >= 1.0, < 2.0",
+    "tokenizers >= 0.10, < 0.22",
     "tomli",
-    "torch >= 2.0, < 2.6",
-    "transformers >= 4.19, < 4.46, != 4.23, != 4.41, != 4.42, != 4.43",
+    "torch >= 2.0, < 2.7",
+    "transformers >= 4.19, < 5.0, != 4.23, != 4.41, != 4.42, != 4.43",
 ]
 
 
