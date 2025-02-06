@@ -1,5 +1,5 @@
 import pathlib
-from typing import Any, cast, Dict, NamedTuple, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Dict, NamedTuple, Optional, Union, cast
 
 import pydantic
 import torch
@@ -11,7 +11,6 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 import zeldarose.datasets.transform
 from zeldarose.common import MaskedAccuracy, TrainConfig, TrainingModule
-
 
 if TYPE_CHECKING:
     import transformers.modeling_outputs

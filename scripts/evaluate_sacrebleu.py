@@ -1,11 +1,10 @@
 import json
 import pathlib
-from typing import cast, Iterable, TextIO
+from typing import Iterable, TextIO, cast
 
 import click
 import jsonlines
 import transformers
-
 from rich.progress import track
 from sacrebleu.metrics import bleu, chrf, ter
 

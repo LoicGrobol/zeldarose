@@ -1,5 +1,5 @@
 import pathlib
-from typing import Any, cast, Dict, NamedTuple, List, Literal, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, NamedTuple, Optional, Union, cast
 
 import pydantic
 import pytorch_lightning as pl
@@ -7,8 +7,8 @@ import torch
 import torch.jit
 import torch.utils.data
 import transformers
-from loguru import logger
 from lightning_utilities.core.rank_zero import rank_zero_only
+from loguru import logger
 
 import zeldarose.datasets.transform
 from zeldarose.common import MaskedAccuracy, TrainConfig, TrainingModule
@@ -16,7 +16,6 @@ from zeldarose.utils import (
     OneWayShareTransformersEmbeddingsCallback,
     ShareTransformersEmbeddingsCallback,
 )
-
 
 if TYPE_CHECKING:
     import transformers.modeling_outputs

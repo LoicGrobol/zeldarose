@@ -1,16 +1,15 @@
 import os
 import pathlib
-
 from typing import (
     Collection,
     Generator,
-    Mapping,
-    Union,
-    cast,
     List,
+    Mapping,
     NamedTuple,
     Optional,
     TypedDict,
+    Union,
+    cast,
 )
 
 import datasets
@@ -19,7 +18,6 @@ import pytorch_lightning as pl
 import torch
 import torch.utils.data
 import transformers
-
 from datasets.fingerprint import Hasher
 from loguru import logger
 from torch.nn.utils.rnn import pad_sequence

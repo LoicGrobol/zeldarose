@@ -1,14 +1,12 @@
 import os
 import pathlib
-
-from typing import Union, cast, List, NamedTuple, Optional, Sequence, TypedDict
+from typing import List, NamedTuple, Optional, Sequence, TypedDict, Union, cast
 
 import datasets
 import pytorch_lightning as pl
 import torch
 import torch.utils.data
 import transformers
-
 from datasets.fingerprint import Hasher
 from loguru import logger
 from torch.nn.utils.rnn import pad_sequence

@@ -1,14 +1,12 @@
-from abc import ABC, abstractmethod
 import pathlib
+from abc import ABC, abstractmethod
 from typing import Optional, Tuple, Union
 
 import pydantic
+import pytorch_lightning as pl
 import torch
 import torchmetrics
 import transformers
-
-import pytorch_lightning as pl
-
 from loguru import logger
 
 

@@ -3,7 +3,7 @@ import os
 import pathlib
 import warnings
 from types import ModuleType
-from typing import Any, Dict, get_args, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union, get_args
 
 import click
 import pytorch_lightning as pl

@@ -1,15 +1,15 @@
 import pathlib
 from typing import (
+    TYPE_CHECKING,
     Any,
     Collection,
+    Dict,
     List,
     Mapping,
-    cast,
-    Dict,
     NamedTuple,
     Optional,
-    TYPE_CHECKING,
     Union,
+    cast,
 )
 
 import pydantic
@@ -17,14 +17,13 @@ import torch
 import torch.jit
 import torch.utils.data
 import transformers
+from lightning_utilities.core.rank_zero import rank_zero_only
 from loguru import logger
 from torch.nn.utils.rnn import pad_sequence
-from lightning_utilities.core.rank_zero import rank_zero_only
 from torchmetrics import SacreBLEUScore
 
 import zeldarose.datasets.mbart
 from zeldarose.common import TrainConfig, TrainingModule
-
 
 if TYPE_CHECKING:
     import transformers.modeling_outputs
