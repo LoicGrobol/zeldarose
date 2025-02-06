@@ -79,10 +79,10 @@ def setup_logging(
     log_file: Optional[pathlib.Path] = None,
     replace_warnings: bool = True,
     sink: str
-    | loguru.PathLikeStr
+    | "loguru.PathLikeStr"
     | TextIO
-    | loguru.Writable
-    | Callable[[loguru.Message], None]
+    | "loguru.Writable"
+    | Callable[["loguru.Message"], None]
     | logging.Handler
     | None = None,
     verbose: bool = False,
