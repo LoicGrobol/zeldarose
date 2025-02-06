@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ### Changed
 
+- Python bumped to `>= 3.10`, tests up to `3.13`
 - Bumped datasets to `>= 3.0, < 3.2`
 - Bumped lightning to `< 2.6`
 - Remove hard dependency on `sentencepiece`. Users can still install it if the tokenizer they use

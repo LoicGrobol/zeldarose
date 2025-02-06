@@ -1,18 +1,22 @@
+import logging
 import os
 import pathlib
 import subprocess
 import sys
-from typing import Dict, Optional
+import warnings
+from types import FrameType
+from typing import Callable, Dict, Optional, TextIO
 
+import loguru
 import pytorch_lightning as pl
-
-# from system_info import sysinfo
+import rich
 import torch
 import transformers
 from loguru import logger
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 
+# FIXME: don't assume pip is available
 def dump_environment(output_dir: pathlib.Path):
     logger.info(f"Saving environement info in {output_dir}.")
     with open(output_dir / "frozen_requirements.txt", "w") as out_stream:
@@ -33,6 +37,137 @@ def dump_environment(output_dir: pathlib.Path):
             out_stream.write("No GPU available\n")
     with open(output_dir / "env.txt", "w") as out_stream:
         out_stream.write(str(os.environ))
+
+
+class InterceptHandler(logging.Handler):
+    def __init__(self, wrapped_name: Optional[str] = None, *args, **kwargs):
+        self.wrapped_name = wrapped_name
+        super().__init__(*args, **kwargs)
+
+    def emit(self, record):
+        # Get corresponding Loguru level if it exists
+        try:
+            level = logger.level(record.levelname).name
+        except ValueError:
+            level = record.levelno
+
+        # Find caller from where originated the logged message
+        frame: Optional[FrameType] = logging.currentframe()
+        depth = 2
+        while frame is not None and frame.f_code.co_filename == logging.__file__:
+            frame = frame.f_back
+            depth += 1
+
+        if frame is None:
+            warnings.warn(
+                "Catching calls to logging is impossible in stackless environment,"
+                " logging from external libraries might be lost.",
+                stacklevel=2,
+            )
+        else:
+            if self.wrapped_name is not None:
+                logger.opt(depth=depth, exception=record.exc_info).log(
+                    level, f"({self.wrapped_name}) {record.getMessage()}"
+                )
+            else:
+                logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+
+
+def setup_logging(
+    appname: str = "zeldarose",
+    console: Optional[rich.console.Console] = None,
+    log_file: Optional[pathlib.Path] = None,
+    replace_warnings: bool = True,
+    sink: str
+    | loguru.PathLikeStr
+    | TextIO
+    | loguru.Writable
+    | Callable[[loguru.Message], None]
+    | logging.Handler
+    | None = None,
+    verbose: bool = False,
+) -> list[int]:
+    res: list[int] = []
+    if console is None:
+        console = rich.get_console()
+    if sink is None:
+        sink = lambda m: console.print(m, end="")  # noqa: E731
+    logger.remove()  # Remove the default logger
+    if "SLURM_JOB_ID" in os.environ:
+        local_id = os.environ.get("SLURM_LOCALID", "someproc")
+        node_name = os.environ.get("SLURMD_NODENAME", "somenode")
+        appname = (
+            f"{appname} ({os.environ.get('SLURM_PROCID', 'somerank')} [{local_id}@{node_name}])"
+        )
+
+    if verbose:
+        log_level = "DEBUG"
+        log_fmt = (
+            f"\\[{appname}]"
+            " [green]{time:YYYY-MM-DD HH:mm:ss.SSS}[/green] | [blue]{level: <8}[/blue] |"
+            " {message}"
+        )
+    else:
+        logging.getLogger(None).setLevel(logging.CRITICAL)
+        log_level = "INFO"
+        log_fmt = (
+            f"\\[{appname}]"
+            " [green]{time:YYYY-MM-DD}T{time:HH:mm:ss}[/green] {level} "
+            " {message}"
+        )
+
+    res.append(
+        logger.add(
+            sink,
+            colorize=True,
+            enqueue=True,
+            format=log_fmt,
+            level=log_level,
+        )
+    )
+
+    if log_file:
+        res.append(
+            logger.add(
+                log_file,
+                colorize=False,
+                enqueue=True,
+                format=(
+                    f"[{appname}] {{time:YYYY-MM-DD HH:mm:ss.SSS}} | {{level: <8}} | {{message}}"
+                ),
+                level="DEBUG",
+            )
+        )
+
+    # Deal with stdlib.logging
+    # Yes, listing them all is annoying
+    for libname in (
+        "datasets",
+        "huggingface/tokenizers",
+        "huggingface_hub",
+        "lightning",
+        "lightning.pytorch",
+        "lightning_fabric",
+        "pytorch_lightning",
+        "torch",
+        "torchmetrics",
+        "transformers",
+    ):
+        lib_logger = logging.getLogger(libname)
+        # FIXME: ugly, but is there a better way? What if they rely on having other handlers?
+        if lib_logger.handlers:
+            lib_logger.handlers = []
+        lib_logger.addHandler(InterceptHandler(libname))
+        logger.debug(f"Intercepting logging from {libname}")
+
+    # Deal with stdlib.warnings
+    def showwarning(message, category, filename, lineno, file=None, line=None):
+        logger.warning(warnings.formatwarning(message, category, filename, lineno, None).strip())
+
+    if replace_warnings:
+        warnings.showwarning = showwarning
+
+    return res
 
 
 def get_internal_transformer_model(
