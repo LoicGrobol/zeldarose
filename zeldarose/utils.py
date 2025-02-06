@@ -5,7 +5,7 @@ import subprocess
 import sys
 import warnings
 from types import FrameType
-from typing import Callable, Dict, Optional, TextIO
+from typing import Callable, Dict, Optional, TextIO, Union
 
 import loguru
 import pytorch_lightning as pl
@@ -78,12 +78,14 @@ def setup_logging(
     console: Optional[rich.console.Console] = None,
     log_file: Optional[pathlib.Path] = None,
     replace_warnings: bool = True,
-    sink: str
-    | "loguru.PathLikeStr"
-    | TextIO
-    | "loguru.Writable"
-    | Callable[["loguru.Message"], None]
-    | logging.Handler
+    sink: Union[
+        Callable[["loguru.Message"], None],
+        logging.Handler,
+        "loguru.PathLikeStr",
+        str,
+        TextIO,
+        "loguru.Writable",
+    ]
     | None = None,
     verbose: bool = False,
 ) -> list[int]:
