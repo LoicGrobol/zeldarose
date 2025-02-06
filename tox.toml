@@ -4,7 +4,7 @@ isolated_build = true
 skip_missing_interpreters = true
 
 [env_run_base]
-extras = [tests]
+extras = ["tests"]
 commands = [
     [
         'pytest',
