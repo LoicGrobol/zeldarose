@@ -480,7 +480,7 @@ def get_training_model(
                 f" and pretrained tokenizer ({vocabulary_size}), using {vocabulary_size}."
             )
             discriminator_config.vocab_size = vocabulary_size
-        logger.info(f"Loading generator config {generator_config_path,!r}")
+        logger.info(f"Loading generator config {(generator_config_path,)!r}")
         generator_config = transformers.AutoConfig.from_pretrained(generator_config_path)
         if vocabulary_size is not None and generator_config.vocab_size != vocabulary_size:
             logger.warning(

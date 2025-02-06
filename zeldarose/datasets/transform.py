@@ -27,7 +27,7 @@ def encode_dataset(
     try:
         full_dataset = datasets.load_dataset("text", data_files=str(text_path), split="train")
     # So far the cleaner way to detect that a dataset is remote???
-    # in datasets < 2.14 this was FileNotFoundError, in 2.14 it's the other one
+    # in datasets < 2.14 this was FileNotFoundError, in 2.14 it's the other one
     # in the future? Who's to say,,,
     except (FileNotFoundError, datasets.builder.DatasetGenerationError) as e:
         if isinstance(text_path, str):

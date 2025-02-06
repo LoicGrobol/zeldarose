@@ -45,7 +45,7 @@ def encode_dataset(
             raise e
 
     def preprocess(
-        batch: Mapping[str, Sequence[Any]]
+        batch: Mapping[str, Sequence[Any]],
     ) -> transformers.tokenization_utils.BatchEncoding:
         tokenized = tokenizer(
             cast(List[str], batch[source_column]),

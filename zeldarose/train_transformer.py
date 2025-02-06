@@ -429,7 +429,7 @@ def main(
         logger.warning(
             f"Batch size ({tuning_config.batch_size}) is not a multiple of loader batch size"
             f" ({device_batch_size} samples per device × {total_devices} devices)"
-            f" the actual tuning batch size used will be {tuning_config.batch_size-remainder}."
+            f" the actual tuning batch size used will be {tuning_config.batch_size - remainder}."
         )
 
     # A pl Trainer batch is in fact one batch per device, so if we use multiple devices

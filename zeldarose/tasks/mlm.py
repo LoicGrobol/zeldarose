@@ -186,9 +186,7 @@ class MLMTrainingModel(TrainingModule):
             )
         return loss
 
-    def validation_step(
-        self, batch: zeldarose.datasets.transform.TextBatch, batch_idx: int
-    ):  # type: ignore[override]
+    def validation_step(self, batch: zeldarose.datasets.transform.TextBatch, batch_idx: int):  # type: ignore[override]
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
         with torch.no_grad():
             masked = mask_tokens(

@@ -19,9 +19,11 @@ def raw_text_path(test_data_dir: pathlib.Path) -> pathlib.Path:
 def remote_raw_text() -> str:
     return "lgrobol/openminuscule:default:train"
 
+
 @pytest.fixture(scope="session")
 def translation_dataset_path(test_data_dir: pathlib.Path) -> pathlib.Path:
-    return test_data_dir / test_data_dir /"translation.jsonl"
+    return test_data_dir / test_data_dir / "translation.jsonl"
+
 
 @pytest.fixture(
     params=[

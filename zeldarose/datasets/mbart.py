@@ -65,7 +65,7 @@ def extract_from_jsonline(
                 continue
             if not (tgt_str := example.get(tgt_lang)):
                 continue
-            row  = {
+            row = {
                 "source": src_str,
                 "target": tgt_str,
                 "src_lang": langcode_sub.get(src_lang, src_lang),
