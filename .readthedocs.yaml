@@ -9,10 +9,6 @@ build:
       - "python -m pip install -U -r docs/requirements.txt"
     build:
       html:
-        - "jupyter-book build docs/"
+        - "python -m jupyter book build docs/"
         - "mkdir -p $READTHEDOCS_OUTPUT"
         - "mv _build/* $READTHEDOCS_OUTPUT"
-
-python:
-  install:
-    - requirements: docs/requirements.txt
