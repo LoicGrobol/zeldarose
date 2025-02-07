@@ -92,7 +92,6 @@ check_untyped_defs = true
 warn_unreachable = true
 plugins = ["pydantic.mypy"]
 
-
 [tool.pytest.ini_options]
 script_launch_mode = "subprocess"
 tmp_path_retention_policy = "failed"
