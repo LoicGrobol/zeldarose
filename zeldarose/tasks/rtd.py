@@ -1,5 +1,5 @@
 import pathlib
-from typing import Any, cast, Dict, NamedTuple, List, Literal, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, NamedTuple, Optional, Union, cast
 
 import pydantic
 import pytorch_lightning as pl
@@ -7,8 +7,8 @@ import torch
 import torch.jit
 import torch.utils.data
 import transformers
-from loguru import logger
 from lightning_utilities.core.rank_zero import rank_zero_only
+from loguru import logger
 
 import zeldarose.datasets.transform
 from zeldarose.common import MaskedAccuracy, TrainConfig, TrainingModule
@@ -16,7 +16,6 @@ from zeldarose.utils import (
     OneWayShareTransformersEmbeddingsCallback,
     ShareTransformersEmbeddingsCallback,
 )
-
 
 if TYPE_CHECKING:
     import transformers.modeling_outputs
@@ -110,6 +109,9 @@ class RTDTrainingModel(TrainingModule):
         self.discriminator_val_accuracy = MaskedAccuracy()
         self.generator = generator
         self.discriminator = discriminator
+
+        # FIXME: Alias for uniformity
+        self.model = self.discriminator
 
         self.save_hyperparameters("training_config", "task_config")
 
@@ -237,9 +239,7 @@ class RTDTrainingModel(TrainingModule):
 
         return combined_loss
 
-    def validation_step(
-        self, batch: zeldarose.datasets.transform.TextBatch, batch_idx: int
-    ):  # type: ignore[override]
+    def validation_step(self, batch: zeldarose.datasets.transform.TextBatch, batch_idx: int):  # type: ignore[override]
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
         with torch.no_grad():
             masked = mask_tokens(
@@ -346,6 +346,7 @@ class RTDTrainingModel(TrainingModule):
         optimizer = torch.optim.AdamW(
             optimizer_grouped_parameters,
             betas=self.training_config.betas,
+            fused=True,
             lr=self.training_config.learning_rate,
             eps=self.training_config.epsilon,
             weight_decay=decay_rate,
@@ -405,6 +406,8 @@ class RTDTrainingModel(TrainingModule):
                 tokenizer.max_len_single_sentence,
                 cast(int, max_length) - tokenizer.num_special_tokens_to_add(pair=False),
             )
+        if self.training_config.max_input_length is not None:
+            max_length = min(max_length, self.training_config.max_input_length)
 
         return zeldarose.datasets.transform.TextDataModule(
             loader_batch_size=loader_batch_size,
@@ -476,7 +479,7 @@ def get_training_model(
                 f" and pretrained tokenizer ({vocabulary_size}), using {vocabulary_size}."
             )
             discriminator_config.vocab_size = vocabulary_size
-        logger.info(f"Loading generator config {generator_config_path,!r}")
+        logger.info(f"Loading generator config {(generator_config_path,)!r}")
         generator_config = transformers.AutoConfig.from_pretrained(generator_config_path)
         if vocabulary_size is not None and generator_config.vocab_size != vocabulary_size:
             logger.warning(

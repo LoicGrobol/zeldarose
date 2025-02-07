@@ -1,5 +1,5 @@
 import pathlib
-from typing import Any, cast, Dict, NamedTuple, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Dict, NamedTuple, Optional, Union, cast
 
 import pydantic
 import torch
@@ -11,7 +11,6 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 import zeldarose.datasets.transform
 from zeldarose.common import MaskedAccuracy, TrainConfig, TrainingModule
-
 
 if TYPE_CHECKING:
     import transformers.modeling_outputs
@@ -186,9 +185,7 @@ class MLMTrainingModel(TrainingModule):
             )
         return loss
 
-    def validation_step(
-        self, batch: zeldarose.datasets.transform.TextBatch, batch_idx: int
-    ):  # type: ignore[override]
+    def validation_step(self, batch: zeldarose.datasets.transform.TextBatch, batch_idx: int):  # type: ignore[override]
         tokens, attention_mask, internal_tokens_mask, token_type_ids = batch
         with torch.no_grad():
             masked = mask_tokens(
@@ -248,6 +245,8 @@ class MLMTrainingModel(TrainingModule):
                 tokenizer.max_len_single_sentence,
                 max_length - tokenizer.num_special_tokens_to_add(pair=False),
             )
+        if self.training_config.max_input_length is not None:
+            max_length = min(max_length, self.training_config.max_input_length)
 
         return zeldarose.datasets.transform.TextDataModule(
             loader_batch_size=loader_batch_size,

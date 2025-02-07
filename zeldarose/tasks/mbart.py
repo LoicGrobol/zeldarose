@@ -1,15 +1,15 @@
 import pathlib
 from typing import (
+    TYPE_CHECKING,
     Any,
     Collection,
+    Dict,
     List,
     Mapping,
-    cast,
-    Dict,
     NamedTuple,
     Optional,
-    TYPE_CHECKING,
     Union,
+    cast,
 )
 
 import pydantic
@@ -17,14 +17,13 @@ import torch
 import torch.jit
 import torch.utils.data
 import transformers
+from lightning_utilities.core.rank_zero import rank_zero_only
 from loguru import logger
 from torch.nn.utils.rnn import pad_sequence
-from lightning_utilities.core.rank_zero import rank_zero_only
 from torchmetrics import SacreBLEUScore
 
 import zeldarose.datasets.mbart
 from zeldarose.common import TrainConfig, TrainingModule
-
 
 if TYPE_CHECKING:
     import transformers.modeling_outputs
@@ -222,7 +221,7 @@ class MBartTrainingModel(TrainingModule):
 
         self.log(
             "train/denoise_loss",
-            denoise_loss,
+            denoise_loss.detach(),
             batch_size=denoise_batch_size,
             reduce_fx=torch.mean,
             on_epoch=True,
@@ -245,7 +244,7 @@ class MBartTrainingModel(TrainingModule):
 
         self.log(
             "train/translate_loss",
-            translate_loss,
+            translate_loss.detach(),
             batch_size=translate_batch_size,
             reduce_fx=torch.mean,
             on_epoch=True,
@@ -260,7 +259,7 @@ class MBartTrainingModel(TrainingModule):
         batch_size = denoise_batch_size + translate_batch_size
         self.log(
             "train/loss",
-            loss,
+            loss.detach(),
             batch_size=batch_size,
             reduce_fx=torch.mean,
             on_epoch=True,
@@ -302,7 +301,7 @@ class MBartTrainingModel(TrainingModule):
 
         self.log(
             "validation/denoise_loss",
-            denoise_loss,
+            denoise_loss.detach(),
             batch_size=denoise_batch_size,
             reduce_fx=torch.mean,
             on_epoch=True,
@@ -324,7 +323,7 @@ class MBartTrainingModel(TrainingModule):
             # generated_ids = self.model.generate(
             #     input_ids=translate.input_ids,
             #     logits_processor=transformers.LogitsProcessorList(
-            #         [
+            #         [ForcedBOSTokenLogitsProcessor
             #             ForcedBOSTokenLogitsProcessor(
             #                 cast(torch.LongTensor, translate.decoder_input_ids[:, 1])
             #             )
@@ -340,7 +339,7 @@ class MBartTrainingModel(TrainingModule):
 
         self.log(
             "validation/translate_loss",
-            translate_loss,
+            translate_loss.detach(),
             batch_size=translate_batch_size,
             reduce_fx=torch.mean,
             on_epoch=True,
@@ -356,7 +355,7 @@ class MBartTrainingModel(TrainingModule):
         batch_size = denoise_batch_size + translate_batch_size
         self.log(
             "validation/loss",
-            loss,
+            loss.detach(),
             batch_size=batch_size,
             reduce_fx=torch.mean,
             on_epoch=True,
@@ -381,6 +380,8 @@ class MBartTrainingModel(TrainingModule):
                 tokenizer.max_len_single_sentence,
                 max_length - tokenizer.num_special_tokens_to_add(pair=False),
             )
+        if self.training_config.max_input_length is not None:
+            max_length = min(max_length, self.training_config.max_input_length)
 
         return zeldarose.datasets.mbart.MBartDataModule(
             data_dir=data_dir,
@@ -538,6 +539,8 @@ def match_lang(lang: str, available: Collection[str]) -> Optional[str]:
     if len(substitutes) > 1:
         raise ValueError(f"Multiple tokenizer langs would fit {lang}: {substitutes}")
     elif len(substitutes) == 0:
+        logger.debug(f"No substitute found for {lang}.")
         return None
     else:
+        logger.debug(f"Using {substitutes[0]} as a substitute for {lang}.")
         return substitutes[0]

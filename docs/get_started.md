@@ -3,18 +3,21 @@ Get started
 
 ## Installation
 
-Install with [pipx](https://pypa.github.io/pipx/) if you only need the command-line client
+Install with [uv](https://docs.astral.sh/uv) if you only need the command-line client
 
 ```bash
-pipx install zeldarose
+uv tool install zeldarose
 ```
 
-If you plan to use Zelda Rose together with other python programs, install it with Pip in your
+If you plan to use Zelda Rose together with other python programs, install it in your
 project's environment
 
 ```bash
-pip install zeldarose
+uv pip install zeldarose
 ```
+
+If the model you want to use relies on [`sentencepiece`](https://github.com/google/sentencepiece),
+also install that.
 
 ## Train a tokenizer
 

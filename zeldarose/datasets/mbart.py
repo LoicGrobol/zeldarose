@@ -1,16 +1,15 @@
 import os
 import pathlib
-
 from typing import (
     Collection,
     Generator,
-    Mapping,
-    Union,
-    cast,
     List,
+    Mapping,
     NamedTuple,
     Optional,
     TypedDict,
+    Union,
+    cast,
 )
 
 import datasets
@@ -19,7 +18,6 @@ import pytorch_lightning as pl
 import torch
 import torch.utils.data
 import transformers
-
 from datasets.fingerprint import Hasher
 from loguru import logger
 from torch.nn.utils.rnn import pad_sequence
@@ -65,7 +63,7 @@ def extract_from_jsonline(
                 continue
             if not (tgt_str := example.get(tgt_lang)):
                 continue
-            row  = {
+            row = {
                 "source": src_str,
                 "target": tgt_str,
                 "src_lang": langcode_sub.get(src_lang, src_lang),

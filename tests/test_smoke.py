@@ -26,7 +26,8 @@ def test_train_tokenizer(
 ):
     ret = script_runner.run(
         [
-            "zeldarose-tokenizer",
+            "zeldarose",
+            "tokenizer",
             "--vocab-size",
             "4096",
             "--out-path",
@@ -60,7 +61,8 @@ def test_train_mbart(
 
     ret = script_runner.run(
         [
-            "zeldarose-transformer",
+            "zeldarose",
+            "transformer",
             "--accelerator",
             accelerator,
             "--config",
@@ -107,7 +109,8 @@ def test_train_mlm(
 
     ret = script_runner.run(
         [
-            "zeldarose-transformer",
+            "zeldarose",
+            "transformer",
             "--accelerator",
             accelerator,
             "--config",
@@ -158,7 +161,8 @@ def test_train_rtd(
         extra_args.extend(["--num-devices", str(num_devices)])
     ret = script_runner.run(
         [
-            "zeldarose-transformer",
+            "zeldarose",
+            "transformer",
             "--accelerator",
             accelerator,
             "--config",
@@ -191,7 +195,8 @@ def test_train_mlm_with_remote_dataset(
 ):
     ret = script_runner.run(
         [
-            "zeldarose-transformer",
+            "zeldarose",
+            "transformer",
             "--strategy",
             "ddp_spawn",
             "--num-devices",

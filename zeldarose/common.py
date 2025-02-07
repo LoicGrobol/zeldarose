@@ -1,14 +1,12 @@
-from abc import ABC, abstractmethod
 import pathlib
+from abc import ABC, abstractmethod
 from typing import Optional, Tuple, Union
 
 import pydantic
+import pytorch_lightning as pl
 import torch
 import torchmetrics
 import transformers
-
-import pytorch_lightning as pl
-
 from loguru import logger
 
 
@@ -20,6 +18,7 @@ class TrainConfig(pydantic.BaseModel):
     learning_rate: float = 1e-4
     lr_decay_steps: Optional[int] = None
     max_epochs: Optional[int] = None
+    max_input_length: Optional[int] = None
     max_steps: Optional[int] = None
     warmup_steps: int = 0
     weight_decay: Optional[float] = None
@@ -86,6 +85,7 @@ class TrainingModule(pl.LightningModule, ABC):
         optimizer = torch.optim.AdamW(
             optimizer_grouped_parameters,
             betas=self.training_config.betas,
+            fused=True,
             lr=self.training_config.learning_rate,
             eps=self.training_config.epsilon,
             weight_decay=decay_rate,

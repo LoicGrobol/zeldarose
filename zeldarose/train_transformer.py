@@ -3,7 +3,7 @@ import os
 import pathlib
 import warnings
 from types import ModuleType
-from typing import Any, Dict, get_args, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union, get_args
 
 import click
 import pytorch_lightning as pl
@@ -29,114 +29,7 @@ from pytorch_lightning import (
 
 from zeldarose.common import TrainConfig, TrainingModule
 from zeldarose.tasks import mbart, mlm, rtd
-from zeldarose.utils import dump_environment
-
-
-def setup_logging(
-    console: rich.console.Console,
-    verbose: bool,
-    log_file: Optional[pathlib.Path] = None,
-    replace_warnings: bool = True,
-):
-    logger.remove(0)  # Remove the default logger
-    if "SLURM_JOB_ID" in os.environ:
-        local_id = os.environ.get("SLURM_LOCALID", "someproc")
-        node_name = os.environ.get("SLURMD_NODENAME", "somenode")
-        appname = (
-            f"zeldarose ({os.environ.get('SLURM_PROCID', 'somerank')} [{local_id}@{node_name}])"
-        )
-    else:
-        appname = "zeldarose"
-
-    if verbose:
-        log_level = "DEBUG"
-        log_fmt = (
-            f"\\[{appname}]"
-            " [green]{time:YYYY-MM-DD HH:mm:ss.SSS}[/green] | [blue]{level: <8}[/blue] |"
-            " {message}"
-        )
-    else:
-        logging.getLogger(None).setLevel(logging.CRITICAL)
-        log_level = "INFO"
-        log_fmt = (
-            f"\\[{appname}]"
-            " [green]{time:YYYY-MM-DD}T{time:HH:mm:ss}[/green] {level} "
-            " {message}"
-        )
-
-    logger.add(
-        lambda m: console.print(m, end=""),
-        colorize=True,
-        format=log_fmt,
-        level=log_level,
-    )
-
-    if log_file:
-        logger.add(
-            log_file,
-            colorize=False,
-            format=(f"[{appname}] {{time:YYYY-MM-DD HH:mm:ss.SSS}} | {{level: <8}} | {{message}}"),
-            level="DEBUG",
-        )
-
-    # Deal with stdlib.logging
-
-    class InterceptHandler(logging.Handler):
-        def __init__(self, wrapped_name: Optional[str] = None, *args, **kwargs):
-            self.wrapped_name = wrapped_name
-            super().__init__(*args, **kwargs)
-
-        def emit(self, record):
-            # Get corresponding Loguru level if it exists
-            try:
-                level = logger.level(record.levelname).name
-            except ValueError:
-                level = record.levelno
-
-            # Find caller from where originated the logged message
-            frame, depth = logging.currentframe(), 2
-            while frame is not None and frame.f_code.co_filename == logging.__file__:
-                frame = frame.f_back
-                depth += 1
-
-            if frame is None:
-                warnings.warn(
-                    "Catching calls to logging is impossible in stackless environment,"
-                    " logging from external libraries might be lost.",
-                    stacklevel=2,
-                )
-            else:
-                if self.wrapped_name is not None:
-                    logger.opt(depth=depth, exception=record.exc_info).log(
-                        level, f"[bold]{self.wrapped_name} says:[/bold] {record.getMessage()}"
-                    )
-                else:
-                    logger.opt(depth=depth, exception=record.exc_info).log(
-                        level, record.getMessage()
-                    )
-
-    for libname in (
-        "datasets",
-        "huggingface_hub",
-        "lightning_fabric",
-        "pytorch_lightning",
-        "torch",
-        "torchmetrics",
-        "transformers",
-    ):
-        lib_logger = logging.getLogger(libname)
-        # FIXME: ugly, but is there a better way? What if they rely on having other handlers?
-        if lib_logger.handlers:
-            lib_logger.handlers = []
-        lib_logger.addHandler(InterceptHandler(libname))
-        logger.info(f"Intercepting logging from {libname}")
-
-    # Deal with stdlib.warnings
-    def showwarning(message, category, filename, lineno, file=None, line=None):
-        logger.warning(warnings.formatwarning(message, category, filename, lineno, None).strip())
-
-    if replace_warnings:
-        warnings.showwarning = showwarning
+from zeldarose.utils import dump_environment, setup_logging
 
 
 class SavePretrainedModelCallback(pl.Callback):
@@ -306,7 +199,7 @@ class SavePretrainedModelCallback(pl.Callback):
 @click.option(
     "--tf32-mode",
     type=click.Choice(["highest", "high", "medium"]),
-    help="Ampere matmul optimisation mode (for supported GPUs)",
+    help="Ampere matmul optimisation precision (for supported GPUs)",
 )
 @click.option(
     "--tokenizer",
@@ -429,7 +322,7 @@ def main(
         logger.warning(
             f"Batch size ({tuning_config.batch_size}) is not a multiple of loader batch size"
             f" ({device_batch_size} samples per device × {total_devices} devices)"
-            f" the actual tuning batch size used will be {tuning_config.batch_size-remainder}."
+            f" the actual tuning batch size used will be {tuning_config.batch_size - remainder}."
         )
 
     # A pl Trainer batch is in fact one batch per device, so if we use multiple devices
@@ -474,6 +367,9 @@ def main(
         training_config=tuning_config,
     )
     training_model.train()
+    if hasattr(training_model.model.config, "use_cache"):
+        logging.debug("Disabling model generation cache to save up memory.")
+        training_model.model.config.use_cache = False
 
     logger.info("Creating data modules")
     datamodule = training_model.get_data_module(
@@ -503,7 +399,7 @@ def main(
         additional_kwargs["precision"] = precision
     if accelerator == "gpu":
         if tf32_mode is not None:
-            logger.info(f"Using Ampere matmul optimisations level {tf32_mode}")
+            logger.info(f"Using Ampere matmul optimisations with precision {tf32_mode}")
             torch.set_float32_matmul_precision(tf32_mode)
     elif accelerator == "cpu":
         logger.info(f"Training the model on CPU in {num_devices} processes")
@@ -511,8 +407,9 @@ def main(
         logger.info(f"Training the model on {num_devices} devices")
 
     callbacks: List[pl.Callback] = [
-        pl_callbacks.RichProgressBar(console_kwargs={"stderr": True}),
+        pl_callbacks.DeviceStatsMonitor(),
         pl_callbacks.LearningRateMonitor("step"),
+        pl_callbacks.RichProgressBar(console_kwargs={"stderr": True}),
     ]
     if epoch_save_period is not None or step_save_period is not None:
         training_model.save_transformer(out_dir / "partway_models" / "initial", tokenizer)

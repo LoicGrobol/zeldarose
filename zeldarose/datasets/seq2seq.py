@@ -1,14 +1,12 @@
 import os
 import pathlib
-
-from typing import Any, Mapping, Union, cast, List, NamedTuple, Optional, Sequence, TypedDict
+from typing import Any, List, Mapping, NamedTuple, Optional, Sequence, TypedDict, Union, cast
 
 import datasets
 import pytorch_lightning as pl
 import torch
 import torch.utils.data
 import transformers
-
 from datasets.fingerprint import Hasher
 from loguru import logger
 from torch.nn.utils.rnn import pad_sequence
@@ -45,7 +43,7 @@ def encode_dataset(
             raise e
 
     def preprocess(
-        batch: Mapping[str, Sequence[Any]]
+        batch: Mapping[str, Sequence[Any]],
     ) -> transformers.tokenization_utils.BatchEncoding:
         tokenized = tokenizer(
             cast(List[str], batch[source_column]),
