@@ -28,7 +28,7 @@ from pytorch_lightning import (
 )
 
 from zeldarose.common import TrainConfig, TrainingModule
-from zeldarose.tasks import mbart, mlm, rtd
+from zeldarose.tasks import mbart, mlm, ntp, rtd
 from zeldarose.utils import dump_environment, setup_logging
 
 
@@ -342,10 +342,12 @@ def main(
     task: ModuleType
     if task_type == "mlm":
         task = mlm
-    elif task_type == "rtd":
-        task = rtd
+    if task_type == "ntp":
+        task = ntp
     elif task_type == "mbart":
         task = mbart
+    elif task_type == "rtd":
+        task = rtd
     else:
         raise ValueError(f"Unknown task type: {task_type!r}")
 

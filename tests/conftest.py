@@ -70,6 +70,19 @@ def mlm_task_config(test_data_dir: pathlib.Path) -> pathlib.Path:
 
 
 @pytest.fixture(
+    params=["EleutherAI/pythia-14m"],
+    scope="session",
+)
+def ntp_model_config(request) -> str:
+    return request.param
+
+
+@pytest.fixture(scope="session")
+def ntp_task_config(test_data_dir: pathlib.Path) -> pathlib.Path:
+    return test_data_dir / "ntp-config.toml"
+
+
+@pytest.fixture(
     params=[
         pytest.param(
             "lgrobol/electra-minuscule-discriminator,lgrobol/electra-minuscule-generator",
