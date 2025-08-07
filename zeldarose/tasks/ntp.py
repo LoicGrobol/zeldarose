@@ -35,7 +35,7 @@ class NTPTrainingModel(TrainingModule):
         self.val_accuracy = MaskedAccuracy()
         self.model = model
 
-        self.save_hyperparameters("training_config", "task_config")
+        self.save_hyperparameters("training_config")
 
     def forward(  # type: ignore[override]
         self,
@@ -69,7 +69,7 @@ class NTPTrainingModel(TrainingModule):
         with torch.no_grad():
             preds = torch.argmax(outputs.logits, dim=-1)
             perplexity = torch.exp(loss)
-            self.train_accuracy.update(preds[:-1], tokens[1:])
+            self.train_accuracy.update(preds[..., :-1], tokens[..., 1:])
 
             self.log(
                 "train/loss",
@@ -109,7 +109,7 @@ class NTPTrainingModel(TrainingModule):
         perplexity = torch.exp(loss)
 
         preds = torch.argmax(outputs.logits, dim=-1)
-        self.val_accuracy.update(preds[:-1], tokens[1:])
+        self.val_accuracy.update(preds[..., :-1], tokens[..., 1:])
 
         self.log("validation/loss", loss, batch_size=tokens.shape[0], sync_dist=True)
         self.log(
@@ -190,7 +190,7 @@ def get_training_model(
 
     if pretrained_model is not None:
         logger.info(f"Loading pretrained model {pretrained_model!r}")
-        model = transformers.AutoModelForMaskedLM.from_pretrained(pretrained_model)
+        model = transformers.AutoModelForCausalLM.from_pretrained(pretrained_model)
     elif model_config is not None:
         logger.info(f"Loading pretrained config {model_config!r}")
         _model_config = transformers.AutoConfig.from_pretrained(model_config)
@@ -202,7 +202,7 @@ def get_training_model(
                 f" and pretrained tokenizer ({vocabulary_size}), using {vocabulary_size}."
             )
             _model_config.vocab_size = vocabulary_size
-        model = transformers.AutoModelForMaskedLM.from_config(_model_config)
+        model = transformers.AutoModelForCausalLM.from_config(_model_config)
     else:
         raise ValueError("You must provide either a pretrained model or a model config")
 
