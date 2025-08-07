@@ -75,7 +75,10 @@ class SavePretrainedModelCallback(pl.Callback):
     default="auto",
     show_default=True,
     type=click.Choice(["auto", *AcceleratorRegistry.available_accelerators()]),
-    help="The lightning accelerator to use (see lightning doc).",
+    help=(
+        "The lightning accelerator to use (see lightning doc). Availabe on this machine:"
+        f" {[k for k, v in AcceleratorRegistry.items() if v['accelerator'].is_available()]}."
+    ),
 )
 @click.option(
     "--cache-dir",
