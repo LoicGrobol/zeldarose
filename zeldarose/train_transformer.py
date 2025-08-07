@@ -1,7 +1,6 @@
 import logging
 import os
 import pathlib
-import warnings
 from types import ModuleType
 from typing import Any, Dict, List, Literal, Optional, Union, get_args
 
@@ -115,11 +114,13 @@ class SavePretrainedModelCallback(pl.Callback):
     "--max-epochs",
     type=click.IntRange(0),
     help="DEPRECATED: set this as a tuning config option instead.",
+    deprecated=True,
 )
 @click.option(
     "--max-steps",
     type=click.IntRange(0),
     help="DEPRECATED: set this as a tuning config option instead.",
+    deprecated=True,
 )
 @click.option(
     "--model-config",
