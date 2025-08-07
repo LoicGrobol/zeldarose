@@ -97,6 +97,7 @@ class SavePretrainedModelCallback(pl.Callback):
 @click.option(
     "--device-batch-size",
     type=click.IntRange(0),
+    metavar="INT",
     help=(
         "Number of samples in a processing batch"
         " (must be a divisor of training bath size, defaults to training batch size)"
@@ -113,12 +114,14 @@ class SavePretrainedModelCallback(pl.Callback):
 @click.option(
     "--max-epochs",
     type=click.IntRange(0),
+    metavar="INT",
     help="DEPRECATED: set this as a tuning config option instead.",
     deprecated=True,
 )
 @click.option(
     "--max-steps",
     type=click.IntRange(0),
+    metavar="INT",
     help="DEPRECATED: set this as a tuning config option instead.",
     deprecated=True,
 )
@@ -142,6 +145,7 @@ class SavePretrainedModelCallback(pl.Callback):
     "--num-devices",
     default=os.environ.get("SLURM_NTASKS", 1),
     type=click.IntRange(1),
+    metavar="INT",
     help="How many devices to train on. If `accelerator` is `cpu`, this is the number of processes",
 )
 @click.option(
@@ -157,6 +161,7 @@ class SavePretrainedModelCallback(pl.Callback):
     "--num-workers",
     type=click.IntRange(0),
     default=0,
+    metavar="INT",
     help="How many data loading workers to use",
 )
 @click.option(
@@ -181,12 +186,14 @@ class SavePretrainedModelCallback(pl.Callback):
     "--epoch-save-period",
     "epoch_save_period",
     type=click.IntRange(0),
+    metavar="INT",
     help="The number of epoch between intermediate model saving",
 )
 @click.option("--seed", "seed", type=int, default=2713, help="Random seed to set.")
 @click.option(
     "--step-save-period",
     type=click.IntRange(0),
+    metavar="INT",
     help="The number of steps between intermediate model saving",
 )
 @click.option(
@@ -215,6 +222,7 @@ class SavePretrainedModelCallback(pl.Callback):
 @click.option(
     "--val-check-period",
     type=click.IntRange(0),
+    metavar="INT",
     help="The number of steps between validation runs (useful for very long epochs)",
 )
 @click.option(
