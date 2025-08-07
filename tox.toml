@@ -1,5 +1,5 @@
 minversion = "4"
-env_list = ["py312", "py311", "py310", "py39"]
+env_list = ["py312", "py311", "py310"]
 isolated_build = true
 skip_missing_interpreters = true
 
