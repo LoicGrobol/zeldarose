@@ -137,14 +137,13 @@ def test_train_mlm(
     "accelerators_strategies_devices",
     [pytest.param(v, id="+".join(map(str, v))) for v in accelerators_strategies_devices],
 )
-def test_train_ntp(
+def test_finetune_ntp(
     accelerators_strategies_devices: Tuple[str, Optional[str], Optional[int]],
-    ntp_model_config: Union[pathlib.Path, str],
+    ntp_model_name_or_path: Union[pathlib.Path, str],
     ntp_task_config: pathlib.Path,
     raw_text_path: pathlib.Path,
     script_runner: pytest_console_scripts.ScriptRunner,
     tmp_path: pathlib.Path,
-    tokenizer_name_or_path: Union[pathlib.Path, str],
 ):
     accelerator, strategy, devices = accelerators_strategies_devices
     extra_args: List[str] = []
@@ -161,10 +160,8 @@ def test_train_ntp(
             accelerator,
             "--config",
             str(ntp_task_config),
-            "--tokenizer",
-            str(tokenizer_name_or_path),
-            "--model-config",
-            str(ntp_model_config),
+            "--pretrained-model",
+            str(ntp_model_name_or_path),
             "--device-batch-size",
             "8",
             "--out-dir",

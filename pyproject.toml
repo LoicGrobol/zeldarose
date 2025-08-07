@@ -27,7 +27,7 @@ dependencies = [
     "loguru",
     "pydantic",
     "pytorch-lightning >= 2.0, < 2.6",
-    "rich",
+    "rich < 14.1",  # Because of <https://github.com/Lightning-AI/pytorch-lightning/issues/21037>, probably fixed in lightning next(2.5.2)
     "sacrebleu",
     "sacremoses",
     "system_info",

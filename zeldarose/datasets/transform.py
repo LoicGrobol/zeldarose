@@ -106,7 +106,15 @@ class TextLoader(torch.utils.data.DataLoader[EncodedSample]):
         self.tokenizer = tokenizer
         padding_value = self.tokenizer.pad_token_id
         if padding_value is None:
-            raise ValueError("Tokenizers without a padding id are not supported")
+            # Fix for pretrained Pythia having no padding token.
+            if isinstance(self.tokenizer, transformers.GPTNeoXTokenizerFast):
+                logger.warning(
+                    "GPT Neo-X tokenizer with no padding token detected: using EOS token instead."
+                    " See <https://github.com/EleutherAI/pythia/issues/156>"
+                )
+                padding_value = self.tokenizer.eos_token_id
+            else:
+                raise ValueError("Tokenizers without a padding id are not supported")
         self._padding_value = padding_value
 
     def collate(self, batch: Sequence[EncodedSample]) -> TextBatch:

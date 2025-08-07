@@ -73,7 +73,7 @@ def mlm_task_config(test_data_dir: pathlib.Path) -> pathlib.Path:
     params=["EleutherAI/pythia-14m"],
     scope="session",
 )
-def ntp_model_config(request) -> str:
+def ntp_model_name_or_path(request) -> str:
     return request.param
 
 

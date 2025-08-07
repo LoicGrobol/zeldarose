@@ -342,7 +342,7 @@ def main(
     task: ModuleType
     if task_type == "mlm":
         task = mlm
-    if task_type == "ntp":
+    elif task_type == "ntp":
         task = ntp
     elif task_type == "mbart":
         task = mbart
