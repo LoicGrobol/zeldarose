@@ -25,6 +25,7 @@ from pytorch_lightning import (
 from pytorch_lightning import (
     strategies as pl_strategies,
 )
+from pytorch_lightning.accelerators import AcceleratorRegistry
 
 from zeldarose.common import TrainConfig, TrainingModule
 from zeldarose.tasks import mbart, mlm, ntp, rtd
@@ -72,9 +73,8 @@ class SavePretrainedModelCallback(pl.Callback):
 @click.option(
     "--accelerator",
     default="auto",
-    metavar="NAME",
     show_default=True,
-    type=str,
+    type=click.Choice(["auto", *AcceleratorRegistry.available_accelerators()]),
     help="The lightning accelerator to use (see lightning doc).",
 )
 @click.option(
