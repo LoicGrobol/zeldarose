@@ -1,16 +1,11 @@
 import os
 import pathlib
 from typing import (
-    Collection,
-    Generator,
-    List,
-    Mapping,
     NamedTuple,
-    Optional,
     TypedDict,
-    Union,
     cast,
 )
+from collections.abc import Collection, Generator, Mapping
 
 import datasets
 import jsonlines
@@ -34,7 +29,7 @@ class DataRow(TypedDict):
 
 
 def extract_from_jsonline(
-    example: Union[Mapping[str, str], Mapping[str, Mapping[str, str]]],
+    example: Mapping[str, str] | Mapping[str, Mapping[str, str]],
     langcode_sub: Mapping[str, str],
     denoise_langs: Collection[str],
     source_langs: Collection[str],
@@ -73,13 +68,13 @@ def extract_from_jsonline(
 
 
 class EncodedSample(TypedDict):
-    attention_mask: List[int]
-    decoder_input_ids: List[int]
-    input_ids: List[int]
-    labels: List[int]
+    attention_mask: list[int]
+    decoder_input_ids: list[int]
+    input_ids: list[int]
+    labels: list[int]
     src_lang: str
     src_text: str
-    special_tokens_mask: List[int]
+    special_tokens_mask: list[int]
     tgt_lang: str
     tgt_text: str
 
@@ -92,10 +87,10 @@ def encode_dataset(
     save_path: pathlib.Path,
     source_langs: Collection[str],
     target_langs: Collection[str],
-    text_path: Union[pathlib.Path, str],
-    tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
+    text_path: pathlib.Path | str,
+    tokenizer: transformers.PreTrainedTokenizer | transformers.PreTrainedTokenizerFast,
     tokenizer_name: str,
-    max_length: Optional[int] = None,
+    max_length: int | None = None,
 ):
     if not hasattr(tokenizer, "src_lang") or not hasattr(tokenizer, "tgt_lang"):
         raise ValueError(
@@ -137,7 +132,7 @@ def encode_dataset(
         # `prepare_decoder_input_ids_from_labels`/[`shift_tokens_right`](https://github.com/huggingface/transformers/blob/c836f77266be9ace47bff472f63caf71c0d11333/src/transformers/models/mbart/modeling_mbart.py#L62)
         # does for mBART, but it seems a bit weird See also 🤗 transformers issue
         # [#19500](https://github.com/huggingface/transformers/issues/19500).
-        labels = cast(List[int], tokenized["labels"])
+        labels = cast(list[int], tokenized["labels"])
         decoder_input_ids = [labels[-1], *labels[:-1]]
         # No loss for the langid token
         labels[0] = -100
@@ -148,7 +143,7 @@ def encode_dataset(
             labels=labels,
             src_lang=example["src_lang"],
             src_text=example["source"],
-            special_tokens_mask=cast(List[int], tokenized["special_tokens_mask"]),
+            special_tokens_mask=cast(list[int], tokenized["special_tokens_mask"]),
             tgt_lang=example["tgt_lang"],
             tgt_text=example["target"],
         )
@@ -173,23 +168,23 @@ class MBARTBatch(NamedTuple):
     decoder_input_ids: torch.Tensor
     input_ids: torch.Tensor
     labels: torch.Tensor
-    src_lang: List[str]
-    src_text: List[str]
+    src_lang: list[str]
+    src_text: list[str]
     special_tokens_mask: torch.Tensor
-    tgt_lang: List[str]
-    tgt_text: List[str]
+    tgt_lang: list[str]
+    tgt_text: list[str]
 
 
 class TwoMBartBatches(NamedTuple):
-    denoise: Optional[MBARTBatch]
-    translate: Optional[MBARTBatch]
+    denoise: MBARTBatch | None
+    translate: MBARTBatch | None
 
 
 class MBartLoader(torch.utils.data.DataLoader[EncodedSample]):
     def __init__(
         self,
         dataset: torch.utils.data.Dataset[EncodedSample],
-        tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
+        tokenizer: transformers.PreTrainedTokenizer | transformers.PreTrainedTokenizerFast,
         *args,
         **kwargs,
     ):
@@ -203,7 +198,7 @@ class MBartLoader(torch.utils.data.DataLoader[EncodedSample]):
             raise ValueError("Tokenizers without a padding id are not supported")
         self._padding_value = padding_value
 
-    def collate(self, batch: List[EncodedSample]) -> TwoMBartBatches:
+    def collate(self, batch: list[EncodedSample]) -> TwoMBartBatches:
         # NOTE(2021-08-12): we have to pad/batch manually instead of deferring to 🤗, since the fast
         # tokenizers can't take pre-encoded inputs (yet?)
         padded_input_ids = pad_sequence(
@@ -272,12 +267,12 @@ class MBartDataModule(pl.LightningDataModule):
         num_workers: int,
         source_langs: Collection[str],
         target_langs: Collection[str],
-        tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
+        tokenizer: transformers.PreTrainedTokenizer | transformers.PreTrainedTokenizerFast,
         tokenizer_name: str,
-        train_path: Union[str, pathlib.Path],
-        data_dir: Optional[pathlib.Path] = None,
-        max_length: Optional[int] = None,
-        val_path: Optional[Union[str, pathlib.Path]] = None,
+        train_path: str | pathlib.Path,
+        data_dir: pathlib.Path | None = None,
+        max_length: int | None = None,
+        val_path: str | pathlib.Path | None = None,
     ):
         super().__init__()
         self.denoise_langs = sorted(set(denoise_langs))
@@ -304,15 +299,15 @@ class MBartDataModule(pl.LightningDataModule):
         self.train_dataset_path = self.data_dir / "train_set"
         self.train_dataset_path.mkdir(exist_ok=True, parents=True)
 
-        self.val_dataset_path: Optional[pathlib.Path]
+        self.val_dataset_path: pathlib.Path | None
         if self.val_path is not None:
             self.val_dataset_path = self.data_dir / "val_set"
             self.val_dataset_path.mkdir(exist_ok=True, parents=True)
         else:
             self.val_dataset_path = None
 
-        self.train_dataset: Optional[datasets.Dataset] = None
-        self.val_dataset: Optional[datasets.Dataset] = None
+        self.train_dataset: datasets.Dataset | None = None
+        self.val_dataset: datasets.Dataset | None = None
 
     def prepare_data(self):
         # NOTE (2021-08-12): This should'nt be needed since this method should only be called on

@@ -1,6 +1,7 @@
 import os
 import pathlib
-from typing import Any, List, Mapping, NamedTuple, Optional, Sequence, TypedDict, Union, cast
+from typing import Any, NamedTuple, TypedDict, cast
+from collections.abc import Mapping, Sequence
 
 import datasets
 import pytorch_lightning as pl
@@ -18,11 +19,11 @@ def encode_dataset(
     save_path: pathlib.Path,
     source_column: str,
     target_column: str,
-    text_path: Union[pathlib.Path, str],
-    tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
+    text_path: pathlib.Path | str,
+    tokenizer: transformers.PreTrainedTokenizer | transformers.PreTrainedTokenizerFast,
     tokenizer_name: str,
-    max_length: Optional[int] = None,
-    decoder_start_token_id: Optional[int] = None,
+    max_length: int | None = None,
+    decoder_start_token_id: int | None = None,
 ):
     if decoder_start_token_id is None:
         logger.info("No decoder start token id provided, the BOS token will be used instead.")
@@ -46,8 +47,8 @@ def encode_dataset(
         batch: Mapping[str, Sequence[Any]],
     ) -> transformers.tokenization_utils.BatchEncoding:
         tokenized = tokenizer(
-            cast(List[str], batch[source_column]),
-            text_target=cast(List[str], batch[target_column]),
+            cast(list[str], batch[source_column]),
+            text_target=cast(list[str], batch[target_column]),
             add_special_tokens=True,
             max_length=max_length,
             return_attention_mask=True,
@@ -60,7 +61,7 @@ def encode_dataset(
         # [#19500](https://github.com/huggingface/transformers/issues/19500).
         tokenized["decoder_input_ids"] = [
             [decoder_start_token_id, *labels[:-1]]
-            for labels in cast(List[List[int]], tokenized["labels"])
+            for labels in cast(list[list[int]], tokenized["labels"])
         ]
         return tokenized
 
@@ -88,17 +89,17 @@ class Seq2SeqBatch(NamedTuple):
 
 
 class EncodedSample(TypedDict):
-    attention_mask: List[int]
-    input_ids: List[int]
-    decoder_input_ids: List[int]
-    labels: List[int]
+    attention_mask: list[int]
+    input_ids: list[int]
+    decoder_input_ids: list[int]
+    labels: list[int]
 
 
 class Seq2SeqLoader(torch.utils.data.DataLoader[EncodedSample]):
     def __init__(
         self,
         dataset: torch.utils.data.Dataset[EncodedSample],
-        tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
+        tokenizer: transformers.PreTrainedTokenizer | transformers.PreTrainedTokenizerFast,
         *args,
         **kwargs,
     ):
@@ -146,14 +147,14 @@ class TextDataModule(pl.LightningDataModule):
         self,
         loader_batch_size: int,
         num_workers: int,
-        tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
+        tokenizer: transformers.PreTrainedTokenizer | transformers.PreTrainedTokenizerFast,
         tokenizer_name: str,
-        train_path: Union[str, pathlib.Path],
-        data_dir: Optional[pathlib.Path] = None,
-        max_length: Optional[int] = None,
+        train_path: str | pathlib.Path,
+        data_dir: pathlib.Path | None = None,
+        max_length: int | None = None,
         source_column: str = "source",
         target_column: str = "target",
-        val_path: Optional[Union[str, pathlib.Path]] = None,
+        val_path: str | pathlib.Path | None = None,
     ):
         super().__init__()
         self.loader_batch_size = loader_batch_size
@@ -178,7 +179,7 @@ class TextDataModule(pl.LightningDataModule):
         self.train_dataset_path = self.data_dir / "train_set"
         self.train_dataset_path.mkdir(exist_ok=True, parents=True)
 
-        self.val_dataset_path: Optional[pathlib.Path]
+        self.val_dataset_path: pathlib.Path | None
         if self.val_path is not None:
             self.val_dataset_path = self.data_dir / "val_set"
             self.val_dataset_path.mkdir(exist_ok=True, parents=True)

@@ -1,5 +1,5 @@
 import pathlib
-from typing import TYPE_CHECKING, Any, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 import torch
 import torch.utils.data
@@ -19,7 +19,7 @@ class NTPTrainingModel(TrainingModule):
         self,
         model: transformers.PreTrainedModel,
         vocabulary_size: int,
-        training_config: Optional[TrainConfig] = None,
+        training_config: TrainConfig | None = None,
     ):
         super().__init__()
         if training_config is not None:
@@ -131,11 +131,11 @@ class NTPTrainingModel(TrainingModule):
         self,
         loader_batch_size: int,
         num_workers: int,
-        tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
+        tokenizer: transformers.PreTrainedTokenizer | transformers.PreTrainedTokenizerFast,
         tokenizer_name: str,
-        train_path: Union[str, pathlib.Path],
-        data_dir: Optional[pathlib.Path] = None,
-        val_path: Optional[Union[str, pathlib.Path]] = None,
+        train_path: str | pathlib.Path,
+        data_dir: pathlib.Path | None = None,
+        val_path: str | pathlib.Path | None = None,
     ) -> zeldarose.datasets.transform.TextDataModule:
         if (max_length := getattr(self.model.config, "max_position_embeddings", None)) is None:
             max_length = tokenizer.max_len_single_sentence
@@ -163,9 +163,8 @@ class NTPTrainingModel(TrainingModule):
     def save_transformer(
         self,
         save_dir: pathlib.Path,
-        tokenizer: Optional[
-            Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast]
-        ] = None,
+        tokenizer: None
+        | (transformers.PreTrainedTokenizer | transformers.PreTrainedTokenizerFast) = None,
     ):
         """Save the wrapped transformer model."""
         save_dir.mkdir(parents=True, exist_ok=True)
@@ -177,10 +176,10 @@ class NTPTrainingModel(TrainingModule):
 
 
 def get_training_model(
-    model_config: Optional[Union[str, pathlib.Path]],
-    pretrained_model: Optional[Union[str, pathlib.Path]],
-    task_config: Optional[Dict[str, Any]],
-    tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
+    model_config: str | pathlib.Path | None,
+    pretrained_model: str | pathlib.Path | None,
+    task_config: dict[str, Any] | None,
+    tokenizer: transformers.PreTrainedTokenizer | transformers.PreTrainedTokenizerFast,
     training_config: TrainConfig,
 ) -> NTPTrainingModel:
     if task_config is not None:

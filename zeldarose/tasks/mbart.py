@@ -2,15 +2,10 @@ import pathlib
 from typing import (
     TYPE_CHECKING,
     Any,
-    Collection,
-    Dict,
-    List,
-    Mapping,
     NamedTuple,
-    Optional,
-    Union,
     cast,
 )
+from collections.abc import Collection, Mapping
 
 import pydantic
 import torch
@@ -42,7 +37,7 @@ def infill_noise(
     input_mask_id: int,
     poisson_lambda: float,
     padding_id: int = 0,
-    keep_mask: Optional[torch.Tensor] = None,
+    keep_mask: torch.Tensor | None = None,
 ) -> InfilledSent:
     """BART-like span masking with Poisson jumps
 
@@ -119,7 +114,7 @@ class ForcedBOSTokenLogitsProcessor(transformers.LogitsProcessor):
             batch.
     """
 
-    def __init__(self, bos_token_id: Union[List[int], torch.LongTensor]):
+    def __init__(self, bos_token_id: list[int] | torch.LongTensor):
         self.bos_token_id = bos_token_id
 
     def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor) -> torch.FloatTensor:
@@ -133,11 +128,11 @@ class ForcedBOSTokenLogitsProcessor(transformers.LogitsProcessor):
 
 class MBartTaskConfig(pydantic.BaseModel):
     change_ratio: float = 0.3
-    denoise_langs: Optional[List[str]]
+    denoise_langs: list[str] | None
     denoise_loss_ratio: float = 0.5
     poisson_lambda: float = 3.0
-    source_langs: Optional[List[str]]
-    target_langs: Optional[List[str]]
+    source_langs: list[str] | None
+    target_langs: list[str] | None
     strict_langs: bool = False
 
 
@@ -150,8 +145,8 @@ class MBartTrainingModel(TrainingModule):
         vocabulary_size: int,
         task_config: MBartTaskConfig,
         tokenizer: transformers.PreTrainedTokenizerFast,
-        langcode_sub: Optional[Mapping[str, str]] = None,
-        training_config: Optional[TrainConfig] = None,
+        langcode_sub: Mapping[str, str] | None = None,
+        training_config: TrainConfig | None = None,
     ):
         super().__init__()
         if training_config is not None:
@@ -366,11 +361,11 @@ class MBartTrainingModel(TrainingModule):
         self,
         loader_batch_size: int,
         num_workers: int,
-        tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
+        tokenizer: transformers.PreTrainedTokenizer | transformers.PreTrainedTokenizerFast,
         tokenizer_name: str,
-        train_path: Union[str, pathlib.Path],
-        data_dir: Optional[pathlib.Path] = None,
-        val_path: Optional[Union[str, pathlib.Path]] = None,
+        train_path: str | pathlib.Path,
+        data_dir: pathlib.Path | None = None,
+        val_path: str | pathlib.Path | None = None,
     ) -> zeldarose.datasets.mbart.MBartDataModule:
         if (max_length := getattr(self.model.config, "max_position_embeddings", None)) is None:
             max_length = tokenizer.max_len_single_sentence
@@ -408,9 +403,8 @@ class MBartTrainingModel(TrainingModule):
     def save_transformer(
         self,
         save_dir: pathlib.Path,
-        tokenizer: Optional[
-            Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast]
-        ] = None,
+        tokenizer: None
+        | (transformers.PreTrainedTokenizer | transformers.PreTrainedTokenizerFast) = None,
     ):
         """Save the wrapped transformer model."""
         save_dir.mkdir(parents=True, exist_ok=True)
@@ -422,9 +416,9 @@ class MBartTrainingModel(TrainingModule):
 
 
 def get_training_model(
-    model_config: Optional[Union[str, pathlib.Path]],
-    pretrained_model: Optional[Union[str, pathlib.Path]],
-    task_config: Dict[str, Any],
+    model_config: str | pathlib.Path | None,
+    pretrained_model: str | pathlib.Path | None,
+    task_config: dict[str, Any],
     tokenizer: transformers.PreTrainedTokenizerFast,
     training_config: TrainConfig,
 ) -> MBartTrainingModel:
@@ -465,7 +459,7 @@ def get_training_model(
             model.resize_token_embeddings(len(tokenizer))
         mask_token_index = cast(int, tokenizer.convert_tokens_to_ids(tokenizer.mask_token))
 
-    langcode_sub: Dict[str, str] = dict()
+    langcode_sub: dict[str, str] = dict()
     if not _task_config.strict_langs:
         logger.debug("Checking match between task and tokenizer langs")
         all_langs = set().union(
@@ -526,7 +520,7 @@ def get_training_model(
     return training_model
 
 
-def match_lang(lang: str, available: Collection[str]) -> Optional[str]:
+def match_lang(lang: str, available: Collection[str]) -> str | None:
     if lang in available:
         return lang
     logger.debug(f"{lang} not found in tokenizer langs: {available}. Looking for a substitute.")

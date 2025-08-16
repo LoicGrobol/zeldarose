@@ -1,6 +1,5 @@
 import pathlib
 from abc import ABC, abstractmethod
-from typing import Optional, Tuple, Union
 
 import pydantic
 import pytorch_lightning as pl
@@ -12,16 +11,16 @@ from loguru import logger
 
 class TrainConfig(pydantic.BaseModel):
     batch_size: int = 64
-    betas: Tuple[float, float] = (0.9, 0.98)
+    betas: tuple[float, float] = (0.9, 0.98)
     epsilon: float = 1e-8
-    gradient_clipping: Optional[Union[float, int]] = None
+    gradient_clipping: float | int | None = None
     learning_rate: float = 1e-4
-    lr_decay_steps: Optional[int] = None
-    max_epochs: Optional[int] = None
-    max_input_length: Optional[int] = None
-    max_steps: Optional[int] = None
+    lr_decay_steps: int | None = None
+    max_epochs: int | None = None
+    max_input_length: int | None = None
+    max_steps: int | None = None
     warmup_steps: int = 0
-    weight_decay: Optional[float] = None
+    weight_decay: float | None = None
 
 
 class TrainingModule(pl.LightningModule, ABC):
@@ -33,11 +32,11 @@ class TrainingModule(pl.LightningModule, ABC):
         self,
         loader_batch_size: int,
         num_workers: int,
-        tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
+        tokenizer: transformers.PreTrainedTokenizer | transformers.PreTrainedTokenizerFast,
         tokenizer_name: str,
-        train_path: Union[str, pathlib.Path],
-        data_dir: Optional[pathlib.Path] = None,
-        val_path: Optional[Union[str, pathlib.Path]] = None,
+        train_path: str | pathlib.Path,
+        data_dir: pathlib.Path | None = None,
+        val_path: str | pathlib.Path | None = None,
     ) -> pl.LightningDataModule:
         raise NotImplementedError()
 
@@ -45,9 +44,8 @@ class TrainingModule(pl.LightningModule, ABC):
     def save_transformer(
         self,
         save_dir: pathlib.Path,
-        tokenizer: Optional[
-            Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast]
-        ] = None,
+        tokenizer: None
+        | (transformers.PreTrainedTokenizer | transformers.PreTrainedTokenizerFast) = None,
     ):
         raise NotImplementedError()
 
@@ -130,7 +128,7 @@ class TrainingModule(pl.LightningModule, ABC):
 
 class MaskedAccuracy(torchmetrics.Metric):
     full_state_update: bool = False
-    higher_is_better: Optional[bool] = True
+    higher_is_better: bool | None = True
     is_differentiable = False
 
     def __init__(self, ignore_index: int = -100, dist_sync_on_step: bool = False):

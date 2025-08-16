@@ -5,7 +5,8 @@ import subprocess
 import sys
 import warnings
 from types import FrameType
-from typing import Callable, Dict, Optional, TextIO, Union
+from typing import TextIO
+from collections.abc import Callable
 
 import loguru
 import pytorch_lightning as pl
@@ -40,7 +41,7 @@ def dump_environment(output_dir: pathlib.Path):
 
 
 class InterceptHandler(logging.Handler):
-    def __init__(self, wrapped_name: Optional[str] = None, *args, **kwargs):
+    def __init__(self, wrapped_name: str | None = None, *args, **kwargs):
         self.wrapped_name = wrapped_name
         super().__init__(*args, **kwargs)
 
@@ -52,7 +53,7 @@ class InterceptHandler(logging.Handler):
             level = record.levelno
 
         # Find caller from where originated the logged message
-        frame: Optional[FrameType] = logging.currentframe()
+        frame: FrameType | None = logging.currentframe()
         depth = 2
         while frame is not None and frame.f_code.co_filename == logging.__file__:
             frame = frame.f_back
@@ -75,8 +76,8 @@ class InterceptHandler(logging.Handler):
 
 def setup_logging(
     appname: str = "zeldarose",
-    console: Optional[rich.console.Console] = None,
-    log_file: Optional[pathlib.Path] = None,
+    console: rich.console.Console | None = None,
+    log_file: pathlib.Path | None = None,
     replace_warnings: bool = True,
     sink: Union[
         Callable[["loguru.Message"], None],
@@ -207,7 +208,7 @@ def reset_transformer_vocab(model: transformers.PreTrainedModel):
 def save_model(
     model: transformers.PreTrainedModel,
     save_dir: pathlib.Path,
-    tokenizer: Optional[transformers.PreTrainedTokenizer] = None,
+    tokenizer: transformers.PreTrainedTokenizer | None = None,
 ):
     """Save a transformer model."""
     save_dir.mkdir(parents=True, exist_ok=True)
@@ -315,7 +316,7 @@ class OneWayShareTransformersEmbeddingsCallback(pl.Callback):
                 f" {type(self.follower_transformer.embeddings)} vs {type(self.leader_transformer.embeddings)}"
             )
 
-        self.replaced_layer: Dict[str, CombiningLayer] = dict()
+        self.replaced_layer: dict[str, CombiningLayer] = dict()
 
     def on_train_start(self, trainer, pl_module):
         for layer_name, layer in self.follower.embeddings.named_children():

@@ -23,17 +23,19 @@ def test_train_tokenizer(
     script_runner: pytest_console_scripts.ScriptRunner,
     tmp_path: pathlib.Path,
 ):
-    ret = script_runner.run([
-        "zeldarose",
-        "tokenizer",
-        "--vocab-size",
-        "4096",
-        "--out-path",
-        str(tmp_path / "tokenizer"),
-        "--model-name",
-        "my-muppet",
-        str(raw_text_path),
-    ])
+    ret = script_runner.run(
+        [
+            "zeldarose",
+            "tokenizer",
+            "--vocab-size",
+            "4096",
+            "--out-path",
+            str(tmp_path / "tokenizer"),
+            "--model-name",
+            "my-muppet",
+            str(raw_text_path),
+        ]
+    )
     assert ret.success
 
 
@@ -236,27 +238,29 @@ def test_train_mlm_with_remote_dataset(
     script_runner: pytest_console_scripts.ScriptRunner,
     tmp_path: pathlib.Path,
 ):
-    ret = script_runner.run([
-        "zeldarose",
-        "transformer",
-        "--strategy",
-        "ddp_spawn",
-        "--num-devices",
-        "2",
-        "--config",
-        str(mlm_task_config),
-        "--tokenizer",
-        "lgrobol/roberta-minuscule",
-        "--model-config",
-        "lgrobol/roberta-minuscule",
-        "--device-batch-size",
-        "8",
-        "--out-dir",
-        str(tmp_path / "train-out"),
-        "--cache-dir",
-        str(tmp_path / "tokenizer-cache"),
-        "--val-text",
-        remote_raw_text,
-        remote_raw_text,
-    ])
+    ret = script_runner.run(
+        [
+            "zeldarose",
+            "transformer",
+            "--strategy",
+            "ddp_spawn",
+            "--num-devices",
+            "2",
+            "--config",
+            str(mlm_task_config),
+            "--tokenizer",
+            "lgrobol/roberta-minuscule",
+            "--model-config",
+            "lgrobol/roberta-minuscule",
+            "--device-batch-size",
+            "8",
+            "--out-dir",
+            str(tmp_path / "train-out"),
+            "--cache-dir",
+            str(tmp_path / "tokenizer-cache"),
+            "--val-text",
+            remote_raw_text,
+            remote_raw_text,
+        ]
+    )
     assert ret.success

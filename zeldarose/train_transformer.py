@@ -2,7 +2,7 @@ import logging
 import os
 import pathlib
 from types import ModuleType
-from typing import Any, Dict, List, Literal, Optional, Union, get_args
+from typing import Any, Literal, get_args
 
 import click
 import pytorch_lightning as pl
@@ -36,9 +36,9 @@ class SavePretrainedModelCallback(pl.Callback):
     def __init__(
         self,
         save_dir: pathlib.Path,
-        tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
-        epoch_period: Optional[int] = 1,
-        step_period: Optional[int] = None,
+        tokenizer: transformers.PreTrainedTokenizer | transformers.PreTrainedTokenizerFast,
+        epoch_period: int | None = 1,
+        step_period: int | None = None,
     ):
         self.epoch_period = epoch_period
         self.step_period = step_period
@@ -241,31 +241,31 @@ class SavePretrainedModelCallback(pl.Callback):
 @click.option("--verbose", is_flag=True, help="More detailed logs")
 def main(
     accelerator: str,
-    cache_dir: Optional[pathlib.Path],
-    checkpoint: Optional[pathlib.Path],
-    config_path: Optional[pathlib.Path],
-    device_batch_size: Optional[int],
-    epoch_save_period: Optional[int],
+    cache_dir: pathlib.Path | None,
+    checkpoint: pathlib.Path | None,
+    config_path: pathlib.Path | None,
+    device_batch_size: int | None,
+    epoch_save_period: int | None,
     guess_batch_size: bool,
-    max_epochs: Optional[int],
-    max_steps: Optional[int],
-    model_config_path: Optional[str],
+    max_epochs: int | None,
+    max_steps: int | None,
+    model_config_path: str | None,
     model_name: str,
     num_nodes: int,
     num_workers: int,
     num_devices: int,
     out_dir: pathlib.Path,
-    precision: Optional[Literal["64", "32", "16", "bf16"]],
-    pretrained_model: Optional[str],
+    precision: Literal["64", "32", "16", "bf16"] | None,
+    pretrained_model: str | None,
     profile: bool,
     train_data: str,
     seed: int,
-    step_save_period: Optional[int],
+    step_save_period: int | None,
     strategy: str,
-    tf32_mode: Optional[Literal["highest", "high", "medium"]],
-    tokenizer_name: Optional[str],
-    val_check_period: Optional[int],
-    val_path: Optional[str],
+    tf32_mode: Literal["highest", "high", "medium"] | None,
+    tokenizer_name: str | None,
+    val_check_period: int | None,
+    val_path: str | None,
     verbose: bool,
 ):
     """Train a Transformer model.
@@ -369,7 +369,7 @@ def main(
         else:
             raise ValueError("Missing both pretrained tokenizer and pretrained model")
     logger.info(f"Loading pretrained tokenizer {tokenizer_name}")
-    tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast] = (
+    tokenizer: transformers.PreTrainedTokenizer | transformers.PreTrainedTokenizerFast = (
         transformers.AutoTokenizer.from_pretrained(tokenizer_name, use_fast=True)
     )
 
@@ -398,7 +398,7 @@ def main(
     datamodule.prepare_data_per_node = False
 
     logger.info("Creating trainer")
-    additional_kwargs: Dict[str, Any] = dict()
+    additional_kwargs: dict[str, Any] = dict()
     if profile:
         logger.info("Running in profile mode")
         profiler = pl_profilers.AdvancedProfiler(dirpath=out_dir, filename="profile.txt")
@@ -420,7 +420,7 @@ def main(
     else:
         logger.info(f"Training the model on {num_devices} devices")
 
-    callbacks: List[pl.Callback] = [
+    callbacks: list[pl.Callback] = [
         pl_callbacks.DeviceStatsMonitor(),
         pl_callbacks.LearningRateMonitor("step"),
         pl_callbacks.RichProgressBar(console_kwargs={"stderr": True}),

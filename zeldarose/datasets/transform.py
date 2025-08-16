@@ -1,6 +1,7 @@
 import os
 import pathlib
-from typing import List, NamedTuple, Optional, Sequence, TypedDict, Union, cast
+from typing import NamedTuple, TypedDict, cast
+from collections.abc import Sequence
 
 import datasets
 import pytorch_lightning as pl
@@ -16,10 +17,10 @@ from torch.nn.utils.rnn import pad_sequence
 # OUR cache end users can still manually set HF_DATASETS_CACHE if e.g. their home has a small quota
 def encode_dataset(
     save_path: pathlib.Path,
-    text_path: Union[pathlib.Path, str],
-    tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
+    text_path: pathlib.Path | str,
+    tokenizer: transformers.PreTrainedTokenizer | transformers.PreTrainedTokenizerFast,
     tokenizer_name: str,
-    max_length: Optional[int] = None,
+    max_length: int | None = None,
 ):
     logger.info(f"Loading data from {text_path}")
     try:
@@ -86,16 +87,16 @@ class TextBatch(NamedTuple):
 
 
 class EncodedSample(TypedDict):
-    attention_mask: List[int]
-    input_ids: List[int]
-    special_tokens_mask: List[int]
+    attention_mask: list[int]
+    input_ids: list[int]
+    special_tokens_mask: list[int]
 
 
 class TextLoader(torch.utils.data.DataLoader[EncodedSample]):
     def __init__(
         self,
         dataset: torch.utils.data.Dataset[EncodedSample],
-        tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
+        tokenizer: transformers.PreTrainedTokenizer | transformers.PreTrainedTokenizerFast,
         *args,
         **kwargs,
     ):
@@ -151,12 +152,12 @@ class TextDataModule(pl.LightningDataModule):
         self,
         loader_batch_size: int,
         num_workers: int,
-        tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
+        tokenizer: transformers.PreTrainedTokenizer | transformers.PreTrainedTokenizerFast,
         tokenizer_name: str,
-        train_path: Union[str, pathlib.Path],
-        data_dir: Optional[pathlib.Path] = None,
-        max_length: Optional[int] = None,
-        val_path: Optional[Union[str, pathlib.Path]] = None,
+        train_path: str | pathlib.Path,
+        data_dir: pathlib.Path | None = None,
+        max_length: int | None = None,
+        val_path: str | pathlib.Path | None = None,
     ):
         super().__init__()
         self.loader_batch_size = loader_batch_size
@@ -179,15 +180,15 @@ class TextDataModule(pl.LightningDataModule):
         self.train_dataset_path = self.data_dir / "train_set"
         self.train_dataset_path.mkdir(exist_ok=True, parents=True)
 
-        self.val_dataset_path: Optional[pathlib.Path]
+        self.val_dataset_path: pathlib.Path | None
         if self.val_text is not None:
             self.val_dataset_path = self.data_dir / "val_set"
             self.val_dataset_path.mkdir(exist_ok=True, parents=True)
         else:
             self.val_dataset_path = None
 
-        self.train_dataset: Optional[datasets.Dataset] = None
-        self.val_dataset: Optional[datasets.Dataset] = None
+        self.train_dataset: datasets.Dataset | None = None
+        self.val_dataset: datasets.Dataset | None = None
 
     def prepare_data(self):
         # NOTE(2021-08-12): This should'nt be needed since this method should only be called on rank

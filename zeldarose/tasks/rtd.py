@@ -1,5 +1,5 @@
 import pathlib
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, NamedTuple, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, cast
 
 import pydantic
 import pytorch_lightning as pl
@@ -39,7 +39,7 @@ def mask_tokens(
     tokens: torch.Tensor,
     input_mask_index: int,
     mask_ratio: float,
-    keep_mask: Optional[torch.Tensor] = None,
+    keep_mask: torch.Tensor | None = None,
     label_mask_index: int = -100,
 ) -> MaskedTokens:
     """Prepare masked tokens inputs/labels for masked language modeling
@@ -75,7 +75,7 @@ def mask_tokens(
 
 class RTDTaskConfig(pydantic.BaseModel):
     discriminator_loss_weight: float = 1.0
-    embeddings_sharing: Optional[Literal["deberta", "electra"]] = None
+    embeddings_sharing: Literal["deberta", "electra"] | None = None
     mask_ratio: float = 0.15
 
 
@@ -86,8 +86,8 @@ class RTDTrainingModel(TrainingModule):
         generator: transformers.PreTrainedModel,
         mask_token_index: int,
         vocabulary_size: int,
-        training_config: Optional[TrainConfig] = None,
-        task_config: Optional[RTDTaskConfig] = None,
+        training_config: TrainConfig | None = None,
+        task_config: RTDTaskConfig | None = None,
     ):
         super().__init__()
         if training_config is not None:
@@ -298,7 +298,7 @@ class RTDTrainingModel(TrainingModule):
         )
 
     def configure_callbacks(self):
-        callbacks: List[pl.Callback] = []
+        callbacks: list[pl.Callback] = []
         if self.task_config.embeddings_sharing == "electra":
             callbacks.append(
                 ShareTransformersEmbeddingsCallback(
@@ -387,11 +387,11 @@ class RTDTrainingModel(TrainingModule):
         self,
         loader_batch_size: int,
         num_workers: int,
-        tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
+        tokenizer: transformers.PreTrainedTokenizer | transformers.PreTrainedTokenizerFast,
         tokenizer_name: str,
-        train_path: Union[str, pathlib.Path],
-        data_dir: Optional[pathlib.Path] = None,
-        val_path: Optional[Union[str, pathlib.Path]] = None,
+        train_path: str | pathlib.Path,
+        data_dir: pathlib.Path | None = None,
+        val_path: str | pathlib.Path | None = None,
     ) -> zeldarose.datasets.transform.TextDataModule:
         max_length = min(
             getattr(self.generator.config, "max_position_embeddings", float("inf")),
@@ -424,7 +424,7 @@ class RTDTrainingModel(TrainingModule):
     def save_transformer(
         self,
         save_dir: pathlib.Path,
-        tokenizer: Optional[transformers.PreTrainedTokenizer] = None,
+        tokenizer: transformers.PreTrainedTokenizer | None = None,
     ):
         """Save the wrapped transformer model."""
         save_dir.mkdir(parents=True, exist_ok=True)
@@ -441,10 +441,10 @@ class RTDTrainingModel(TrainingModule):
 
 
 def get_training_model(
-    model_config: Optional[str],
-    pretrained_model: Optional[str],
-    task_config: Optional[Dict[str, Any]],
-    tokenizer: Union[transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast],
+    model_config: str | None,
+    pretrained_model: str | None,
+    task_config: dict[str, Any] | None,
+    tokenizer: transformers.PreTrainedTokenizer | transformers.PreTrainedTokenizerFast,
     training_config: TrainConfig,
 ) -> RTDTrainingModel:
     if task_config is not None:

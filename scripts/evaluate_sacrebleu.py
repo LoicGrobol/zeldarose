@@ -1,6 +1,7 @@
 import json
 import pathlib
-from typing import Iterable, TextIO, cast
+from typing import TextIO, cast
+from collections.abc import Iterable
 
 import click
 import jsonlines
