@@ -1,7 +1,7 @@
 Next token prediction
 ======================
 
-The task also known as *Causal Language Modelling*, originating in
+The task also known as “causal language modelling”[^1], originating in
 {cite:ts}`bengio2003NeuralProbabilisticLanguage`, used for first time using a transformer
 architecture by {cite:ts}`howard2018UniversalLanguageModel` and popularized by
 {cite:ts}`radford2019LanguageModelsAre` as a way to produce “universal learners”. It consists
@@ -26,6 +26,12 @@ the last one) in a sentence should be labelled with the token that follows it:
 
 Zelda Rose deals with these details itself, so the only thing you need to do as a user is to provide
 a raw text dataset.
+
+[^1]: Historically, a “language model” is a model estimating the likelihood of (possibly partial)
+    sentences. I maintain that a task where you predict the next token in a sentence is more
+    properly “next token prediction”, and that even if under mild assumptions a next token predictor
+    *can* be obtained from a language model and vice-versa, they are not properly the same thing.
+    That ship seems to have sailed long ago, but maybe we can still bring it back to port.
 
 ## Task parameters
 
