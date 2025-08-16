@@ -1,6 +1,5 @@
 import os
 import pathlib
-from typing import List, Optional, Tuple, Union
 
 import pytest
 import pytest_console_scripts
@@ -43,15 +42,15 @@ def test_train_tokenizer(
     [pytest.param(v, id="+".join(map(str, v))) for v in accelerators_strategies_devices],
 )
 def test_train_mbart(
-    accelerators_strategies_devices: Tuple[str, Optional[str], Optional[int]],
-    mbart_model_config: Union[pathlib.Path, str],
+    accelerators_strategies_devices: tuple[str, str | None, int | None],
+    mbart_model_config: pathlib.Path | str,
     mbart_task_config: pathlib.Path,
     translation_dataset_path: pathlib.Path,
     script_runner: pytest_console_scripts.ScriptRunner,
     tmp_path: pathlib.Path,
 ):
     accelerator, strategy, devices = accelerators_strategies_devices
-    extra_args: List[str] = []
+    extra_args: list[str] = []
     if strategy is not None:
         extra_args.extend(["--strategy", strategy])
     if devices is not None:
@@ -90,16 +89,16 @@ def test_train_mbart(
     [pytest.param(v, id="+".join(map(str, v))) for v in accelerators_strategies_devices],
 )
 def test_train_mlm(
-    accelerators_strategies_devices: Tuple[str, Optional[str], Optional[int]],
-    mlm_model_config: Union[pathlib.Path, str],
+    accelerators_strategies_devices: tuple[str, str | None, int | None],
+    mlm_model_config: pathlib.Path | str,
     mlm_task_config: pathlib.Path,
     raw_text_path: pathlib.Path,
     script_runner: pytest_console_scripts.ScriptRunner,
     tmp_path: pathlib.Path,
-    tokenizer_name_or_path: Union[pathlib.Path, str],
+    tokenizer_name_or_path: pathlib.Path | str,
 ):
     accelerator, strategy, devices = accelerators_strategies_devices
-    extra_args: List[str] = []
+    extra_args: list[str] = []
     if strategy is not None:
         extra_args.extend(["--strategy", strategy])
     if devices is not None:
@@ -138,15 +137,15 @@ def test_train_mlm(
     [pytest.param(v, id="+".join(map(str, v))) for v in accelerators_strategies_devices],
 )
 def test_finetune_ntp(
-    accelerators_strategies_devices: Tuple[str, Optional[str], Optional[int]],
-    ntp_model_name_or_path: Union[pathlib.Path, str],
+    accelerators_strategies_devices: tuple[str, str | None, int | None],
+    ntp_model_name_or_path: pathlib.Path | str,
     ntp_task_config: pathlib.Path,
     raw_text_path: pathlib.Path,
     script_runner: pytest_console_scripts.ScriptRunner,
     tmp_path: pathlib.Path,
 ):
     accelerator, strategy, devices = accelerators_strategies_devices
-    extra_args: List[str] = []
+    extra_args: list[str] = []
     if strategy is not None:
         extra_args.extend(["--strategy", strategy])
     if devices is not None:
@@ -187,17 +186,17 @@ def test_finetune_ntp(
     ],
 )
 def test_train_rtd(
-    accelerators_strategies_devices: Tuple[str, Optional[str], Optional[int]],
-    rtd_model_config: Union[pathlib.Path, str],
+    accelerators_strategies_devices: tuple[str, str | None, int | None],
+    rtd_model_config: pathlib.Path | str,
     rtd_task_config: pathlib.Path,
     raw_text_path: pathlib.Path,
     script_runner: pytest_console_scripts.ScriptRunner,
     tmp_path: pathlib.Path,
-    tokenizer_name_or_path: Union[pathlib.Path, str],
+    tokenizer_name_or_path: pathlib.Path | str,
 ):
     accelerator, strategy, num_devices = accelerators_strategies_devices
 
-    extra_args: List[str] = []
+    extra_args: list[str] = []
     if strategy is not None:
         extra_args.extend(["--strategy", strategy])
     if num_devices is not None:
