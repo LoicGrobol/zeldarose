@@ -242,6 +242,8 @@ def test_train_mlm_with_remote_dataset(
         [
             "zeldarose",
             "transformer",
+            "--accelerator",
+            "cpu",
             "--strategy",
             "ddp_spawn",
             "--num-devices",
