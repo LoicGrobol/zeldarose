@@ -1,9 +1,10 @@
 @article{bengio2003NeuralProbabilisticLanguage,
   ids = {bengioNeuralProbabilisticLanguage},
   title = {A Neural Probabilistic Language Model},
-  author = {Bengio, Yoshua and Ducharme, Réjean and Vincent, Pascal and Janvin, Christian},
-  date = {2003-03-01},
-  journaltitle = {The Journal of Machine Learning Research},
+  author = {Bengio, Yoshua and Ducharme, R{\'e}jean and Vincent, Pascal and Janvin, Christian},
+  year = {2003},
+  month = mar,
+  journal = {The Journal of Machine Learning Research},
   volume = {3},
   pages = {1137--1155},
   issn = {1532-4435},
@@ -16,25 +17,27 @@
   shorttitle = {{{ELECTRA}}},
   booktitle = {Proceedings of the 8th {{International Conference}} on {{Learning Representations}}},
   author = {Clark, Kevin and Luong, Minh-Thang and Le, Quoc V. and Manning, Christopher D.},
-  date = {2019-09-25},
+  year = {2019},
+  month = sep,
+  address = {አዲስ አበባ, ኢትዮጵያ (Adis Ababa, Ethiopia)},
   url = {https://openreview.net/forum?id=r1xMH1BtvB},
   urldate = {2020-04-01},
-  abstract = {Masked language modeling (MLM) pre-training methods such as BERT corrupt the input by replacing some tokens with [MASK] and then train a model to reconstruct the original tokens. While they produce...},
-  eventtitle = {{{ICLR}} 2020},
-  venue = {አዲስ አበባ, ኢትዮጵያ (Adis Ababa, Ethiopia)}
+  abstract = {Masked language modeling (MLM) pre-training methods such as BERT corrupt the input by replacing some tokens with [MASK] and then train a model to reconstruct the original tokens. While they produce...}
 }
 
-@unpublished{devlin2018BERTPretrainingDeep,
+@article{devlin2018BERTPretrainingDeep,
   title = {{{BERT}}: {{Pre-training}} of {{Deep Bidirectional Transformers}} for {{Language Understanding}}},
   shorttitle = {{{BERT}}},
   author = {Devlin, Jacob and Chang, Ming-Wei and Lee, Kenton and Toutanova, Kristina},
-  date = {2018-10-10},
+  year = {2018},
+  month = oct,
+  journal = {arXiv:1810.04805 [cs]},
   eprint = {1810.04805},
-  eprinttype = {arXiv},
-  eprintclass = {cs},
+  primaryclass = {cs},
   url = {http://arxiv.org/abs/1810.04805},
   urldate = {2019-02-16},
   abstract = {We introduce a new language representation model called BERT, which stands for Bidirectional Encoder Representations from Transformers. Unlike recent language representation models, BERT is designed to pre-train deep bidirectional representations by jointly conditioning on both left and right context in all layers. As a result, the pre-trained BERT representations can be fine-tuned with just one additional output layer to create state-of-the-art models for a wide range of tasks, such as question answering and language inference, without substantial task-specific architecture modifications. BERT is conceptually simple and empirically powerful. It obtains new state-of-the-art results on eleven natural language processing tasks, including pushing the GLUE benchmark to 80.4\% (7.6\% absolute improvement), MultiNLI accuracy to 86.7 (5.6\% absolute improvement) and the SQuAD v1.1 question answering Test F1 to 93.2 (1.5\% absolute improvement), outperforming human performance by 2.0\%.},
+  archiveprefix = {arXiv},
   keywords = {embeddings,neural network,neural network/architecture,transfer learning,transformer}
 }
 
@@ -42,26 +45,28 @@
   title = {{{DeBERTa}}: {{Decoding-enhanced BERT}} with Disentangled Attention},
   booktitle = {Proceedings of the 2021 {{International Conference}} on {{Learning Representations}}},
   author = {He, Pengcheng and Liu, Xiaodong and Gao, Jianfeng and Chen, Weizhu},
-  date = {2020-09-28},
+  year = {2020},
+  month = sep,
+  address = {Wien, {\"O}sterreich},
   url = {https://openreview.net/forum?id=XPZIaotutsD},
   urldate = {2021-12-26},
   abstract = {Recent progress in pre-trained neural language models has significantly improved the performance of many natural language processing (NLP) tasks. In this paper we propose a new model architecture...},
-  eventtitle = {{{ICLR}} 2021},
-  langid = {english},
-  venue = {Wien, Österreich}
+  langid = {english}
 }
 
-@unpublished{he2021DeBERTaV3ImprovingDeBERTa,
+@article{he2021DeBERTaV3ImprovingDeBERTa,
   title = {{{DeBERTaV3}}: {{Improving DeBERTa}} Using {{ELECTRA-Style Pre-Training}} with {{Gradient-Disentangled Embedding Sharing}}},
   shorttitle = {{{DeBERTaV3}}},
   author = {He, Pengcheng and Gao, Jianfeng and Chen, Weizhu},
-  date = {2021-12-08},
+  year = {2021},
+  month = dec,
+  journal = {arXiv:2111.09543 [cs]},
   eprint = {2111.09543},
-  eprinttype = {arXiv},
-  eprintclass = {cs},
+  primaryclass = {cs},
   url = {http://arxiv.org/abs/2111.09543},
   urldate = {2021-12-26},
   abstract = {This paper presents a new pre-trained language model, DeBERTaV3, which improves the original DeBERTa model by replacing mask language modeling (MLM) with replaced token detection (RTD), a more sample-efficient pre-training task. Our analysis shows that vanilla embedding sharing in ELECTRA hurts training efficiency and model performance. This is because the training losses of the discriminator and the generator pull token embeddings in different directions, creating the "tug-of-war" dynamics. We thus propose a new gradient-disentangled embedding sharing method that avoids the tug-of-war dynamics, improving both training efficiency and the quality of the pre-trained model. We have pre-trained DeBERTaV3 using the same settings as DeBERTa to demonstrate its exceptional performance on a wide range of downstream natural language understanding (NLU) tasks. Taking the GLUE benchmark with eight tasks as an example, the DeBERTaV3 Large model achieves a 91.37\% average score, which is 1.37\% over DeBERTa and 1.91\% over ELECTRA, setting a new state-of-the-art (SOTA) among the models with a similar structure. Furthermore, we have pre-trained a multi-lingual model mDeBERTa and observed a larger improvement over strong baselines compared to English models. For example, the mDeBERTa Base achieves a 79.8\% zero-shot cross-lingual accuracy on XNLI and a 3.6\% improvement over XLM-R Base, creating a new SOTA on this benchmark. We have made our pre-trained models and inference code publicly available at https://github.com/microsoft/DeBERTa.},
+  archiveprefix = {arXiv},
   keywords = {Computer Science - Computation and Language,Computer Science - Machine Learning,cs.CL cs.GL,I.2,I.7}
 }
 
@@ -69,15 +74,15 @@
   title = {Universal {{Language Model Fine-tuning}} for {{Text Classification}}},
   booktitle = {Proceedings of the 56th {{Annual Meeting}} of the {{Association}} for {{Computational Linguistics}}},
   author = {Howard, Jeremy and Ruder, Sebastian},
-  date = {2018-07},
+  year = {2018},
+  month = jul,
   pages = {328--339},
   publisher = {Association for Computational Linguistics},
+  address = {Melbourne, Australia},
   doi = {10.18653/v1/P18-1031},
   url = {https://www.aclweb.org/anthology/P18-1031},
   urldate = {2021-01-13},
-  abstract = {Inductive transfer learning has greatly impacted computer vision, but existing approaches in NLP still require task-specific modifications and training from scratch. We propose Universal Language Model Fine-tuning (ULMFiT), an effective transfer learning method that can be applied to any task in NLP, and introduce techniques that are key for fine-tuning a language model. Our method significantly outperforms the state-of-the-art on six text classification tasks, reducing the error by 18-24\% on the majority of datasets. Furthermore, with only 100 labeled examples, it matches the performance of training from scratch on 100 times more data. We open-source our pretrained models and code.},
-  eventtitle = {{{ACL}} 2018},
-  venue = {Melbourne, Australia}
+  abstract = {Inductive transfer learning has greatly impacted computer vision, but existing approaches in NLP still require task-specific modifications and training from scratch. We propose Universal Language Model Fine-tuning (ULMFiT), an effective transfer learning method that can be applied to any task in NLP, and introduce techniques that are key for fine-tuning a language model. Our method significantly outperforms the state-of-the-art on six text classification tasks, reducing the error by 18-24\% on the majority of datasets. Furthermore, with only 100 labeled examples, it matches the performance of training from scratch on 100 times more data. We open-source our pretrained models and code.}
 }
 
 @inproceedings{kingma2014AdamMethodStochastic,
@@ -85,13 +90,14 @@
   shorttitle = {Adam},
   booktitle = {International {{Conference}} on {{Learning Representations}}},
   author = {Kingma, Diederik P. and Ba, Jimmy},
-  date = {2014-12-22},
+  year = {2014},
+  month = dec,
   eprint = {1412.6980},
-  eprinttype = {arXiv},
   url = {http://arxiv.org/abs/1412.6980},
   urldate = {2019-03-04},
   abstract = {We introduce Adam, an algorithm for first-order gradient-based optimization of stochastic objective functions, based on adaptive estimates of lower-order moments. The method is straightforward to implement, is computationally efficient, has little memory requirements, is invariant to diagonal rescaling of the gradients, and is well suited for problems that are large in terms of data and/or parameters. The method is also appropriate for non-stationary objectives and problems with very noisy and/or sparse gradients. The hyper-parameters have intuitive interpretations and typically require little tuning. Some connections to related algorithms, on which Adam was inspired, are discussed. We also analyze the theoretical convergence properties of the algorithm and provide a regret bound on the convergence rate that is comparable to the best known results under the online convex optimization framework. Empirical results demonstrate that Adam works well in practice and compares favorably to other stochastic optimization methods. Finally, we discuss AdaMax, a variant of Adam based on the infinity norm.},
-  eventtitle = {{{ICLR}} 2014},
+  archiveprefix = {arXiv},
+  copyright = {tex.venue: San Diego, California},
   keywords = {machine learning}
 }
 
@@ -100,90 +106,93 @@
   shorttitle = {{{BART}}},
   booktitle = {Proceedings of the 58th {{Annual Meeting}} of the {{Association}} for {{Computational Linguistics}}},
   author = {Lewis, Mike and Liu, Yinhan and Goyal, Naman and Ghazvininejad, Marjan and Mohamed, Abdelrahman and Levy, Omer and Stoyanov, Veselin and Zettlemoyer, Luke},
-  date = {2020-07},
+  year = {2020},
+  month = jul,
   pages = {7871--7880},
   publisher = {Association for Computational Linguistics},
-  location = {Online},
+  address = {Online},
   doi = {10.18653/v1/2020.acl-main.703},
   url = {https://aclanthology.org/2020.acl-main.703},
   urldate = {2022-11-29},
-  abstract = {We present BART, a denoising autoencoder for pretraining sequence-to-sequence models. BART is trained by (1) corrupting text with an arbitrary noising function, and (2) learning a model to reconstruct the original text. It uses a standard Tranformer-based neural machine translation architecture which, despite its simplicity, can be seen as generalizing BERT (due to the bidirectional encoder), GPT (with the left-to-right decoder), and other recent pretraining schemes. We evaluate a number of noising approaches, finding the best performance by both randomly shuffling the order of sentences and using a novel in-filling scheme, where spans of text are replaced with a single mask token. BART is particularly effective when fine tuned for text generation but also works well for comprehension tasks. It matches the performance of RoBERTa on GLUE and SQuAD, and achieves new state-of-the-art results on a range of abstractive dialogue, question answering, and summarization tasks, with gains of up to 3.5 ROUGE. BART also provides a 1.1 BLEU increase over a back-translation system for machine translation, with only target language pretraining. We also replicate other pretraining schemes within the BART framework, to understand their effect on end-task performance.},
-  eventtitle = {{{ACL}} 2020}
+  abstract = {We present BART, a denoising autoencoder for pretraining sequence-to-sequence models. BART is trained by (1) corrupting text with an arbitrary noising function, and (2) learning a model to reconstruct the original text. It uses a standard Tranformer-based neural machine translation architecture which, despite its simplicity, can be seen as generalizing BERT (due to the bidirectional encoder), GPT (with the left-to-right decoder), and other recent pretraining schemes. We evaluate a number of noising approaches, finding the best performance by both randomly shuffling the order of sentences and using a novel in-filling scheme, where spans of text are replaced with a single mask token. BART is particularly effective when fine tuned for text generation but also works well for comprehension tasks. It matches the performance of RoBERTa on GLUE and SQuAD, and achieves new state-of-the-art results on a range of abstractive dialogue, question answering, and summarization tasks, with gains of up to 3.5 ROUGE. BART also provides a 1.1 BLEU increase over a back-translation system for machine translation, with only target language pretraining. We also replicate other pretraining schemes within the BART framework, to understand their effect on end-task performance.}
 }
 
-@unpublished{liu2019RoBERTaRobustlyOptimized,
+@article{liu2019RoBERTaRobustlyOptimized,
   title = {{{RoBERTa}}: {{A Robustly Optimized BERT Pretraining Approach}}},
   shorttitle = {{{RoBERTa}}},
   author = {Liu, Yinhan and Ott, Myle and Goyal, Naman and Du, Jingfei and Joshi, Mandar and Chen, Danqi and Levy, Omer and Lewis, Mike and Zettlemoyer, Luke and Stoyanov, Veselin},
-  date = {2019-07-26},
+  year = {2019},
+  month = jul,
+  journal = {arXiv:1907.11692 [cs]},
   eprint = {1907.11692},
-  eprinttype = {arXiv},
-  eprintclass = {cs},
+  primaryclass = {cs},
   url = {http://arxiv.org/abs/1907.11692},
   urldate = {2019-09-05},
   abstract = {Language model pretraining has led to significant performance gains but careful comparison between different approaches is challenging. Training is computationally expensive, often done on private datasets of different sizes, and, as we will show, hyperparameter choices have significant impact on the final results. We present a replication study of BERT pretraining (Devlin et al., 2019) that carefully measures the impact of many key hyperparameters and training data size. We find that BERT was significantly undertrained, and can match or exceed the performance of every model published after it. Our best model achieves state-of-the-art results on GLUE, RACE and SQuAD. These results highlight the importance of previously overlooked design choices, and raise questions about the source of recently reported improvements. We release our models and code.},
+  archiveprefix = {arXiv},
   keywords = {Computer Science - Computation and Language}
 }
 
 @article{liu2020MultilingualDenoisingPretraining,
   title = {Multilingual {{Denoising Pre-training}} for {{Neural Machine Translation}}},
   author = {Liu, Yinhan and Gu, Jiatao and Goyal, Naman and Li, Xian and Edunov, Sergey and Ghazvininejad, Marjan and Lewis, Mike and Zettlemoyer, Luke},
-  date = {2020-11-01},
-  journaltitle = {Transactions of the Association for Computational Linguistics},
-  shortjournal = {Transactions of the Association for Computational Linguistics},
+  year = {2020},
+  month = nov,
+  journal = {Transactions of the Association for Computational Linguistics},
   volume = {8},
   pages = {726--742},
   issn = {2307-387X},
   doi = {10.1162/tacl_a_00343},
   url = {https://doi.org/10.1162/tacl_a_00343},
   urldate = {2022-11-29},
-  abstract = {This paper demonstrates that multilingual denoising pre-training produces significant performance gains across a wide variety of machine translation (MT) tasks. We present mBART—a sequence-to-sequence denoising auto-encoder pre-trained on large-scale monolingual corpora in many languages using the BART objective (Lewis et al., 2019). mBART is the first method for pre-training a complete sequence-to-sequence model by denoising full texts in multiple languages, whereas previous approaches have focused only on the encoder, decoder, or reconstructing parts of the text. Pre-training a complete model allows it to be directly fine-tuned for supervised (both sentence-level and document-level) and unsupervised machine translation, with no task- specific modifications. We demonstrate that adding mBART initialization produces performance gains in all but the highest-resource settings, including up to 12 BLEU points for low resource MT and over 5 BLEU points for many document-level and unsupervised models. We also show that it enables transfer to language pairs with no bi-text or that were not in the pre-training corpus, and present extensive analysis of which factors contribute the most to effective pre-training.1}
+  abstract = {This paper demonstrates that multilingual denoising pre-training produces significant performance gains across a wide variety of machine translation (MT) tasks. We present mBART---a sequence-to-sequence denoising auto-encoder pre-trained on large-scale monolingual corpora in many languages using the BART objective (Lewis et al., 2019). mBART is the first method for pre-training a complete sequence-to-sequence model by denoising full texts in multiple languages, whereas previous approaches have focused only on the encoder, decoder, or reconstructing parts of the text. Pre-training a complete model allows it to be directly fine-tuned for supervised (both sentence-level and document-level) and unsupervised machine translation, with no task- specific modifications. We demonstrate that adding mBART initialization produces performance gains in all but the highest-resource settings, including up to 12 BLEU points for low resource MT and over 5 BLEU points for many document-level and unsupervised models. We also show that it enables transfer to language pairs with no bi-text or that were not in the pre-training corpus, and present extensive analysis of which factors contribute the most to effective pre-training.1}
 }
 
-@online{muller2022BERT101State,
+@misc{muller2022BERT101State,
   title = {{{BERT}} 101 🤗 {{State Of The Art NLP Model Explained}}},
   author = {Muller, Britney},
-  date = {2022-03-02},
+  year = {2022},
+  month = mar,
+  journal = {🤗 Blog},
   url = {https://huggingface.co/blog/bert-101},
   urldate = {2023-02-25},
-  abstract = {We’re on a journey to advance and democratize artificial intelligence through open source and open science.},
-  langid = {english},
-  organization = {🤗 Blog}
+  abstract = {We're on a journey to advance and democratize artificial intelligence through open source and open science.},
+  langid = {english}
 }
 
-@online{radford2019LanguageModelsAre,
+@misc{radford2019LanguageModelsAre,
   title = {Language Models Are Unsupervised Multitask Learners},
   author = {Radford, Alec and Wu, Jeffrey and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
-  date = {2019},
-  pubstate = {prepublished}
+  year = {2019}
 }
 
-@online{tang2020MultilingualTranslationExtensible,
+@misc{tang2020MultilingualTranslationExtensible,
   title = {Multilingual {{Translation}} with {{Extensible Multilingual Pretraining}} and {{Finetuning}}},
   author = {Tang, Yuqing and Tran, Chau and Li, Xian and Chen, Peng-Jen and Goyal, Naman and Chaudhary, Vishrav and Gu, Jiatao and Fan, Angela},
-  date = {2020-08-02},
+  year = {2020},
+  month = aug,
+  number = {arXiv:2008.00401},
   eprint = {2008.00401},
-  eprinttype = {arXiv},
-  eprintclass = {cs},
+  primaryclass = {cs},
+  publisher = {arXiv},
   doi = {10.48550/arXiv.2008.00401},
   url = {http://arxiv.org/abs/2008.00401},
   urldate = {2022-11-30},
   abstract = {Recent work demonstrates the potential of multilingual pretraining of creating one model that can be used for various tasks in different languages. Previous work in multilingual pretraining has demonstrated that machine translation systems can be created by finetuning on bitext. In this work, we show that multilingual translation models can be created through multilingual finetuning. Instead of finetuning on one direction, a pretrained model is finetuned on many directions at the same time. Compared to multilingual models trained from scratch, starting from pretrained models incorporates the benefits of large quantities of unlabeled monolingual data, which is particularly important for low resource languages where bitext is not available. We demonstrate that pretrained models can be extended to incorporate additional languages without loss of performance. We double the number of languages in mBART to support multilingual machine translation models of 50 languages. Finally, we create the ML50 benchmark, covering low, mid, and high resource languages, to facilitate reproducible research by standardizing training and evaluation data. On ML50, we demonstrate that multilingual finetuning improves on average 1 BLEU over the strongest baselines (being either multilingual from scratch or bilingual finetuning) while improving 9.3 BLEU on average over bilingual baselines from scratch.},
-  pubstate = {prepublished},
+  archiveprefix = {arXiv},
   keywords = {Computer Science - Computation and Language}
 }
 
 @inproceedings{vaswani2017AttentionAllYou,
   title = {Attention Is {{All}} You {{Need}}},
   booktitle = {Advances in {{Neural Information Processing Systems}} 30},
-  author = {Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N and Kaiser, Łukasz and Polosukhin, Illia},
+  author = {Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N and Kaiser, {\L}ukasz and Polosukhin, Illia},
   editor = {Guyon, I. and Luxburg, U. V. and Bengio, S. and Wallach, H. and Fergus, R. and Vishwanathan, S. and Garnett, R.},
-  date = {2017},
+  year = {2017},
   pages = {5998--6008},
   publisher = {Curran Associates, Inc.},
-  location = {Long Beach, California},
+  address = {Long Beach, California},
   url = {https://proceedings.neurips.cc/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf},
   urldate = {2019-02-16},
-  eventtitle = {{{NeurIPS}} 2017},
   keywords = {neural network,neural network/architecture}
 }
