@@ -6,8 +6,8 @@ Tuning configurations
 
 ### Training duration
 
-- `max_epochs: Optional[int] = None`
-- `max_steps: Optional[int] = None`
+- `max_epochs: int | None = None`
+- `max_steps: int | None = None`
 
 Respectively the maximum number of epochs (full pass across the dataset) or \[optimisation\] steps to train for. If both are set, whichever of these two is reached first will stop training.
 
@@ -23,7 +23,7 @@ device batches of a size bigger than $1$, this **must** be a multiple of `device
 - `betas: Tuple[float, float] = (0.9, 0.98)`
 - `epsilon: float = 1e-8`
 - `learning_rate: float = 1e-4`
-- `weight_decay: Optional[float] = None`
+- `weight_decay: flaot | None = None`
 
 These are respectively the $β$ and $ε$ parameters and the base learning rate for the Adam optimizer
 {cite}`kingma2014AdamMethodStochastic` and the weight decay rate. See the [Pytorch
@@ -31,7 +31,7 @@ documentation](https://pytorch.org/docs/stable/generated/torch.optim.Adam.html) 
 
 ### Gradient clipping
 
-- `gradient_clipping: Optional[Union[float, int]] = None`
+- `gradient_clipping: float | int | None = None`
 
 If non-`None`, this is the maximum allowed gradient norm. Longer gradients will be clipped to this
 length, preserving their direction. See the [Pytorch
@@ -40,7 +40,7 @@ implementation details.
 
 ### Learning rate schedule
 
-- `lr_decay_steps: Optional[int] = None`
+- `lr_decay_steps: int | None = None`
 - `warmup_steps: int = 0`
 
 These are the number of step in the slanted triangular learning rate schedule

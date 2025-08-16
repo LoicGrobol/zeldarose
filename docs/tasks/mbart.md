@@ -34,11 +34,11 @@ optimized loss.
 
 ```python
 change_ratio: float = 0.3
-denoise_langs: Optional[List[str]]
+denoise_langs: list[str] | None
 denoise_loss_ratio: float = 0.5
 poisson_lambda: float = 3.0
-source_langs: Optional[List[str]]
-target_langs: Optional[List[str]]
+source_langs: list[str] | None
+target_langs: list[str] | None
 strict_langs: bool = False
 ```
 

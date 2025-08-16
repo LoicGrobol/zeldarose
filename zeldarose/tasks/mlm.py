@@ -287,9 +287,7 @@ def get_training_model(
     else:
         _task_config = MLMTaskConfig()
 
-    if (
-        mask_token_index := cast(Union[int, None], getattr(tokenizer, "mask_token_id", None))
-    ) is None:
+    if (mask_token_index := cast(int | None, getattr(tokenizer, "mask_token_id", None))) is None:
         mask_token_index = cast(int, tokenizer.convert_tokens_to_ids(tokenizer.mask_token))
     vocabulary_size = tokenizer.vocab_size
 

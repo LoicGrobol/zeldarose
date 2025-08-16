@@ -450,9 +450,7 @@ def get_training_model(
     else:
         raise ValueError("You must provide either a pretrained model or a model config")
 
-    if (
-        mask_token_index := cast(Union[int, None], getattr(tokenizer, "mask_token_id", None))
-    ) is None:
+    if (mask_token_index := cast(int | None, getattr(tokenizer, "mask_token_id", None))) is None:
         if tokenizer.mask_token is None:
             logger.warning("No mask token in pretrained tokenizer, adding one.")
             tokenizer.add_special_tokens({"mask_token": "<mask>"})

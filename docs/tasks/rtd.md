@@ -22,7 +22,7 @@ A word of warning: the success in this task is heavily dependent on subtle hyper
 
 ```python
 discriminator_loss_weight: float = 1.0
-embeddings_sharing: Optional[Literal["deberta", "electra"]] = None
+embeddings_sharing: Literal["deberta", "electra"] | None = None
 mask_ratio: float = 0.15
 ```
 
