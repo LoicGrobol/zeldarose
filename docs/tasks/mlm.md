@@ -1,4 +1,4 @@
-Masked Language Modeling
+Masked language modeling
 ========================
 
 The task proposed *inter alios* by {cite:ts}`devlin2018BERTPretrainingDeep` for pretraining of

@@ -1,4 +1,4 @@
-Next Token Prediction
+Next token prediction
 ======================
 
 The task also known as *Causal Language Modelling*, originating in
