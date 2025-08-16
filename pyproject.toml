@@ -17,7 +17,7 @@ classifiers = [
     "Environment :: Console",
 ]
 keywords = ["nlp", "transformers", "language-model"]
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
     "click >= 8.0.4, < 9.0",
     "datasets >= 3.0, < 4.1",
