@@ -14,9 +14,13 @@ between the two models: the generator is in general much smaller than the discri
 resulting ensemble can be made smaller (in terms of number of parameters) and trained faster than a
 MLM model of equivalent performances.
 
-Our implementation here follows more closely that of {cite:ts}`he2021DeBERTaV3ImprovingDeBERTa`, who extended the original ELECTRA to multilingualism and larger size, using tricks first presented by {cite:ts}`he2020DeBERTaDecodingenhancedBERT`.
+Our implementation here follows more closely that of {cite:ts}`he2021DeBERTaV3ImprovingDeBERTa`, who
+extended the original ELECTRA to multilingualism and larger size, using tricks first presented by
+{cite:ts}`he2020DeBERTaDecodingenhancedBERT`.
 
-A word of warning: the success in this task is heavily dependent on subtle hyperparameters choices. We have done our best to select reasonable default, but if you insist on using this pretraining, a comprehensive grid search might be in order (which- can defeat its frugality advantages).
+A word of warning: the success in this task is heavily dependent on subtle hyperparameters choices.
+We have done our best to select reasonable default, but if you insist on using this pretraining, a
+comprehensive grid search might be in order (which- can defeat its frugality advantages).
 
 ## Task parameters
 
