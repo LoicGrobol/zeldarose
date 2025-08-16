@@ -79,7 +79,7 @@ def test_train_mbart(
             str(translation_dataset_path),
             *extra_args,
         ],
-        env={"TORCH_DISTRIBUTED_DEBUG": "DETAIL", **os.environ},
+        env={"TORCH_DISTRIBUTED_DEBUG": "INFO", **os.environ},
     )
     assert ret.success
 
@@ -127,7 +127,7 @@ def test_train_mlm(
             str(raw_text_path),
             *extra_args,
         ],
-        env={"TORCH_DISTRIBUTED_DEBUG": "DETAIL", **os.environ},
+        env={"TORCH_DISTRIBUTED_DEBUG": "INFO", **os.environ},
     )
     assert ret.success
 
@@ -172,8 +172,9 @@ def test_finetune_ntp(
             str(raw_text_path),
             *extra_args,
         ],
-        env={"TORCH_DISTRIBUTED_DEBUG": "DETAIL", **os.environ},
+        env={"TORCH_DISTRIBUTED_DEBUG": "INFO", **os.environ},
     )
+    print(ret.__dict__)
     assert ret.success
 
 
@@ -224,7 +225,7 @@ def test_train_rtd(
             str(raw_text_path),
             *extra_args,
         ],
-        env={"TORCH_DISTRIBUTED_DEBUG": "DETAIL", **os.environ},
+        env={"TORCH_DISTRIBUTED_DEBUG": "INFO", **os.environ},
     )
     assert ret.success
 
