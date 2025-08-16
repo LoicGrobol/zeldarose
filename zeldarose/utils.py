@@ -5,7 +5,7 @@ import subprocess
 import sys
 import warnings
 from types import FrameType
-from typing import TextIO
+from typing import TextIO, Union
 from collections.abc import Callable
 
 import loguru
@@ -79,15 +79,15 @@ def setup_logging(
     console: rich.console.Console | None = None,
     log_file: pathlib.Path | None = None,
     replace_warnings: bool = True,
-    sink: (
-        Callable[["loguru.Message"], None]
-        | logging.Handler
-        | "loguru.PathLikeStr"
-        | str
-        | TextIO
-        | "loguru.Writable"
-        | None
-    ) = None,
+    sink: Union[
+        Callable[["loguru.Message"], None],
+        logging.Handler,
+        "loguru.PathLikeStr",
+        str,
+        TextIO,
+        "loguru.Writable",
+        None,
+    ] = None,
     verbose: bool = False,
 ) -> list[int]:
     res: list[int] = []
