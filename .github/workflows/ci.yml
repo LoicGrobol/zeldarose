@@ -45,6 +45,7 @@ jobs:
           - "3.11"
           - "3.12"
           - "3.13"
+          - "3.13t"
     steps:
       - uses: actions/checkout@v5
       - name: Install uv

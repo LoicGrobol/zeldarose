@@ -1,5 +1,5 @@
 minversion = "4"
-env_list = ["py313", "py312", "py311", "py310"]
+env_list = ["py313t", "py313", "py312", "py311", "py310"]
 isolated_build = true
 skip_missing_interpreters = true
 
@@ -20,4 +20,6 @@ python = """
 3.10: py310
 3.11: py311
 3.12: py312
-3.13: py313"""
+3.13: py313
+3.13t: py313t
+"""
