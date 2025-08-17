@@ -98,7 +98,7 @@ jobs:
           name: dist-wheel
           path: ./dist/*.whl
   upload_pypi:
-    needs: [build_wheels, build_sdist]
+    needs: build
     runs-on: ubuntu-latest
     if: >
       (github.event_name == 'release' && github.event.action == 'published')
