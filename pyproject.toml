@@ -33,7 +33,7 @@ dependencies = [
     "system_info",
     "tensorboardx",
     "torchmetrics >= 1.0, < 2.0",
-    "tokenizers >= 0.10, < 0.22",
+    "tokenizers >= 0.10, < 0.23",
     "tomli",
     "torch >= 2.0, < 2.9",
     "transformers >= 4.55, < 5.0"
