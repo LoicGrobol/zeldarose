@@ -20,7 +20,7 @@ keywords = ["nlp", "transformers", "language-model"]
 requires-python = ">=3.10"
 dependencies = [
     "click >= 8.0.4, < 9.0",
-    "datasets >= 3.0, < 4.1",
+    "datasets >= 3.0, < 4.2",
     "filelock",
     "jsonlines",
     "lightning >= 2.5.3, < 2.6",
