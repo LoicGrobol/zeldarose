@@ -35,7 +35,7 @@ dependencies = [
     "torchmetrics >= 1.0, < 2.0",
     "tokenizers >= 0.10, < 0.23",
     "tomli",
-    "torch >= 2.0, < 2.9",
+    "torch >= 2.0, < 2.10",
     "transformers >= 4.55, < 5.0"
 ]
 
