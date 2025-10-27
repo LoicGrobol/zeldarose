@@ -92,7 +92,7 @@ jobs:
           enable-cache: true
       - name: Build wheels
         run: uv build --python ${{ matrix.python-version }} --wheel --sdist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: dist-wheel
           path: ./dist/*.whl
