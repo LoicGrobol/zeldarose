@@ -4,10 +4,9 @@ from typing import TYPE_CHECKING, Any, NamedTuple, cast
 import pydantic
 import torch
 import torch.jit
-import torch.utils.data
 import transformers
 from loguru import logger
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
+from lightning_fabric.utilities.rank_zero import rank_zero_only
 
 import zeldarose.datasets.transform
 from zeldarose.common import MaskedAccuracy, TrainConfig, TrainingModule

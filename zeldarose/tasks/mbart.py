@@ -9,10 +9,8 @@ from collections.abc import Collection, Mapping
 
 import pydantic
 import torch
-import torch.jit
-import torch.utils.data
 import transformers
-from lightning_utilities.core.rank_zero import rank_zero_only
+from lightning_fabric.utilities.rank_zero import rank_zero_only
 from loguru import logger
 from torch.nn.utils.rnn import pad_sequence
 from torchmetrics import SacreBLEUScore
