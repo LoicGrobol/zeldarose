@@ -11,7 +11,7 @@ on:
         default: "false"
         required: true
 env:
-  main-python-version: "3.13"
+  main-python-version: "3.14"
 
 jobs:
   lint:
@@ -41,10 +41,10 @@ jobs:
           - ubuntu-latest
           - macos-latest
         python-version:
-          - "3.10"
           - "3.11"
           - "3.12"
           - "3.13"
+          - "3.14"
     steps:
       - uses: actions/checkout@v5
       - name: Install uv
@@ -81,7 +81,7 @@ jobs:
         os:
           - ubuntu-latest
         python-version:
-          - "3.13"
+          - "3.14"
     needs: test
     steps:
       - uses: actions/checkout@v5
