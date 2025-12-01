@@ -23,7 +23,7 @@ dependencies = [
     "datasets >= 3.0, < 4.5",
     "filelock",
     "jsonlines",
-    "lightning >= 2.5.3, < 2.6",
+    "lightning >= 2.5.3, < 2.7",
     "loguru",
     "pydantic",
     "pytorch-lightning >= 2.5.3, < 2.6",
