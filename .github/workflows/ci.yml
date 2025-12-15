@@ -103,7 +103,7 @@ jobs:
       (github.event_name == 'release' && github.event.action == 'published')
       || (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_trigger == 'true')
     steps:
-      - uses: actions/download-artifact@v6
+      - uses: actions/download-artifact@v7
         with:
           pattern: dist-*
           path: dist
