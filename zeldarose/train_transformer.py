@@ -295,7 +295,7 @@ def main(
 
     logger.debug(f"Loading config from {config_path}")
     if config_path is not None:
-        with open(config_path, "rb") as in_stream:
+        with config_path.open("rb") as in_stream:
             config = tomli.load(in_stream)
     else:
         logger.warning(

@@ -13,7 +13,6 @@ import transformers
 from lightning_fabric.utilities.rank_zero import rank_zero_only
 from loguru import logger
 from torch.nn.utils.rnn import pad_sequence
-from torchmetrics import SacreBLEUScore
 
 import zeldarose.datasets.mbart
 from zeldarose.common import TrainConfig, TrainingModule
@@ -65,7 +64,7 @@ def infill_noise(
     # BIG LOOP OF HELL
     # You might believe this makes unnecessary copies but it actually Does Not!
     for sent, mask, jump, sent_len, keep in zip(
-        input_ids, replace_mask, all_jumps, lengths, keep_mask
+        input_ids, replace_mask, all_jumps, lengths, keep_mask, strict=True
     ):
         current = []
         pos = 0

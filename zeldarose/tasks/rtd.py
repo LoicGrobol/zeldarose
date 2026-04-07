@@ -5,9 +5,8 @@ import pydantic
 import pytorch_lightning as pl
 import torch
 import torch.jit
-import torch.utils.data
 import transformers
-from lightning_utilities.core.rank_zero import rank_zero_only
+from lightning_fabric.utilities.rank_zero import rank_zero_only
 from loguru import logger
 
 import zeldarose.datasets.transform
