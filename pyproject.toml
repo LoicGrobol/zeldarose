@@ -6,14 +6,14 @@ build-backend = "setuptools.build_meta"
 name = "zeldarose"
 version = "0.13.0"
 description = "Train transformer-based models"
-license = { text = "MIT" }
-authors = [{ name = "Loïc Grobol", email = "loic.grobol@gmail.com" }]
+license = "EUPL-1.2"
+authors = [{ name = "Morgan Grobol", email = "morgan.grobol@tuta.com" }]
 classifiers = [
     "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Environment :: Console",
 ]
 keywords = ["nlp", "transformers", "language-model"]

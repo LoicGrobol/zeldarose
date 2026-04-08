@@ -27,7 +27,7 @@ Check out [Get started](get_started.md).
 ```bibtex
 @inproceedings{grobol:hal-04262806,
     TITLE = {{Zelda Rose: a tool for hassle-free training of transformer models}},
-    AUTHOR = {Grobol, Lo{\"i}c},
+    AUTHOR = {Grobol, Loïc},
     URL = {https://hal.science/hal-04262806},
     BOOKTITLE = {{3rd Workshop for Natural Language Processing Open Source Software (NLP-OSS)}},
     ADDRESS = {Singapore, Indonesia},

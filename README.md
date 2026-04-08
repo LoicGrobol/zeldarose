@@ -1,5 +1,4 @@
-Zelda Rose
-==========
+# Zelda Rose
 
 [![Latest PyPI version](https://img.shields.io/pypi/v/zeldarose.svg)](https://pypi.org/project/zeldarose)
 [![Build Status](https://github.com/LoicGrobol/zeldarose/actions/workflows/ci.yml/badge.svg)](https://github.com/LoicGrobol/zeldarose/actions?query=workflow%3ACI)
@@ -33,25 +32,26 @@ you are probably mostly interested in is `--config`, giving the path to a traini
 we have [`examples/`](examples)).
 
 The parameters `--pretrained-models`, `--tokenizer` and `--model-config` are all fed directly to
-[Huggingface's `transformers`](https://huggingface.co/transformers) and can be [pretrained
-models](https://huggingface.co/transformers/pretrained_models.html) names or local path.
-
+[Huggingface's `transformers`](https://huggingface.co/transformers) and can be
+[pretrained models](https://huggingface.co/transformers/pretrained_models.html) names or local path.
 
 ## Distributed training
 
 This is somewhat tricky, you have several options
 
 - If you are running in a SLURM cluster use `--strategy ddp` and invoke via `srun`
+
   - You might want to preprocess your data first outside of the main compute allocation. The
     `--profile` option might be abused for that purpose, since it won't run a full training, but
     will run any data preprocessing you ask for. It might also be beneficial at this step to load a
     placeholder model such as
     [RoBERTa-minuscule](https://huggingface.co/lgrobol/roberta-minuscule/tree/main) to avoid runnin
     out of memory, since the only thing that matter for this preprocessing is the tokenizer.
+
 - Otherwise you have two options
 
-  - Run with `--strategy ddp_spawn`, which uses `multiprocessing.spawn` to start the process
-    swarm (tested, but possibly slower and more limited, see `pytorch-lightning` doc)
+  - Run with `--strategy ddp_spawn`, which uses `multiprocessing.spawn` to start the process swarm
+    (tested, but possibly slower and more limited, see `pytorch-lightning` doc)
   - Run with `--strategy ddp` and start with `torch.distributed.launch` with `--use_env` and
     `--no_python` (untested)
 
@@ -71,7 +71,7 @@ This is somewhat tricky, you have several options
 ```bibtex
 @inproceedings{grobol:hal-04262806,
     TITLE = {{Zelda Rose: a tool for hassle-free training of transformer models}},
-    AUTHOR = {Grobol, Lo{\"i}c},
+    AUTHOR = {Grobol, Loïc},
     URL = {https://hal.science/hal-04262806},
     BOOKTITLE = {{3rd Workshop for Natural Language Processing Open Source Software (NLP-OSS)}},
     ADDRESS = {Singapore, Indonesia},
@@ -82,3 +82,10 @@ This is somewhat tricky, you have several options
     HAL_VERSION = {v1},
 }
 ```
+
+## Licence
+
+This software is released under the
+[EUPL 1.2](https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12) or later,
+with some files released under compatible free licences, see [LICENCE.md](LICENCE.md) for the
+details.
