@@ -92,7 +92,7 @@ jobs:
           enable-cache: true
       - name: Build wheels
         run: uv build --python ${{ matrix.python-version }} --wheel --sdist
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: dist-wheel
           path: ./dist/*.whl
@@ -103,7 +103,7 @@ jobs:
       (github.event_name == 'release' && github.event.action == 'published')
       || (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_trigger == 'true')
     steps:
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           pattern: dist-*
           path: dist
