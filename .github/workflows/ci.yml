@@ -69,10 +69,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-transformers-
       - name: Run tox
-        run: |
-          source .venv/bin/activate
-          uv pip install tox tox-gh-actions tox-uv
-          tox
+        run: uv tool run --with tox-gh --with tox-uv tox -- --verbose
   build:
     name: Build wheels and sdist
     runs-on: ${{ matrix.os }}
