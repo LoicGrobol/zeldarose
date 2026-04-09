@@ -14,7 +14,6 @@ import transformers
 from lightning_utilities.core.rank_zero import rank_zero_only
 from loguru import logger
 from torch.nn.utils.rnn import pad_sequence
-from torchmetrics import SacreBLEUScore
 
 import zeldarose.datasets.mbart
 from zeldarose.common import TrainConfig, TrainingModule

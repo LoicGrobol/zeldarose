@@ -9,41 +9,33 @@ description = "Train transformer-based models"
 license = "EUPL-1.2"
 authors = [{ name = "Morgan Grobol", email = "morgan.grobol@tuta.com" }]
 classifiers = [
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
-    "Environment :: Console",
+	"Programming Language :: Python :: 3.11",
+	"Programming Language :: Python :: 3.12",
+	"Programming Language :: Python :: 3.13",
+	"Programming Language :: Python :: 3.14",
+	"Environment :: Console",
 ]
 keywords = ["nlp", "transformers", "language-model"]
 requires-python = ">=3.10"
 dependencies = [
-    "click >= 8.0.4, < 9.0",
-    "datasets >= 3.0, < 4.5",
-    "filelock",
-    "jsonlines",
-    "lightning >= 2.5.3, < 2.7",
-    "loguru",
-    "pydantic",
-    "pytorch-lightning >= 2.5.3, < 2.7",
-    "rich  >= 14, < 15",
-    "sacrebleu",
-    "sacremoses",
-    "system_info",
-    "tensorboardx",
-    "torchmetrics >= 1.0, < 2.0",
-    "tokenizers >= 0.10, < 0.23",
-    "tomli",
-    "torch >= 2.0, < 2.12",
-    "transformers >= 4.55, < 5.0"
-]
-
-[project.optional-dependencies]
-lint = ["mypy", "ruff"]
-tests = [
-    "pytest",
-    "pytest-console-scripts",
-    "pytest-github-actions-annotate-failures",
+	"click >= 8.0.4, < 9.0",
+	"datasets >= 3.0, < 4.5",
+	"filelock",
+	"jsonlines",
+	"lightning >= 2.5.3, < 2.7",
+	"loguru",
+	"pydantic",
+	"pytorch-lightning >= 2.5.3, < 2.7",
+	"rich  >= 14, < 15",
+	"sacrebleu",
+	"sacremoses",
+	"system_info",
+	"tensorboardx",
+	"torchmetrics >= 1.0, < 2.0",
+	"tokenizers >= 0.10, < 0.23",
+	"tomli",
+	"torch >= 2.0, < 2.12",
+	"transformers >= 4.55, < 5.0",
 ]
 
 [project.readme]
@@ -65,24 +57,24 @@ zeldarose = "zeldarose.main:cli"
 [tool.ruff]
 line-length = 100
 lint.select = [
-    "A",
-    "B",
-    "C90",
-    "E",
-    "F",
-    "N",
-    "NPY",
-    "PT",
-    "PTH",
-    "PYI",
-    "S",
-    "W",
+	"A",
+	"B",
+	"C90",
+	"E",
+	"F",
+	"N",
+	"NPY",
+	"PT",
+	"PTH",
+	"PYI",
+	"S",
+	"W",
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = [
-    "S101", # asserts allowed in tests
-    "ARG",  # Unused function args -> fixtures nevertheless are functionally relevant
+	"S101", # asserts allowed in tests
+	"ARG",  # Unused function args -> fixtures nevertheless are functionally relevant
 ]
 
 [tool.mypy]
@@ -96,6 +88,8 @@ tmp_path_retention_policy = "failed"
 tmp_path_retention_count = 1
 
 [dependency-groups]
-ci = [
-    "nox>=2026.2.9",
-]
+dev = [{ include-group = "lint" }, { include-group = "tests" }]
+tests = ["pytest", "pytest-console-scripts"]
+ci = ["pytest-github-actions-annotate-failures", { include-group = "tests" }]
+lint = ["ruff"]
+nox = ["nox>=2026.2.9"]
