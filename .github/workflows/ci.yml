@@ -53,14 +53,10 @@ jobs:
         id: hf_cache
         run: |
           uv tool run --with huggingface_hub --python ${{ matrix.python-version }} 'python' -c 'from huggingface_hub.constants import HF_HOME; print(f"dir={HF_HOME}")' >> $GITHUB_OUTPUT
-          echo "version=$(uv pip show huggingface_hub | grep Version)" >> $GITHUB_OUTPUT
-          echo "${{ runner.os }}-transformers-${{ steps.transfo-install.outputs.version }}"
       - uses: actions/cache@v5
         with:
           path: ${{ steps.hf_cache.outputs.dir }}
-          key: ${{ runner.os }}-transformers-${{ steps.hf_cache.outputs.version }}
-          restore-keys: |
-            ${{ runner.os }}-transformers-
+          key: ${{ runner.os }}-transformers
       - name: Run nox
         run: uv tool run nox --session tests --python ${{ matrix.python-version }} -- --verbose
   build:
