@@ -1,3 +1,5 @@
+**This repository has migrated to Codeberg: https://codeberg.org/mgrobol/zeldarose please report issues and PR there**
+
 # Zelda Rose
 
 [![Latest PyPI version](https://img.shields.io/pypi/v/zeldarose.svg)](https://pypi.org/project/zeldarose)
