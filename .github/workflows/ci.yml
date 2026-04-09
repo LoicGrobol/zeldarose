@@ -53,14 +53,10 @@ jobs:
           cache-dependency-glob: "**/pyproject.toml"
           cache-suffix: main-py${{ matrix.python-version }}
           enable-cache: true
-      - name: Create base venv
-        run: uv venv --python ${{ matrix.python-version }}
-      - name: Get transformers and cache
-        id: transfo-install
+      - name: HF cache
+        id: hf cache
         run: |
-          source .venv/bin/activate
-          uv pip install --upgrade transformers
-          python -c "from huggingface_hub.constants import HF_HUB_CACHE; print(f'dir={HF_HUB_CACHE}')" >> $GITHUB_OUTPUT
+          uv run --with huggingface_hub --python ${{ matrix.python-version }} 'python' -c 'from huggingface_hub.constants import HF_HUB_CACHE; print(f"dir={HF_HUB_CACHE}")' >> $GITHUB_OUTPUT
           echo "version=$(pip show transformers | grep Version)" >> $GITHUB_OUTPUT
       - uses: actions/cache@v5
         with:
@@ -68,8 +64,8 @@ jobs:
           key: ${{ runner.os }}-transformers-${{ steps.transfo-install.outputs.version }}
           restore-keys: |
             ${{ runner.os }}-transformers-
-      - name: Run tox
-        run: uv tool run --with tox-gh --with tox-uv tox -- --verbose
+      - name: Run nox
+        run: uv tool run nox --session test --python ${{ matrix.python-version }} -- --verbose
   build:
     name: Build wheels and sdist
     runs-on: ${{ matrix.os }}

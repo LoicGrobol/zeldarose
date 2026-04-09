@@ -94,3 +94,8 @@ plugins = ["pydantic.mypy"]
 script_launch_mode = "subprocess"
 tmp_path_retention_policy = "failed"
 tmp_path_retention_count = 1
+
+[dependency-groups]
+ci = [
+    "nox>=2026.2.9",
+]
