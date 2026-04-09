@@ -54,7 +54,7 @@ jobs:
           cache-suffix: main-py${{ matrix.python-version }}
           enable-cache: true
       - name: HF cache
-        id: hf cache
+        id: hf_cache
         run: |
           uv run --with huggingface_hub --python ${{ matrix.python-version }} 'python' -c 'from huggingface_hub.constants import HF_HUB_CACHE; print(f"dir={HF_HUB_CACHE}")' >> $GITHUB_OUTPUT
           echo "version=$(pip show transformers | grep Version)" >> $GITHUB_OUTPUT
