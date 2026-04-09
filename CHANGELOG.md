@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 - Dependencies updates
 - Re-licencing under the EUPL 1.2, in order to be copyleft from now on
+- Move task running to Nox
+- Convert package extras to dependency groups (might be **BREAKING** for your pipeline)
 
 ## [0.13.0] - 2025-08-17
 
