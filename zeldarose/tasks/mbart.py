@@ -9,7 +9,6 @@ from collections.abc import Collection, Mapping
 
 import pydantic
 import torch
-import torch.jit
 import torch.utils.data
 import transformers
 from lightning_utilities.core.rank_zero import rank_zero_only

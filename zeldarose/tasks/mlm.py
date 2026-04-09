@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING, Any, NamedTuple, cast
 
 import pydantic
 import torch
-import torch.jit
 import torch.utils.data
 import transformers
 from loguru import logger
@@ -22,7 +21,7 @@ class MaskedTokens(NamedTuple):
 
 
 # TODO: How to do whole-word masking?
-@torch.jit.script
+@torch.compile
 def mask_tokens(
     inputs: torch.Tensor,
     input_mask_index: int,

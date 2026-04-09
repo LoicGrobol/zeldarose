@@ -1,5 +1,4 @@
-Changelog
-=========
+# Changelog
 
 All notable changes to this project will be documented in this file.
 
@@ -8,13 +7,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
+### Changed
+
+- Dependencies updates
+- Re-licencing under the EUPL 1.2, in order to be copyleft from now on
+
 ## [0.13.0] - 2025-08-17
 
 ### Added
 
 - The next token prediction (NTP) task has been added, by popular demand.
 
-### Changes
+### Changed
 
 - Dependencies updates
 - Slight `--help` improvements
@@ -61,13 +65,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
   lightning precision plugins.
 
 ## [0.9.0] - 2024-04-17
-[Unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.10.0...HEAD
-[0.13.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.10.0...v0.10.0
-[0.12.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.10.0...v0.10.0
-[0.11.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.10.0...v0.10.0
-[0.10.1]: https://github.com/LoicGrobol/zeldarose/compare/v0.10.0...v0.10.0
-[0.10.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.9.0...v0.10.0
-[0.9.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.8.0...v0.9.0
 
 ### Fixed
 
@@ -79,7 +76,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 - 🤗 datasets compatibility changed to `>= 2.18, < 2.19`
 
 ## [0.8.0] - 2023-10-06
-[0.8.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.7.3...v0.8.0
 
 ### Fixed
 
@@ -93,15 +89,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
   options is **deprecated** and will be removed in a future version.
 
 ## [0.7.3] - 2023-02-27
-[0.7.3]: https://github.com/LoicGrobol/zeldarose/compare/v0.7.2...v0.7.3
 
 ### Fixed
 
 - Behaviour when asking for denoising in mBART with a model that has no mask token.
 
 ## [0.7.2] - 2023-02-26
-
-[0.7.2]: https://github.com/LoicGrobol/zeldarose/compare/v0.7.1...v0.7.2
 
 ### Fixed
 
@@ -111,15 +104,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [0.7.1] - 2023-02-25
 
-[0.7.1]: https://github.com/LoicGrobol/zeldarose/compare/v0.7.0...v0.7.1
-
 ### Fixed
 
 - Translate loss logging is not always zero anymore.
 
 ## [0.7.0] 2023-02-25
-
-[0.7.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.6.0...0.7.0
 
 ### Added
 
@@ -143,10 +132,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
   - `pytorch-lightning < 1.9`
   - `tokenizers < 0.14`
 
-
 ## [0.6.0] — 2022-07-28
-
-[0.6.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.5.0...v0.6.0
 
 ### Changed
 
@@ -160,14 +146,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [0.5.0] — 2022-03-31
 
-[0.5.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.4.0...v0.5.0
-
 ### Added
 
 - `lint` extra that install linting tools and plugins
 - Config for [flakeheaven](https://github.com/flakeheaven/flakeheaven)
-- Support for [`pytorch-lightning
-  1.6`](https://github.com/PyTorchLightning/pytorch-lightning/releases/tag/1.6.0)
+- Support for
+  [`pytorch-lightning 1.6`](https://github.com/PyTorchLightning/pytorch-lightning/releases/tag/1.6.0)
 
 ### Changed
 
@@ -176,15 +160,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [0.4.0] — 2022-03-18
 
-[0.4.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.4...v0.4.0
-
 ### Added
 
 - Replaced Token Detection ([ELECTRA](https://arxiv.org/abs/2003.10555)-like) pretraining
   - Some of the API is still provisional, the priority was to get it out, a nicer interface will
     hopefully come later.
-- `--val-check-period` and `--step-save-period` allowing to evaluate and save a model decoupled
-  from epochs. This should be useful for training with very long epochs.
+- `--val-check-period` and `--step-save-period` allowing to evaluate and save a model decoupled from
+  epochs. This should be useful for training with very long epochs.
 - The datasets path in `zeldarose-transformer` can now be 🤗 hub handles. See `--help`.
 
 ### Changed
@@ -203,22 +185,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ### Internal
 
-- Tests now run in [Pytest](https://pytest.org) using the [console-scripts
-  plugin](https://github.com/kvas-it/pytest-console-scripts) for smoke tests.
+- Tests now run in [Pytest](https://pytest.org) using the
+  [console-scripts plugin](https://github.com/kvas-it/pytest-console-scripts) for smoke tests.
 - Smoke tests now include `ddp_spawn` tests and tests on gpu devices if available.
 - Some refactoring for better factorization of the common utilities for MLM and RTD.
 
 ## [0.3.4] — 2021-12-21
-
-[0.3.4]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.3...v0.3.4
 
 ### Changed
 
 - Bump lightning to 1.5.x
 
 ## [0.3.3] — 2021-11-01
-
-[0.3.3]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.2...v0.3.3
 
 ### Changed
 
@@ -235,16 +213,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [0.3.2] — 2021-05-31
 
-[0.3.2]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.1...v0.3.2
-
 ### Fixed
 
 - Accuracy should stop NaN-ing
 - Empty lines in datasets are now ignored
 
 ## [0.3.1] — 2021-05-19
-
-[0.3.1]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.0...v0.3.1
 
 ### Fixed
 
@@ -260,16 +234,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [0.3.0] — 2021-04-23
 
-[0.3.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.0...v0.2.0
-
 ### Changed
 
 - Stop saving tokenizers in legacy format
 - Create data dir if they don't exist
 
 ## [0.2.0] — 2021-04-23
-
-[0.2.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.2.0...v0.1.1
 
 ### Added
 
@@ -304,10 +274,30 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 - Updated some obsolete doc
 
-[0.1.1]: https://github.com/LoicGrobol/zeldarose/compare/v0.1.0...v0.1.1
-
 ## [0.1.0] — 2021-04-06
 
 Initial release
 
 [0.1.0]: https://github.com/LoicGrobol/zeldarose/tree/v0.1.0
+[0.1.1]: https://github.com/LoicGrobol/zeldarose/compare/v0.1.0...v0.1.1
+[0.10.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.9.0...v0.10.0
+[0.10.1]: https://github.com/LoicGrobol/zeldarose/compare/v0.10.0...v0.10.0
+[0.11.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.10.0...v0.10.0
+[0.12.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.10.0...v0.10.0
+[0.13.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.10.0...v0.10.0
+[0.2.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.2.0...v0.1.1
+[0.3.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.0...v0.2.0
+[0.3.1]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.0...v0.3.1
+[0.3.2]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.1...v0.3.2
+[0.3.3]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.2...v0.3.3
+[0.3.4]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.3...v0.3.4
+[0.4.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.3.4...v0.4.0
+[0.5.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.4.0...v0.5.0
+[0.6.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.5.0...v0.6.0
+[0.7.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.6.0...0.7.0
+[0.7.1]: https://github.com/LoicGrobol/zeldarose/compare/v0.7.0...v0.7.1
+[0.7.2]: https://github.com/LoicGrobol/zeldarose/compare/v0.7.1...v0.7.2
+[0.7.3]: https://github.com/LoicGrobol/zeldarose/compare/v0.7.2...v0.7.3
+[0.8.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.7.3...v0.8.0
+[0.9.0]: https://github.com/LoicGrobol/zeldarose/compare/v0.8.0...v0.9.0
+[unreleased]: https://github.com/LoicGrobol/zeldarose/compare/v0.10.0...HEAD

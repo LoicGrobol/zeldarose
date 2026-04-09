@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Any, Literal, NamedTuple, cast
 import pydantic
 import pytorch_lightning as pl
 import torch
-import torch.jit
 import torch.utils.data
 import transformers
 from lightning_utilities.core.rank_zero import rank_zero_only
@@ -34,7 +33,7 @@ class RTDOutput(NamedTuple):
     rtd_labels: torch.Tensor
 
 
-@torch.jit.script
+@torch.compile
 def mask_tokens(
     tokens: torch.Tensor,
     input_mask_index: int,
