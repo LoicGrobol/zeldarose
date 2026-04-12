@@ -35,7 +35,7 @@ dependencies = [
 	"tokenizers >= 0.10, < 0.23",
 	"tomli",
 	"torch >= 2.0, < 2.12",
-	"transformers >= 4.55, < 5.0",
+	"transformers >= 4.55, < 6.0",
 ]
 
 [project.readme]
